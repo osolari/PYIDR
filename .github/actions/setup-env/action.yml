@@ -1,0 +1,32 @@
+name: setup-env
+description: Composite action wrapping scripts/create_env.sh with caching.
+
+inputs:
+  python-version:
+    description: Python version
+    required: false
+    default: "3.11"
+  install-extras:
+    description: Comma-separated extras
+    required: false
+    default: dev
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+    - name: Cache venv
+      uses: actions/cache@v4
+      with:
+        path: .venv
+        key: venv-${{ runner.os }}-${{ inputs.python-version }}-${{ hashFiles('pyproject.toml','constraints.txt') }}
+    - name: Bootstrap env
+      shell: bash
+      env:
+        ENV_MANAGER: venv
+        JAX_BACKEND: cpu
+        INSTALL_EXTRAS: ${{ inputs.install-extras }}
+      run: bash scripts/create_env.sh
