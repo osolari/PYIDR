@@ -1,0 +1,17 @@
+\begin{table}[H]
+\centering
+\caption{Simulation design summary. Regimes S1--S4 follow the original IDR benchmark of \citet{LiBrownHuangBickel2011}; regime S5 introduces tail-dependent signal copulas drawn equally from $t_5$, Clayton, and Gumbel families. All regimes are evaluated at $K \in \{2, 5, 10, 50\}$ and $n \in \{2{,}000, 10{,}000, 50{,}000\}$.}
+\label{tab:sim-design}
+\small
+\begin{tabular}{lllll}
+\toprule
+Regime & Signal copula              & Reproducible $\pi^*$ & Marginals             & Notes \\
+\midrule
+S1     & Gaussian, $\rho = 0.85$    & 0.30                  & shared Gaussian        & baseline IDR S1 \\
+S2     & Gaussian, $\rho = 0.40$    & 0.30                  & shared Gaussian        & weak signal \\
+S3     & Gaussian, $\rho = 0.85$    & 0.10                  & heterogeneous Gaussian & sparse signal \\
+S4     & Gaussian, $\rho = 0.85$    & 0.30                  & heterogeneous skewed   & marginal mismatch \\
+S5     & mixture: $t_5$/Clayton/Gumbel & 0.30               & heterogeneous heavy-tail & heavy-tail extension \\
+\bottomrule
+\end{tabular}
+\end{table}

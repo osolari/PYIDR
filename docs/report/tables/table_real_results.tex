@@ -1,0 +1,56 @@
+\begin{table}[H]
+\centering
+\caption{Real-data discovery counts at IDR $\leq 0.05$ across the five real datasets. Each cell will report the number of features (or peaks, edges, variants) declared reproducible. Placeholder ``XX,XXX'' cells will be filled in the companion experimental paper.}
+\label{tab:real-disc}
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lccccc}
+\toprule
+Method & ENCODE CTCF & ENCODE ATAC & DREAM5 & Tabula Muris & Pan-UKBB \\
+\midrule
+Vanilla IDR (pairwise)             & XX,XXX & XXX,XXX & X,XXX & XX,XXX & XX,XXX \\
+eCV                                 & XX,XXX & XXX,XXX & X,XXX & XX,XXX & XX,XXX \\
+nestedIDR                           & XX,XXX & XXX,XXX & X,XXX & XX,XXX & XX,XXX \\
+ChIP-R                              & XX,XXX & XXX,XXX & X,XXX & XX,XXX & XX,XXX \\
+MaRR                                & XX,XXX & XXX,XXX & X,XXX & XX,XXX & XX,XXX \\
+\textbf{PY-IDR (MCMC)}              & XX,XXX & XXX,XXX & X,XXX & XX,XXX & XX,XXX \\
+\textbf{PY-IDR (VI)}                & XX,XXX & XXX,XXX & X,XXX & XX,XXX & XX,XXX \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{Posterior summary of the number of active dependence clusters $T$ in the reproducible component, across real datasets. Each cell reports posterior median (95\% credible interval).}
+\label{tab:real-clusters}
+\small
+\begin{tabular}{lcc}
+\toprule
+Dataset & PY-IDR posterior median $T$ & 95\% CI \\
+\midrule
+ENCODE 4 CTCF ChIP-seq           & XX & [XX, XX] \\
+ENCODE 4 ATAC-seq                & XX & [XX, XX] \\
+DREAM5 challenge                  & XX & [XX, XX] \\
+Tabula Muris pseudobulk           & XX & [XX, XX] \\
+Pan-UKBB GWAS                     & XX & [XX, XX] \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{Computational cost on real datasets. Wall-clock times are reported on a single 32-core node with NVIDIA A100 acceleration for VI; MCMC is CPU-only.}
+\label{tab:real-runtime}
+\small
+\begin{tabular}{lccc}
+\toprule
+Dataset & MCMC wall time & VI wall time & ESS / s (MCMC) \\
+\midrule
+ENCODE 4 CTCF ChIP-seq           & XX h    & XX min  & XX \\
+ENCODE 4 ATAC-seq                & XX h    & XX min  & XX \\
+DREAM5 challenge                  & XX min  & XX min  & XX \\
+Tabula Muris pseudobulk           & XX h    & XX min  & XX \\
+Pan-UKBB GWAS                     & XX h    & XX h    & XX \\
+\bottomrule
+\end{tabular}
+\end{table}

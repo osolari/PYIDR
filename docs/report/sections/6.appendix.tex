@@ -1,0 +1,33 @@
+\beginappendix
+
+\section{Supporting lemmas}
+\label{app:lemmas}
+
+This appendix provides statements of the supporting lemmas invoked in the proofs of Theorems~\ref{thm:contract} and~\ref{thm:erg}. Detailed proofs are deferred to a forthcoming technical appendix.
+
+\begin{lemma}[Sklar regularity for copula contraction]
+\label{lem:sklar-regularity}
+Let $f$ and $f^*$ be joint densities on $\R^K$ with strictly positive marginals $f_j$ and $f_j^*$ that are $\beta$-H\"older on their supports, and let $c, c^*$ denote the corresponding copula densities on $[0,1]^K$ obtained by Sklar's theorem. If $\sup f / f^* < \infty$ on the joint support, then there exists a constant $C = C(\beta, K, B) < \infty$ such that
+\[
+h^2(c, c^*) \;\leq\; C\, \KL(f, f^*) + C \sum_{j=1}^K \KL(f_j, f_j^*).
+\]
+\end{lemma}
+
+\begin{lemma}[Mixture entropy decomposition]
+\label{lem:mixent}
+Let $f$ be a joint density on $\R^K$ with copula $c$ and marginals $\{f_j\}$, and analogously for $f^*, c^*, \{f_j^*\}$. Then $\KL(f, f^*) = \KL(c, c^*) + \sum_{j=1}^K \KL(f_j, f_j^*)$.
+\end{lemma}
+
+\begin{lemma}[PY truncation tail bound]
+\label{lem:pytruncation}
+Let $\bw \sim \GEM(\alpha, \sigma)$ with $\sigma \in [0, 1)$. The truncation residual $r_T = \sum_{m > T} w_m$ satisfies $\E[r_T] \leq \exp(-T \log(1 + 1/\alpha))$ for $\sigma = 0$ and $\E[r_T] = O(T^{-(1-\sigma)/\sigma})$ for $\sigma \in (0, 1)$. The truncation level $T_n \asymp n \epsilon_n^2 / \log n$ ensures $\E[r_{T_n}] = o(\exp(-2n \epsilon_n^2))$.
+\end{lemma}
+
+\begin{lemma}[Sieve covering numbers]
+\label{lem:cover}
+Let $\mathcal{F}_T(M) = \{\sum_{m \leq T} w_m\, c_{(\theta_m, t_m)} : \norm{\theta_m}_F \leq M\}$ denote the truncated sieve of mixtures with at most $T$ active atoms and bounded atomic-parameter Frobenius norm. Then
+\[
+\log N(\epsilon, \mathcal{F}_T(M), h) \;\leq\; C T K^2 \log(M / \epsilon) + C T,
+\]
+where the second term arises from the discrete atomic-type indicator and the four structural-class indicator.
+\end{lemma}

@@ -1,0 +1,58 @@
+\pdfobjcompresslevel=0
+\documentclass[12pt]{saim}
+\input{math_commands.tex}
+
+\usepackage{url}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage[ruled,vlined,linesnumbered]{algorithm2e}
+\usepackage{longtable,tabularx}
+\usepackage{booktabs}
+\usepackage{xcolor}
+
+\definecolor{gray94}{gray}{.94}
+\definecolor{gray90}{gray}{.90}
+\definecolor{basegray}{RGB}{245,245,245}
+\definecolor{templateblue}{RGB}{235,242,255}
+\definecolor{templategreen}{RGB}{240,248,247}
+\definecolor{templateaccent}{RGB}{0,77,64}
+
+\newtcolorbox{takeawaybox}{
+  enhanced,
+  colback=templategreen,
+  colframe=templateaccent,
+  coltitle=templateaccent,
+  boxrule=0.6pt,
+  arc=6pt,
+  left=6pt,
+  right=6pt,
+  top=6pt,
+  bottom=6pt,
+  title=Takeaway
+}
+
+\title{Hierarchical Nonparametric Bayesian IDR via Pitman--Yor Copula Mixtures}
+\author[1]{Omid Shams Solari}
+\affiliation[1]{sAIm Labs}
+\metadata[Author emails]{\email{omid.solari@saimlabs.com}}
+
+\input{sections/0-abstract}
+
+\begin{document}
+\maketitle
+\clearpage
+\tableofcontents
+
+\input{sections/1.intro}
+\input{sections/2.related_work}
+\input{sections/3.method}
+\input{sections/4.experiments}
+\input{sections/5.conclusion}
+
+\input{sections/6.appendix}
+
+\bibliographystyle{plainnat}
+\bibliography{refs}
+
+\end{document}

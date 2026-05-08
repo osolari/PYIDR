@@ -1,0 +1,32 @@
+\begin{table}[H]
+\centering
+\caption{Principal notation used throughout the paper.}
+\label{tab:notation}
+\small
+\begin{tabular}{ll}
+\toprule
+Symbol & Meaning \\
+\midrule
+$n$ & number of features \\
+$K$ & number of replicates \\
+$X_{i,j}$ & raw score of feature $i$ on replicate $j$ \\
+$\bU_i = (U_{i,1}, \ldots, U_{i,K})$ & uniformized vector $U_{i,j} = F_j(X_{i,j})$ \\
+$Z_i \in \{0, 1\}$ & latent reproducibility class indicator for feature $i$ \\
+$\pi = \Pr(Z_i = 1)$ & reproducible-component proportion \\
+$c_0, c_1$ & irreproducible and reproducible-component copula densities \\
+$F_j$ & marginal CDF of replicate $j$ \\
+$\sigma \in [0, 1)$ & Pitman--Yor discount parameter \\
+$\alpha > -\sigma$ & Pitman--Yor concentration parameter \\
+$\beta$ & H\"older smoothness exponent of true densities \\
+$T_n$ & PY truncation level for sieve construction \\
+$\theta_m$ & parameters of the $m$-th mixture atom \\
+$t_m$ & atomic-type indicator (Gauss / $t_5$ / Clayton / Gumbel) \\
+$w_m$ & PY stick-breaking weight of the $m$-th atom \\
+$z_i \in \mathbb{N}$ & cluster assignment of feature $i$ within reproducible component \\
+$M_j$ & Bernstein basis order for marginal $j$ \\
+$H$ & number of auxiliary atoms in Algorithm~8 \\
+$h(\cdot, \cdot)$ & Hellinger distance \\
+$\epsilon_n$ & posterior contraction rate \\
+\bottomrule
+\end{tabular}
+\end{table}
