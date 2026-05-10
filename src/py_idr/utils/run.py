@@ -26,13 +26,14 @@ from py_idr.data.schema import RunManifest, SeedLedger
 def new_run_id() -> str:
     """Build a sortable, globally-unique run id.
 
-    The id has the form ``<unix_ts_ms>-<6-hex>`` where the timestamp is the
-    millisecond Unix time at call time and the suffix is 6 random hex digits.
-    Lexicographic sort matches start-time sort (ms-precision); the random suffix
-    avoids collisions when two runs start in the same millisecond.
+    The id has the form ``<unix_ts_ms>-<8-hex>`` where the timestamp is the
+    millisecond Unix time at call time and the suffix is 8 random hex digits
+    (32 bits). Lexicographic sort matches start-time sort (ms-precision); the
+    32-bit suffix keeps the birthday-collision probability below 10⁻⁶ at
+    1000 ids per millisecond — comfortably above any plausible launch rate.
     """
     ts_ms = int(time.time() * 1000)
-    suffix = secrets.token_hex(3)
+    suffix = secrets.token_hex(4)
     return f"{ts_ms}-{suffix}"
 
 

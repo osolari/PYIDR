@@ -175,13 +175,13 @@ def test_seed_ledger_rejects_empty_step_name() -> None:
 
 @pytest.mark.unit
 def test_new_run_id_format() -> None:
-    """new_run_id returns '<unix_ms>-<6-hex>' matching the RunManifest pattern."""
+    """new_run_id returns '<unix_ms>-<8-hex>' matching the RunManifest pattern."""
     rid = new_run_id()
     parts = rid.split("-")
     assert len(parts) == 2
     ts, suffix = parts
     assert ts.isdigit() and len(ts) >= 10
-    assert len(suffix) == 6
+    assert len(suffix) == 8
     assert all(c in "0123456789abcdef" for c in suffix)
 
 
