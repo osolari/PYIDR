@@ -124,12 +124,57 @@ def _probe_bernstein_basis() -> ProbeResult:
     )
 
 
-def _probe_algo8_fixture() -> ProbeResult:
-    # Implemented by W2 (pym/algo8.py).
+def _probe_polya_urn_step() -> ProbeResult:
+    """Verify Eqs. (3.5)–(3.6) on a tiny fixture: 4 features, 2 clusters, H=2.
+
+    Cross-checks ``py_idr.pym.polya_urn.predictive_log_weights`` against an
+    analytic computation of $(n_{m,-i} - \\sigma) c_{\\theta_m}(\\bU_i)$ and
+    $((\\alpha + \\sigma T_{-i})/H) c_{\\widetilde\\theta_h}(\\bU_i)$.
+    """
+    try:
+        import jax.numpy as jnp
+
+        from py_idr.pym.polya_urn import predictive_log_weights
+    except Exception as e:  # pragma: no cover
+        return ProbeResult("polya-urn-step", FAIL, f"import error: {e}")
+    n_minus_i = jnp.array([3, 1])
+    T_minus_i = 2
+    alpha = 1.0
+    sigma = 0.4
+    H = 2
+    occupied_log_dens = jnp.array([0.5, 0.2])
+    aux_log_dens = jnp.array([0.3, -0.1])
+    log_w = predictive_log_weights(
+        n_minus_i=n_minus_i,
+        T_minus_i=T_minus_i,
+        alpha=alpha,
+        sigma=sigma,
+        H=H,
+        occupied_log_density=occupied_log_dens,
+        aux_log_density=aux_log_dens,
+    )
+    # Analytic expected:
+    #   occ: log(3 - 0.4) + 0.5,  log(1 - 0.4) + 0.2
+    #   aux: log((1 + 0.4 * 2) / 2) + 0.3,  log((1 + 0.4 * 2) / 2) + (-0.1)
+    expected = jnp.array(
+        [
+            jnp.log(3.0 - sigma) + 0.5,
+            jnp.log(1.0 - sigma) + 0.2,
+            jnp.log((alpha + sigma * T_minus_i) / H) + 0.3,
+            jnp.log((alpha + sigma * T_minus_i) / H) + (-0.1),
+        ]
+    )
+    if not bool(jnp.allclose(log_w, expected, atol=1e-6)):
+        diff = jnp.max(jnp.abs(log_w - expected))
+        return ProbeResult(
+            "polya-urn-step",
+            FAIL,
+            f"predictive log-weights deviate from Eqs. (3.5)–(3.6) by {float(diff):.2e}",
+        )
     return ProbeResult(
-        "algo8-fixture",
-        SKIP,
-        "deferred to W2 (see plans/04_inference_mcmc.md)",
+        "polya-urn-step",
+        PASS,
+        "Eqs. (3.5)–(3.6) match the analytic predictive on the H=2 fixture",
     )
 
 
@@ -138,7 +183,7 @@ _PROBES: list[Callable[[], ProbeResult]] = [
     _probe_numpyro,
     _probe_plod_roundtrip,
     _probe_bernstein_basis,
-    _probe_algo8_fixture,
+    _probe_polya_urn_step,
 ]
 
 

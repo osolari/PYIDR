@@ -13,7 +13,7 @@ PUBLIC_MODULES = [
     "py_idr.copulas.base",
     "py_idr.copulas.registry",
     "py_idr.marginals.bernstein",
-    "py_idr.pym.algo8",
+    "py_idr.pym.polya_urn",
     "py_idr.pym.stickbreak",
     "py_idr.inference.mcmc.sweep",
     "py_idr.decision.sun_cai",
