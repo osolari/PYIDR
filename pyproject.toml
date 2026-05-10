@@ -134,6 +134,7 @@ ignore = [
 # jaxtyping shape strings like Float[Array, "n K"] register as F821/F722 forward refs.
 "src/py_idr/algebra/**" = ["F821", "F722"]
 "src/py_idr/copulas/**" = ["F821", "F722"]
+"src/py_idr/decision/**" = ["F821", "F722"]
 "src/py_idr/marginals/**" = ["F821", "F722"]
 "src/py_idr/pym/**" = ["F821", "F722"]
 
@@ -179,7 +180,13 @@ ignore_missing_imports = true
 # under mypy's PEP-484 forward-reference resolution. Disable for the math-heavy
 # subpackages where jaxtyping is dominant; the math correctness is verified by tests.
 [[tool.mypy.overrides]]
-module = ["py_idr.algebra.*", "py_idr.copulas.*", "py_idr.marginals.*", "py_idr.pym.*"]
+module = [
+    "py_idr.algebra.*",
+    "py_idr.copulas.*",
+    "py_idr.decision.*",
+    "py_idr.marginals.*",
+    "py_idr.pym.*",
+]
 disable_error_code = ["name-defined"]
 
 [tool.pytest.ini_options]
