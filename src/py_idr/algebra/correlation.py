@@ -67,6 +67,33 @@ def unit_normalise_cholesky(L: Float[Array, "K K"]) -> Float[Array, "K K"]:
     return L / row_norms
 
 
+def cov_to_corr(Sigma: Float[Array, "K K"]) -> Float[Array, "K K"]:
+    """Diagonal-normalise a positive-definite covariance to a correlation matrix.
+
+    Computes $R = D^{-1/2} \\Sigma D^{-1/2}$ where $D = \\mathrm{diag}(\\Sigma)$.
+    Per §3.2.2 of the revised report, the structured Gaussian-copula atom classes
+    operate on a free unconstrained $\\Sigma$ (built as $D + \\Lambda \\Lambda^\\top$
+    for the factor classes) and feed the normalised $R$ to the copula density and
+    the PLOD probe.
+
+    Algorithm 1 step 3 also applies this to NUTS / Metropolis proposals before the
+    PLOD support check, so that proposals never need a defensive clamp.
+
+    Parameters
+    ----------
+    Sigma
+        Positive-definite $K \\times K$ matrix with strictly positive diagonal.
+
+    Returns
+    -------
+    R
+        Correlation matrix with unit diagonal and the same off-diagonal sign pattern
+        as ``Sigma``.
+    """
+    diag_inv_sqrt = 1.0 / jnp.sqrt(jnp.diag(Sigma))
+    return Sigma * diag_inv_sqrt[:, None] * diag_inv_sqrt[None, :]
+
+
 def lkj_log_density(L: Float[Array, "K K"], eta: float = 2.0) -> Float[Array, ""]:
     """Log-density of the LKJ($\\eta$) prior in the unit-row-norm Cholesky parameterization.
 
@@ -112,7 +139,12 @@ class StructuredCorrelation:
 
 @dataclass(frozen=True)
 class Exchangeable(StructuredCorrelation):
-    """$R = (1 - \\rho) I + \\rho \\mathbf{1}\\mathbf{1}^\\top$ with $\\rho \\in (-1/(K-1), 1)$."""
+    """$R = (1-\\rho) I + \\rho \\mathbf{1}\\mathbf{1}^\\top$ with $0 < \\rho < 1$.
+
+    The strict positivity of $\\rho$ is the §3.2.2 PLOD-compatible constraint: the
+    independence boundary $\\rho = 0$ is excluded from the reproducible-component
+    base measure.
+    """
 
     rho: float
 
@@ -123,32 +155,62 @@ class Exchangeable(StructuredCorrelation):
 
 @dataclass(frozen=True)
 class OneFactor(StructuredCorrelation):
-    """$R = D + \\lambda \\lambda^\\top$, $D$ chosen so the diagonal is unit."""
+    """One-factor structured correlation in the PSD-then-normalise parameterisation.
+
+    Per §3.2.2 of the revised report, the structured class is parameterised through
+    an unconstrained positive-definite $\\Sigma = D + \\lambda \\lambda^\\top$ which is
+    then normalised:
+    $R = \\mathrm{diag}(\\Sigma)^{-1/2}\\,\\Sigma\\,\\mathrm{diag}(\\Sigma)^{-1/2}$.
+
+    PLOD requires every off-diagonal entry of the resulting $R$ to be strictly
+    positive. The implementation either constrains the loadings to a common sign
+    (the recommended default) or rejects/proposes again until
+    :func:`stick_idr.algebra.plod.plod_with_positive_pairwise` is satisfied.
+
+    Parameters
+    ----------
+    K
+        Replicate dimension.
+    loadings
+        Length-$K$ factor loading vector. Must be common-sign for PLOD compatibility.
+    idiosyncratic
+        Strictly positive length-$K$ diagonal. Defaults to ones (the standard
+        "unit idiosyncratic variance" choice); supplying a non-trivial diagonal
+        lets the sampler fit a free per-replicate scale that is then absorbed by
+        :func:`cov_to_corr`.
+    """
 
     loadings: Float[Array, "K"]
+    idiosyncratic: Float[Array, "K"] | None = None
 
     def matrix(self) -> Float[Array, "K K"]:
-        """Materialise the one-factor correlation matrix with unit diagonal."""
+        """Materialise $R$ via :func:`cov_to_corr` on $\\mathrm{diag}(D)+\\lambda\\lambda^\\top$."""
         lam = self.loadings
-        outer = jnp.outer(lam, lam)
-        diag = jnp.diag(jnp.maximum(1.0 - lam * lam, 1e-8))
-        return diag + outer
+        d = self.idiosyncratic if self.idiosyncratic is not None else jnp.ones(self.K)
+        Sigma = jnp.diag(d) + jnp.outer(lam, lam)
+        return cov_to_corr(Sigma)
 
 
 @dataclass(frozen=True)
 class TwoFactor(StructuredCorrelation):
-    """$R = D + \\Lambda \\Lambda^\\top$, $\\Lambda \\in \\mathbb{R}^{K\\times 2}$."""
+    """Two-factor structured correlation in the PSD-then-normalise parameterisation.
+
+    $\\Sigma = D + \\Lambda \\Lambda^\\top$ with $\\Lambda \\in \\mathbb{R}^{K\\times 2}$,
+    normalised via :func:`cov_to_corr`. As with :class:`OneFactor`, PLOD requires
+    every pairwise off-diagonal entry of the normalised $R$ to be strictly positive;
+    use a common-sign restriction on the columns of $\\Lambda$ or the
+    `plod_with_positive_pairwise` rejection logic in the sampler.
+    """
 
     loadings: Float[Array, "K 2"]
+    idiosyncratic: Float[Array, "K"] | None = None
 
     def matrix(self) -> Float[Array, "K K"]:
-        """Materialise the two-factor correlation matrix with unit diagonal."""
+        """Materialise $R$ via :func:`cov_to_corr` on $\\mathrm{diag}(D)+\\Lambda\\Lambda^\\top$."""
         lam = self.loadings
-        outer = lam @ lam.T
-        # Unit diagonal: diag(D) = 1 - row-sum-of-squares(Λ)
-        row_ss = jnp.sum(lam * lam, axis=1)
-        diag = jnp.diag(jnp.maximum(1.0 - row_ss, 1e-8))
-        return diag + outer
+        d = self.idiosyncratic if self.idiosyncratic is not None else jnp.ones(self.K)
+        Sigma = jnp.diag(d) + lam @ lam.T
+        return cov_to_corr(Sigma)
 
 
 def sample_lkj_cholesky(key: jax.Array, K: int, eta: float = 2.0) -> Float[Array, "K K"]:

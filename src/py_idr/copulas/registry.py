@@ -1,10 +1,23 @@
 """Atomic-type registry for the PY-IDR base measure.
 
-``ATOMIC_TYPES`` is the source of truth for the support of $t_m$ in §3.3.2 of the
-report. The registry binds each name to a representative-instance constructor and
-runs the PLOD probe on registration to gate the family — a violation aborts package
-import, so a non-PLOD family cannot silently slip into the base measure (which would
-break Theorem 3.1's identifiability hinge).
+``ATOMIC_TYPES`` is the source of truth for the support of $t_m$ in §3.2.2 of the
+revised report. The atomic-type support has size 4 (Gauss, $t_5$, Clayton, Gumbel);
+the structural-class support for Gaussian / $t_5$ atoms has size 3 (exchangeable,
+one-factor, two-factor) — the latter is enforced in the sampler, not here.
+
+The registry binds each name to a representative-instance constructor and runs the
+PLOD probe (:func:`py_idr.algebra.plod.assert_plod`) on registration. PLOD plays a
+**scoping** role per Theorem 3.1's revised statement: it separates admissible
+reproducible atoms from the independence boundary $c_0$. Identifiability of the
+mixing weight $\\pi$ on the finite sieve comes from the linear-independence
+criterion of Yakowitz–Spragins (1968) applied to $\\{c_0, c_{\\theta_1, t_1}, \\ldots,
+c_{\\theta_T, t_T}\\}$, **not** from PLOD alone. The registry's gate is therefore a
+necessary precondition, not a sufficient identifiability check.
+
+For factor-structured Gaussian / $t_5$ atoms, the additional runtime check is
+:func:`py_idr.algebra.plod.plod_with_positive_pairwise`; the sampler (Algorithm 1
+step 3) either constrains factor loadings to a common sign or rejects proposals
+whose normalised correlation matrix produces any negative pairwise correlation.
 
 The proposal kernel used in Algorithm 1 step 4 (atomic-type independence Metropolis)
 draws uniformly from ``ATOMIC_TYPES``.
