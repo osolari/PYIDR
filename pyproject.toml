@@ -136,7 +136,9 @@ ignore = [
 "src/py_idr/algebra/**" = ["F821", "F722"]
 "src/py_idr/copulas/**" = ["F821", "F722"]
 "src/py_idr/decision/**" = ["F821", "F722"]
+"src/py_idr/inference/**" = ["F821", "F722"]
 "src/py_idr/marginals/**" = ["F821", "F722"]
+"src/py_idr/model/**" = ["F821", "F722"]
 "src/py_idr/pym/**" = ["F821", "F722"]
 
 [tool.ruff.lint.pydocstyle]
@@ -185,7 +187,9 @@ module = [
     "py_idr.algebra.*",
     "py_idr.copulas.*",
     "py_idr.decision.*",
+    "py_idr.inference.*",
     "py_idr.marginals.*",
+    "py_idr.model.*",
     "py_idr.pym.*",
 ]
 disable_error_code = ["name-defined"]
