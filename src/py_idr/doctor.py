@@ -116,11 +116,39 @@ def _probe_plod_roundtrip() -> ProbeResult:
 
 
 def _probe_bernstein_basis() -> ProbeResult:
-    # Implemented by W1 (marginals/bernstein.py).
+    """Verify the cumulative Bernstein basis matches scipy's ``betainc`` on a small grid."""
+    try:
+        import jax.numpy as jnp
+        from scipy import special as sps  # type: ignore[import-untyped]
+
+        from py_idr.marginals.bernstein import cumulative_basis, density_basis
+    except Exception as e:  # pragma: no cover
+        return ProbeResult("bernstein-basis", FAIL, f"import error: {e}")
+    M = 10
+    t = jnp.array([0.1, 0.5, 0.9])
+    basis = cumulative_basis(t, M)
+    expected_at_one = sps.betainc(2, M - 2 + 1, 0.5)
+    if not bool(jnp.allclose(basis[1, 1], expected_at_one, atol=1e-9)):
+        return ProbeResult(
+            "bernstein-basis",
+            FAIL,
+            f"cumulative basis B_2(0.5; 10) mismatches scipy.betainc by "
+            f"{float(jnp.abs(basis[1, 1] - expected_at_one)):.2e}",
+        )
+    # Density basis integrates to ~1 on a fine grid.
+    ts = jnp.linspace(0.001, 0.999, 5000)
+    integrals = jnp.trapezoid(density_basis(ts, M), ts, axis=0)
+    if not bool(jnp.all(jnp.abs(integrals - 1.0) < 1e-2)):
+        max_dev = float(jnp.max(jnp.abs(integrals - 1.0)))
+        return ProbeResult(
+            "bernstein-basis",
+            FAIL,
+            f"density basis integrals off unity by max {max_dev:.2e}",
+        )
     return ProbeResult(
         "bernstein-basis",
-        SKIP,
-        "deferred to W1 (see plans/03_marginals.md)",
+        PASS,
+        "cumulative basis matches scipy.betainc; density basis integrates to 1",
     )
 
 
