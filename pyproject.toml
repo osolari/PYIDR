@@ -37,6 +37,7 @@ dependencies = [
     "pydantic>=2.6",
     "typer>=0.12",
     "zarr>=2.17",
+    "jaxtyping>=0.2.30",
 ]
 
 [project.optional-dependencies]
@@ -120,6 +121,9 @@ select = [
 ignore = [
     "D203", "D213",          # docstring style choice
     "D100", "D104",          # missing module / package docstring (allow stubs)
+    "D301",                  # raw docstrings — we use \\ for LaTeX which renders identically
+    "UP037",                 # do not strip quotes from runtime-evaluated annotations
+                              # (jaxtyping shape strings like Float[Array, "K K"] need them)
 ]
 
 [tool.ruff.lint.per-file-ignores]
@@ -127,6 +131,11 @@ ignore = [
 "experiments/**" = ["D"]
 "notebooks/**" = ["D"]
 "docs/**" = ["D"]
+# jaxtyping shape strings like Float[Array, "n K"] register as F821/F722 forward refs.
+"src/stick_idr/algebra/**" = ["F821", "F722"]
+"src/stick_idr/copulas/**" = ["F821", "F722"]
+"src/stick_idr/marginals/**" = ["F821", "F722"]
+"src/stick_idr/pym/**" = ["F821", "F722"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"
@@ -165,6 +174,13 @@ disallow_incomplete_defs = false
 [[tool.mypy.overrides]]
 module = ["jax.*", "jaxlib.*", "numpyro.*", "arviz.*", "scanpy.*", "anndata.*", "pyranges.*", "zarr.*", "h5py.*"]
 ignore_missing_imports = true
+
+# jaxtyping shape strings like Float[Array, "n K"] trigger spurious "name-defined"
+# under mypy's PEP-484 forward-reference resolution. Disable for the math-heavy
+# subpackages where jaxtyping is dominant; the math correctness is verified by tests.
+[[tool.mypy.overrides]]
+module = ["stick_idr.algebra.*", "stick_idr.copulas.*", "stick_idr.marginals.*", "stick_idr.pym.*"]
+disable_error_code = ["name-defined"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -1,23 +1,40 @@
 """Abstract Copula base class.
 
-See plans/02_algebra_and_copulas.md for the full module design and the contract every
-concrete atomic type must satisfy.
+Every concrete atomic type in the PY-IDR base measure subclasses :class:`Copula` and
+implements :meth:`log_density` and :meth:`cdf_diagonal`. The PLOD probe in
+:mod:`stick_idr.algebra.plod` consumes only the diagonal section, so a custom
+family can be registered without implementing the full multivariate CDF.
+
+See plans/02_algebra_and_copulas.md.
 """
 
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
+from jaxtyping import Array, Float
+
 
 class Copula(ABC):
-    """Abstract copula density on [0, 1]^K."""
+    """Abstract copula density on $[0, 1]^K$."""
+
+    K: int
 
     @abstractmethod
-    def log_density(self, u):  # type: ignore[no-untyped-def]  # noqa: ANN001
-        """Return log c(u) at each row of u; vmap-friendly."""
+    def log_density(self, u: Float[Array, "n K"]) -> Float[Array, "n"]:
+        r"""Return $\log c(u_i)$ at each row $u_i$ of ``u``.
+
+        Implementations must be JAX-jit and ``vmap``-friendly along the leading
+        (feature) axis. Inputs are assumed to lie in the open cube; callers should
+        clamp $u \in (\varepsilon, 1 - \varepsilon)$ for numerical safety.
+        """
         raise NotImplementedError
 
     @abstractmethod
-    def cdf_diagonal(self, u):  # type: ignore[no-untyped-def]  # noqa: ANN001
-        """Return C(u, ..., u) on a 1D grid (used by `algebra.plod.holds`)."""
+    def cdf_diagonal(self, u: Float[Array, "n"]) -> Float[Array, "n"]:
+        r"""Return $C(u, \ldots, u)$ on a 1-D grid in $(0, 1)$.
+
+        Used by :func:`stick_idr.algebra.plod.holds` to gate registration of the
+        family into the base measure.
+        """
         raise NotImplementedError

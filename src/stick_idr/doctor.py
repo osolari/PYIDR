@@ -88,11 +88,30 @@ def _probe_numpyro() -> ProbeResult:
 
 
 def _probe_plod_roundtrip() -> ProbeResult:
-    # Implemented by W1 (algebra/plod.py + copulas/{gaussian,clayton,gumbel,student_t}.py).
+    """Verify PLOD holds for every atomic type at K=2 and that c_0 correctly fails."""
+    try:
+        from stick_idr.algebra.plod import assert_plod
+        from stick_idr.copulas.independence import IndependenceCopula
+        from stick_idr.copulas.registry import REPRESENTATIVES
+    except Exception as e:  # pragma: no cover
+        return ProbeResult("plod-roundtrip", FAIL, f"import error: {e}")
+    K = 2
+    for name, build in REPRESENTATIVES.items():
+        try:
+            assert_plod(build(K), K)
+        except ValueError as e:
+            return ProbeResult("plod-roundtrip", FAIL, f"atom {name!r} failed PLOD at K={K}: {e}")
+    # And independence must FAIL.
+    try:
+        assert_plod(IndependenceCopula(K=K), K)
+    except ValueError:
+        return ProbeResult(
+            "plod-roundtrip",
+            PASS,
+            "PLOD holds for {gauss, t5, clayton, gumbel} at K=2; independence correctly fails",
+        )
     return ProbeResult(
-        "plod-roundtrip",
-        SKIP,
-        "deferred to W1 (see plans/02_algebra_and_copulas.md)",
+        "plod-roundtrip", FAIL, "independence copula incorrectly passed the PLOD probe"
     )
 
 
