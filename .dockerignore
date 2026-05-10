@@ -1,0 +1,39 @@
+# Per-machine artefacts and large output trees that would balloon the build context.
+.venv/
+runs/
+artifacts/
+checkpoints/
+logs/
+data/
+
+# Python noise.
+__pycache__/
+*.py[codz]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+*.egg-info/
+build/
+dist/
+
+# Tooling state.
+.git/
+.github/workflows/
+.idea/
+.vscode/
+.claude/
+
+# Documentation build artefacts (the LaTeX paper sources stay; the rendered PDFs
+# from generate_figures.py do not need to be in the image).
+docs/report/figures/*.pdf
+docs/report/main.pdf
+docs/report.zip
+
+# Notebook outputs (the .py mirrors are what the package executes).
+notebooks/
+
+# OS noise.
+.DS_Store
+Thumbs.db
