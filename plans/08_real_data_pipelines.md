@@ -2,11 +2,32 @@
 
 **Owner:** W5
 **Depends on:** 04_inference_mcmc, 05_inference_vi, 06_decision_theory
-**Implements:** §4.9 (real data); Table 7 (datasets); Figure F5 (real-data summaries); Tables T7 (real-disc, real-clusters, real-runtime)
+**Implements:** §4.7–§4.9 of the revised report; Table 7 (datasets); Figure F5 (real-data summaries); Tables T7 (real-disc, real-clusters, real-runtime).
 
 ## Goal
 
-Five reproducible real-data pipelines that take raw consortium releases and produce a posterior local idr per feature, a Sun–Cai threshold, and the figures + tables for §4.9 of the paper.
+Five reproducible real-data pipelines that take raw consortium releases and produce a posterior local idr per feature, a Sun–Cai threshold, and the figures + tables for §4.8 of the paper.
+
+## Pre-fit dataset manifest (revised §4.7)
+
+The revised report mandates that **before any model is fit**, every dataset must produce
+the following six artifacts. The pipeline refuses to start a fit until all six exist
+and pass the schema check.
+
+| Artifact | Schema (pydantic in `src/py_idr/data/schema.py`) |
+|---|---|
+| **Data manifest** | `accession`, `release`, `download_url`, `sha256`, `provenance_notes` |
+| **Feature universe** | the canonical $n$-row index, frozen before any score is read |
+| **Replicate-matching file** | which raw replicate $\to$ which model column $j$, with conflict notes |
+| **Score-column dictionary** | which raw column is the model's "score", units, monotone direction |
+| **Tie / missingness policy** | `mid_rank` / `random` / `truncate`; missing $\to$ what (mean rank, NaN, exclude) |
+| **Dataset QC summary** | per-replicate score histograms, missing-rate, tie-rate, suspicious-replicate flags |
+
+These are registered in the `DatasetManifest` pydantic model and validated by a CI hook
+(`scripts/hooks/check_dataset_manifest.py`). Per the report's §4.7: "the coding agent
+must produce a data manifest, feature-universe definition, replicate-matching file,
+score column dictionary, tie and missingness policy, rank-transformation output, and
+dataset-specific QC summary before fitting any model."
 
 ## Datasets
 
@@ -35,10 +56,11 @@ Five reproducible real-data pipelines that take raw consortium releases and prod
 ### `experiments/<dataset>/`
 
 Each contains:
+- `manifest.yaml` — the pre-fit `DatasetManifest` (data manifest, feature universe, replicate-matching, score dictionary, tie/missingness policy, QC summary).
 - `config.yaml` — Hydra config (model + inference + dataset).
-- `run.py` — argparse wrapper; reads the score matrix, fits PY-IDR, writes a Zarr trace and a CSV of local idr / discoveries.
-- `evaluate.py` — computes per-dataset summary stats (discovery counts, posterior median # clusters, walltime).
-- `compare.py` — runs the comparators (Vanilla IDR, eCV, nestedIDR, ChIP-R, MaRR, GMCM-AD, BNP-Archimedean) on the same input.
+- `run.py` — argparse wrapper; runs `validate_manifest(manifest_path)` first, then reads the score matrix, fits PY-IDR, writes a Zarr trace and a CSV of local idr / discoveries.
+- `evaluate.py` — computes per-dataset summary stats (discovery counts, posterior median # clusters, walltime, $\delta_n$).
+- `compare.py` — runs the comparators (Vanilla IDR, eCV, nestedIDR, ChIP-R, MaRR, GMCM-AD, BNP-Archimedean) on the same input. Per the revised §4.2, comparators are run only after their package version and default settings are *verified*; the verification log lives next to `compare.py`.
 
 ### `scripts/run_real_data.sh`
 

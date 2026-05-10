@@ -2,23 +2,31 @@
 
 **Owner:** W4
 **Depends on:** 04_inference_mcmc (uses the same `SamplerState` shape)
-**Implements:** §3.7.2; Theorem 3.5 (variational consistency)
+**Implements:** §3.3.2 of the revised report; Theorem 3.5 (**finite-truncation** variational consistency).
 
 ## Goal
 
-A structured mean-field variational family with truncation $T$ at the PY stick, optimised by
-stochastic natural-gradient ascent (Hoffman, Blei, Wang & Paisley 2013). Default truncation
-$T = 30$, mini-batch $B \in \{500, 2000\}$, 200 epochs.
+A structured mean-field variational family with **finite truncation** $T$ at the PY stick,
+optimised by stochastic natural-gradient ascent (Hoffman, Blei, Wang & Paisley 2013). Default
+truncation $T = 30$, mini-batch $B \in \{500, 2000\}$, 200 epochs.
+
+> **Theorem 3.5 scope.** The revised manuscript states VI consistency for **fixed** finite
+> truncation: under the truncated model, the variational posterior predictive density is
+> Hellinger consistent if the structured mean-field family contains distributions within
+> $o(n\epsilon_n^2)$ KL of the truncated posterior. Matching the Theorem 3.2 rate as
+> $T = T_n \to \infty$ requires additional truncation-error and variational-approximation
+> assumptions and is not asserted as a completed result for the unrestricted PY-copula
+> model. Tests in this plan target the fixed-$T$ statement.
 
 ## Deliverables
 
 ### `src/py_idr/inference/vi/`
 
-- `family.py` — variational distributions:
+- `family.py` — variational distributions per §3.3.2 of the revised report:
   - $q(Z_i)$, $q(z_i)$ — categorical (vectorised)
-  - $q(\theta_m)$ — Gaussian on the unconstrained Cholesky parameters
+  - $q(\theta_m)$ — Gaussian or transformed-Gaussian on the unconstrained atomic parameters (Cholesky for Gaussian/$t_5$ atoms; $\log\theta$ for Clayton/Gumbel)
   - $q(t_m)$ — categorical over the four atomic types
-  - $q(w)$ — independent $\Beta$ stick-breaking ratios
+  - $q(V_m)$ — independent $\Beta$ on each stick-breaking ratio for $m \le T$ (per-cluster, not a joint $q(w)$ — this matches the revised manuscript's family)
   - $q(\pi)$ — $\Beta$
   - $q(F_j)$ — Dirichlet on Bernstein weights
   - $q(\alpha)$ — Gamma; $q(\sigma)$ — truncated Beta on $[0, 1)$

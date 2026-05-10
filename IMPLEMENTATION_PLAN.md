@@ -11,14 +11,16 @@ generator is [generate_figures.py](docs/report/figures/generate_figures.py).
 > Discovery Rate (IDR) framework of Li, Brown, Huang & Bickel (2011). The reproducible-
 > component copula is a Pitman–Yor mixture of Gaussian copulas with structured correlation,
 > augmented with $t_5$, Clayton, and Gumbel atoms; per-replicate marginals are independent
-> Bernstein–Dirichlet. Inference is by slice-sampled Pólya-urn MCMC (Neal Algorithm 8) with
-> NUTS on the unconstrained Cholesky parameterization, plus a structured mean-field
-> variational alternative with stochastic natural gradients.
+> Bernstein–Dirichlet. Inference is by **Pólya-urn auxiliary-atom MCMC** (Neal-style
+> auxiliary atoms drawn from $P_0$ each sweep; no explicit infinite stick is maintained
+> during cluster reassignment) with NUTS or Metropolis updates on a valid correlation
+> parameterization, plus a structured mean-field finite-truncation variational
+> alternative.
 
 The plan has three layers:
 
 1. **Repo skeleton & tooling** — directory layout, JAX/NumPyro env, lint, types, precommit, CI/CD, release.
-2. **Package architecture** — `py_idr` library mapped one-to-one onto the report's components: copula atoms, PY mixture, Bernstein–Dirichlet marginals, Algorithm 8 + NUTS, structured-MF VI, and the Sun–Cai-type plug-in step-up rule.
+2. **Package architecture** — `py_idr` library mapped one-to-one onto the report's components: copula atoms, PY mixture, Bernstein–Dirichlet marginals, Pólya-urn auxiliary-atom MCMC + NUTS, finite-truncation structured-MF VI, and the Sun–Cai-type plug-in step-up rule.
 3. **Deliverables** — docs (MkDocs), `.ipynb` tutorials, figure/table reproducer scripts, tests, logging, and the W1–W6 workstreams below.
 
 Every artifact in the repo is traceable to either a theorem (Thm 3.1 identifiability,
@@ -31,7 +33,7 @@ If an artifact lacks such a link, it does not belong.
 ## 0. Principles
 
 - **One claim → one reproducer.** Every figure / table / theorem of the report has a single entrypoint that produces it from a config and (where needed) a sampler trace.
-- **Correctness first, speed second.** A pure-Python reference implementation of every kernel (copula densities, Algorithm 8 sweep, Sun–Cai plug-in, Bayes-mFDR) is the ground truth; JAX-jitted paths must agree to within `1e-6` in float64.
+- **Correctness first, speed second.** A pure-Python reference implementation of every kernel (copula densities, Pólya-urn auxiliary-atom step, Sun–Cai plug-in, Bayes-mFDR) is the ground truth; JAX-jitted paths must agree to within `1e-6` in float64.
 - **Identifiability is enforced, not assumed.** The PLOD constraint of equation (3.4) is a hard runtime check on every newly-instantiated atom; a violation is a hard test failure.
 - **Preregistration discipline.** Hypothesis thresholds and Monte-Carlo replication counts live in a version-controlled YAML, consumed by the reporting script. Flipping them after measurement requires an explicit PR.
 - **Sampler diagnostics are non-negotiable.** Split-$\widehat R \le 1.01$ and ESS per parameter $\ge 400$ are required before any posterior summary is reported.
@@ -104,7 +106,7 @@ PY-IDR/
 │   ├── unit/
 │   ├── property/                     # hypothesis-driven
 │   ├── numerical/                    # rate / contraction sanity
-│   ├── inference/                    # Algorithm 8 + NUTS correctness
+│   ├── inference/                    # Pólya-urn step + NUTS correctness
 │   ├── identifiability/              # PLOD + Yakowitz–Spragins regression
 │   ├── decision/                     # Sun–Cai plug-in calibration
 │   ├── integration/                  # end-to-end on tiny S1 cell
@@ -164,7 +166,7 @@ PY-IDR/
 Rationale for non-obvious choices:
 
 - **`src/` layout** so imports do not pick up partially-installed code during tests.
-- **JAX-only stack.** NumPyro is the inference vehicle for NUTS; the Pólya-urn / Algorithm 8 cluster reassignment is a custom JAX-jit-friendly Gibbs step. This avoids the discrete-cluster-update gap in pure Stan and keeps everything autodifferentiable end-to-end.
+- **JAX-only stack.** NumPyro is the inference vehicle for NUTS; the Pólya-urn auxiliary-atom cluster reassignment (§3.3.1, Eqs. (3.5)–(3.6) of the report) is a custom JAX-jit-friendly Gibbs step. This avoids the discrete-cluster-update gap in pure Stan and keeps everything autodifferentiable end-to-end.
 - **Notebooks paired with `.py`** via [jupytext](https://jupytext.readthedocs.io/) so precommit/CI diff the `.py` copies; the `.ipynb` are the render target.
 - **`experiments/` separate from `src/`** because experiment glue has different review standards than library code.
 - **`configs/preregistration/hypotheses.yaml`** is the single source of truth for FDR-calibration / contraction-rate / coverage thresholds; the ledger script generates §4 of the companion paper from it.
@@ -246,7 +248,7 @@ src/py_idr/
 │   ├── clayton.py                    # Archimedean Clayton; θ > 0 (PLOD-compatible)
 │   ├── gumbel.py                     # Archimedean Gumbel; θ ≥ 1
 │   ├── registry.py                   # ATOMIC_TYPES = {"gauss", "t5", "clayton", "gumbel"}
-│   └── proposal.py                   # Independence-Metropolis proposal over types (Algo 8 step 4)
+│   └── proposal.py                   # Independence-Metropolis proposal over atomic types (Algorithm 1 step 4)
 │
 ├── marginals/
 │   ├── __init__.py
@@ -260,7 +262,7 @@ src/py_idr/
 │   ├── __init__.py
 │   ├── stickbreak.py                 # GEM(alpha, sigma) sampler + truncated weights
 │   ├── predictive.py                 # PY Blackwell–MacQueen predictive (Pitman 1996)
-│   ├── algo8.py                      # Neal (2000) Algorithm 8 with H auxiliary atoms
+│   ├── polya_urn.py                  # PY Pólya-urn auxiliary-atom step; Eqs. (3.5)–(3.6)
 │   ├── slice.py                      # Slice-sampled PY truncation (Walker 2007 / KGW 2011)
 │   ├── alpha_update.py               # Escobar–West (1995) auxiliary-variable α update
 │   └── sigma_update.py               # Slice update for σ ∈ [0, 1)
@@ -280,7 +282,7 @@ src/py_idr/
 │   │   ├── sweep.py                  # One full Algorithm 1 sweep
 │   │   ├── nuts_atoms.py             # NUTS on unconstrained Cholesky for atom updates
 │   │   ├── class_assign.py           # Z_i ~ Bernoulli(π̂_i)
-│   │   ├── reassign.py               # Cluster reassignment (Algo 8 calls)
+│   │   ├── reassign.py               # Cluster reassignment (calls pym.polya_urn.step)
 │   │   ├── type_update.py            # t_m IM proposal (Algo 1 step 4)
 │   │   ├── marginal_update.py        # p_j conjugate; (M_j, α_F) MH-within-Gibbs
 │   │   ├── pi_update.py              # π ~ Beta(1+n_1, 1+n_0)
@@ -383,7 +385,7 @@ Exported at top level so users can write
 | Eq. (3.7) Bernstein–Dirichlet marginals | `marginals/{bernstein,dirichlet_weights}.py` |
 | Algorithm 1 (full sweep) | `inference/mcmc/sweep.py` |
 | Step 1 — class assignment Eq. (3.8) | `inference/mcmc/class_assign.py` |
-| Step 2 — Algorithm 8 cluster reassignment | `pym/algo8.py` + `inference/mcmc/reassign.py` |
+| Step 2 — Pólya-urn cluster reassignment, Eqs. (3.5)–(3.6) | `pym/polya_urn.py` + `inference/mcmc/reassign.py` |
 | Step 3 — atom-parameter NUTS on Cholesky | `inference/mcmc/nuts_atoms.py` |
 | Step 4 — atomic-type IM proposal | `copulas/proposal.py` + `inference/mcmc/type_update.py` |
 | Step 5 — Bernstein-weight conjugate update | `inference/mcmc/marginal_update.py` |
@@ -492,7 +494,7 @@ Organised by what they guarantee. All tests run under `pytest` with markers (`un
 - `test_contraction_simulation.py` — sample size sweep on regime S1 produces empirical Hellinger-error decay matching $\epsilon_n = n^{-\beta/(2\beta+K)}(\log n)^t$ within a 2× constant factor across $n \in \{500, 1000, 2000, 5000\}$.
 
 ### 6.4 Inference (`tests/inference/`)
-- `test_algo8_step.py` — single Algorithm-8 reassignment on a fixed state moves features between clusters with the correct conditional probabilities (Monte-Carlo over 10⁵ trials).
+- `test_polya_urn_predictive.py` — single Pólya-urn reassignment on a fixed state matches Eqs. (3.5)–(3.6) (Monte-Carlo over 10⁵ trials, using the post-removal counts $n_{m,-i}$ and $T_{-i}$).
 - `test_nuts_atoms.py` — NUTS on Cholesky-parameterized Gaussian copula recovers the true correlation matrix on a synthetic K=4 dataset; 0 divergences, split-$\widehat R \le 1.01$, ESS ≥ 400.
 - `test_full_sweep_smoke.py` — one full Algorithm 1 sweep on a tiny S1 cell completes in < 5 s and yields a finite log-likelihood.
 - `test_alpha_sigma_updates.py` — Escobar–West and σ-slice updates have the correct stationary distributions on a frozen state (KS test against the analytic conditional).
@@ -543,7 +545,7 @@ nav:
     - The IDR framework, recalled: math/idr_recap.md
     - Sklar's theorem & copulas: math/sklar.md
     - The Pitman–Yor process: math/pitman_yor.md
-    - Algorithm 8 with H aux atoms: math/algorithm8.md
+    - Pólya-urn auxiliary-atom step: math/polya_urn.md
     - Bernstein–Dirichlet marginals: math/bernstein_dirichlet.md
     - LKJ priors and structured correlation: math/lkj_structured.md
     - Sun–Cai compound decision: math/sun_cai.md
@@ -560,7 +562,7 @@ nav:
     - 01 — Gaussian-copula density: tutorials/01_gaussian_copula_density.md
     - 02 — PY stick-breaking: tutorials/02_py_stickbreak.md
     - 03 — Bernstein marginals: tutorials/03_bernstein_marginals.md
-    - 04 — Algorithm 8 step by step: tutorials/04_algorithm8_step_by_step.md
+    - 04 — Pólya-urn step by step: tutorials/04_polya_urn_step_by_step.md
     - 05 — NUTS on Cholesky: tutorials/05_nuts_on_cholesky.md
     - 06 — Sun–Cai plug-in: tutorials/06_sun_cai_plugin.md
     - 07 — Simulation S1 walkthrough: tutorials/07_simulation_S1_walkthrough.md
@@ -612,7 +614,7 @@ Each `.ipynb` is paired with a `.py` (jupytext) so review is easy. Every noteboo
 | 01 | `01_gaussian_copula_density.ipynb` | Gaussian copula log-density via Cholesky | matches scipy.stats.multivariate_normal CDF on a grid |
 | 02 | `02_py_stickbreak.ipynb` | $\GEM(\alpha,\sigma)$ + truncation | E[#clusters] tracks the analytic curves of §1.2 |
 | 03 | `03_bernstein_marginals.ipynb` | Bernstein–Dirichlet on $[0,1]$ | partition of unity; conjugate update sanity |
-| 04 | `04_algorithm8_step_by_step.ipynb` | Algorithm 8 with H aux atoms walked on tiny tensors | reassignment matches a brute-force enumeration |
+| 04 | `04_polya_urn_step_by_step.ipynb` | Pólya-urn auxiliary-atom step walked on tiny tensors | reassignment matches Eqs. (3.5)–(3.6) by brute-force enumeration |
 | 05 | `05_nuts_on_cholesky.ipynb` | NUTS on the unconstrained Cholesky parameterization | 0 divergences; ESS ≥ 400 on a fixed problem |
 | 06 | `06_sun_cai_plugin.ipynb` | Plug-in step-up rule on synthetic local-idr scores | realized FDR ≈ nominal at α=0.05 |
 | 07 | `07_simulation_S1_walkthrough.ipynb` | End-to-end S1 cell at K=4, n=2000 | $\widehat R \le 1.01$; recovers $\pi^*$ |
@@ -722,7 +724,7 @@ Each workstream is a GitHub Project column; issues carry a `W1`–`W6` label and
 | Risk | Trigger | Mitigation |
 |---|---|---|
 | NUTS divergences on Cholesky factor | `nuts-correctness` red | Reparametrize via `LowerCholeskyAffine`; tune target_accept up to 0.99; report and gate with diagnostic. |
-| Algorithm 8 cluster reassignment is slow | `runtime-smoke` regresses | Lower H in default; cache atom log-density evaluations; investigate retrospective-sampler swap. |
+| Pólya-urn cluster reassignment is slow | `runtime-smoke` regresses | Lower H in default; cache atom log-density evaluations; investigate retrospective-sampler swap. |
 | PLOD probe false positives near $\sigma = 1$ | Property test red | Tighten sampling region of $\rho$; add a defensive correlation-clipping in `algebra/correlation.py`. |
 | Bernstein basis numerically unstable at $M=80$ | Bernstein property test red | Use the `betainc` fallback path; switch to log-domain accumulation. |
 | Dataset checksum drift (ENCODE / Pan-UKBB mirrors) | `verify_checksums.sh` fails | Pin SHA-256 in `data/splits.py`; document fallback consortium URLs. |
@@ -753,8 +755,8 @@ Skills capture recurring engineering workflows so a future agent can be invoked 
 
 | Skill | When to invoke |
 |---|---|
-| `add-copula-atom` | Adding a new copula family to the `copulas/registry.py` and updating Algorithm 8 step 4 |
-| `algorithm8-sanity` | Running the Algorithm 8 reassignment sanity check on a saved sampler state |
+| `add-copula-atom` | Adding a new copula family to the `copulas/registry.py` and the Algorithm 1 atomic-type proposal |
+| `polya-urn-sanity` | Running the Pólya-urn auxiliary-atom reassignment sanity check on a saved sampler state |
 | `run-simulation` | Launching one of the S1–S5 cells with the standard MC replication |
 | `add-real-dataset` | Adding a new data loader under `src/py_idr/data/` with checksum + smoke loader |
 | `reproduce-figure` | Regenerating one of F1–F6 from `artifacts/*.csv` |
@@ -774,7 +776,7 @@ Suggested sequence (single engineer, 5 hours/day):
 2. **Day 3–4** — `algebra/correlation.py` (Cholesky ↔ R, LKJ(η=2)), `copulas/{independence,gaussian}.py`, `algebra/plod.py`, unit + property tests. Notebook 01.
 3. **Day 5** — `pym/stickbreak.py`, `marginals/{bernstein,dirichlet_weights}.py`, unit tests; notebooks 02 + 03.
 4. **Day 6–7** — `copulas/{student_t,clayton,gumbel}.py` + property tests; PLOD test sweep. MkDocs site live with the math primer pages.
-5. **Week 2** — `pym/algo8.py`, `inference/mcmc/{class_assign,reassign,nuts_atoms,sweep}.py`. Notebook 04 (Algo 8 walked) + notebook 05 (NUTS on Cholesky).
+5. **Week 2** — `pym/polya_urn.py`, `inference/mcmc/{class_assign,reassign,nuts_atoms,sweep}.py`. Notebook 04 (Pólya-urn step walked) + notebook 05 (NUTS on Cholesky).
 6. **Week 3** — `decision/{local_idr,bayes_mfdr,sun_cai}.py` + tests; `simulation/scenarios.py` for S1; first end-to-end fit on a tiny S1 cell. Notebook 06.
 7. **Week 4** — Full S1–S5 simulation harness; figure F1 (idr-FDR calibration) reproducer wired to `artifacts/sim_calibration.csv`; benchmarks skeleton; `gpu-ci.yml` wired.
 
@@ -784,19 +786,24 @@ After 30 days the repo supports the full tutorial flow, an end-to-end fit on a s
 
 ## 18. Cross-Reference Index
 
-For quick lookup, every element of the plan pointing back into the report:
+For quick lookup, every element of the plan pointing back into the report. The
+revised report (Phase Three pass) restates the theorems as **conditional / finite-sieve**;
+the test stubs below assert what is provable on the finite sieve, and document
+remaining proof obligations rather than asserting them.
 
 - **Theorems** —
-  Thm 3.1 identifiability: `tests/identifiability/*`.
-  Thm 3.2 contraction: `tests/numerical/{test_contraction_simulation,test_py_truncation,test_sieve_covering}.py`.
-  Thm 3.3 Bayes-mFDR: `decision/sun_cai.py`, `tests/decision/test_sun_cai_calibration.py`.
-  Thm 3.4 ergodicity: `inference/mcmc/diagnostics.py` + nightly `gpu-ci.yml` long-chain mixing checks.
-  Thm 3.5 VI consistency: `tests/integration/test_vi_matches_mcmc_means.py`.
-- **Lemmas** — A.1: `tests/property/test_sklar_regularity.py`. A.2: `tests/property/test_mixent_decomposition.py`. A.3: `tests/numerical/test_py_truncation.py`. A.4: `tests/numerical/test_sieve_covering.py`.
-- **Simulation regimes** — S1 → `experiments/sim_S1/`; … S5 → `experiments/sim_S5/`. Each has a Hydra config in `configs/simulation/`.
-- **Datasets** — D1 ENCODE CTCF, D2 ENCODE ATAC, D3 DREAM5, D4 Tabula Muris, D5 Pan-UKBB; each gets a `data/<name>.py`, an `experiments/<name>/`, and a docs page.
+  Thm 3.1 finite-sieve identifiability: `tests/identifiability/test_finite_sieve_id.py`.
+  Thm 3.2 conditional Hellinger contraction: `tests/numerical/{test_contraction_simulation,test_py_truncation,test_sieve_covering}.py`.
+  Thm 3.3 Bayes-mFDR ($\alpha + O(\delta_n)$): `decision/sun_cai.py`, `decision/bayes_mfdr.py`, `tests/decision/test_sun_cai_calibration.py`.
+  Thm 3.4 Harris (+ conditional geometric): `inference/mcmc/diagnostics.py` + nightly `gpu-ci.yml` long-chain mixing checks.
+  Thm 3.5 finite-truncation VI: `tests/integration/test_vi_matches_mcmc_means.py`.
+- **Lemmas** — A.1: `tests/property/test_sklar_regularity.py`. A.2: `tests/property/test_mixent_decomposition.py`. A.3: `tests/numerical/test_py_truncation.py` (polynomial decay for $\sigma>0$; the exponential sieve-complement is the proof obligation in Assumption 3.4). A.4: `tests/numerical/test_sieve_covering.py`.
+- **Simulation regimes** — S1 → `experiments/sim_S1/`; … S5 → `experiments/sim_S5/`; **S5-sparse** → `experiments/sim_S5_sparse/` (the planned ROC/PR stress test, $\pi^*=0.10$). Each has a Hydra config in `configs/simulation/`.
+- **Datasets** — D1 ENCODE CTCF, D2 ENCODE ATAC, D3 DREAM5, D4 Tabula Muris, D5 Pan-UKBB; each gets a `data/<name>.py`, an `experiments/<name>/`, a per-dataset manifest (data manifest + feature universe + replicate matching + score dictionary + tie/missingness policy + QC), and a docs page.
 - **Figures F1–F6** — F1 calibration → `figures/f1_idr_calibration.py` … F6 runtime → `figures/f6_runtime.py`.
 - **Tables T1–T7** — T1 notation → `tables/t1_notation.py` … T7 real results → `tables/t7_real_results.py`.
 - **Workstreams W1–W6** — GitHub Projects columns; each issue links a `fig:*`, `tab:*`, theorem, or simulation regime.
+- **Sub-plans** — `plans/01..10` per workstream; `plans/11_alignment_with_revised_report.md` (this revision); `plans/12_diagnostics.md`, `plans/13_reproducibility.md`, `plans/14_docker_a10dev.md`.
+- **Handoff tasks** — IMPL-01..10, SIM-01..03, REAL-01..05 from `docs/report/CODING_AGENT_HANDOFF.md`; live status at `docs/coding_agent_handoff_status.md`.
 
 End of plan.

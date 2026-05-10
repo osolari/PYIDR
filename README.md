@@ -4,9 +4,10 @@ A reference implementation of **PY-IDR** — a hierarchical nonparametric Bayesi
 extension of the Irreproducible Discovery Rate (IDR) framework. The reproducible
 component is modelled as a Pitman–Yor mixture of Gaussian copulas with structured
 correlation, augmented with $t_5$, Clayton, and Gumbel atoms; per-replicate marginals
-follow Bernstein–Dirichlet priors. Inference is by slice-sampled Pólya-urn MCMC
-(Neal Algorithm 8 + NUTS on the unconstrained Cholesky parameterization), with a
-structured mean-field variational alternative for genomic-scale data.
+follow Bernstein–Dirichlet priors. Inference is by **Pólya-urn auxiliary-atom MCMC**
+(Neal-style auxiliary atoms drawn from $P_0$ each sweep + NUTS or Metropolis on a
+valid correlation parameterization), with a finite-truncation structured mean-field
+variational alternative for genomic-scale data.
 
 The accompanying paper is in [`docs/report/`](docs/report/); a compiled PDF is
 produced by `pdflatex docs/report/main.tex`.

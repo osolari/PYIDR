@@ -39,8 +39,8 @@ differently (that's a model-config edit, not a registry edit).
    - constructors that match the base measure's parameter constraints.
 3. **Register.** Append the name to `ATOMIC_TYPES` in `copulas/registry.py`. Add the
    family-specific log-prior over its parameters under the appropriate branch.
-4. **Wire the proposal.** In `copulas/proposal.py`, ensure the independence Metropolis
-   sampler over `ATOMIC_TYPES` has a uniform mass on the new family.
+4. **Wire the proposal.** In `copulas/proposal.py`, ensure the Algorithm 1 step 4
+   independence Metropolis over `ATOMIC_TYPES` has a uniform mass on the new family.
 5. **Add a unit test.** `tests/unit/test_copula_logpdfs.py` gets a new parametrised
    case verifying the log-density against a closed-form or scipy reference.
 6. **Add a property test.** `tests/property/test_plod_invariance.py` should now also

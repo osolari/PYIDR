@@ -14,7 +14,8 @@ Each skill is a directory with a `SKILL.md` describing:
 | Skill | Purpose |
 |---|---|
 | `add-copula-atom` | Add a new copula family (registry, density, sampler, PLOD test, registry-update). |
-| `algorithm8-sanity` | Run the Algorithm 8 reassignment correctness check on a saved sampler state. |
+| `polya-urn-sanity` | Run the Pólya-urn auxiliary-atom (Eqs. 3.5–3.6) reassignment correctness check on a saved sampler state. |
+| `add-stress-test` | Scaffold a §4.6 stress test (weak $c_0$ / high tie rate / missing replicates / etc.) without disturbing the S1–S5 flow. |
 | `run-simulation` | Launch one S1–S5 simulation cell with the standard 100-fold MC replication. |
 | `add-real-dataset` | Add a new data loader, register checksums, emit a smoke loader. |
 | `reproduce-figure` | Regenerate one of F1–F6 from `artifacts/*.csv`. |

@@ -27,8 +27,10 @@ dedicated `run-encode-ctcf`-style follow-on) instead.
 
 ## Inputs (ask the user if missing)
 
-- Regime: `S1 | S2 | S3 | S4 | S5`
-- $K$: number of replicates, default 4
+- Regime: `S1 | S2 | S3 | S4 | S5 | S5_sparse`
+  - `S5_sparse` is the planned ROC/PR stress test ($\pi^* = 0.10$); per the revised
+    Table 3, it is run at the single setting $K = 10$, $n = 10{,}000$ with 100 reps.
+- $K$: number of replicates, default 5 (matches the revised manuscript shells)
 - $n$: feature count, default 10000
 - `reps`: MC replications, default 100
 - `inference`: `mcmc | vi`, default `mcmc` (use `vi` for $n \ge 50000$)

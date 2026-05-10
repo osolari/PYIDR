@@ -19,8 +19,8 @@ Triggered by any of:
 - "the trace looks suspicious"
 - "show me the cluster-occupancy plot"
 
-Do NOT use this skill to debug Algorithm 8 specifically — use `algorithm8-sanity` for
-that.
+Do NOT use this skill to debug the Pólya-urn auxiliary-atom step specifically — use
+`polya-urn-sanity` for that.
 
 ## Prerequisites
 
@@ -34,11 +34,15 @@ that.
    import py_idr.inference.mcmc.diagnostics as diag
    ix = diag.load_trace("runs/<run_id>/trace.zarr")
    ```
-2. **Continuous-parameter diagnostics.**
+2. **Continuous-parameter diagnostics** (revised §3.3.1 list).
    - Split-$\widehat R$ on $\pi$, $\sigma$, $\alpha$, $\alpha_F$: must be $\le 1.01$.
-   - ESS on $\pi$: must be $\ge 400$.
-   - Divergences across chains: must be $< 0.5\%$ of post-warmup samples.
+   - ESS on every reported scalar summary: must be $\ge 400$.
+   - NUTS divergent transitions: must be $< 0.5\%$ of post-warmup samples; warn at $> 0$.
    - Energy fraction of missing information (E-FMI): must be $\ge 0.3$.
+   - At least 4 chains with overdispersed starts; flag if fewer.
+   - Sensitivity to auxiliary-atom count $H$: if a $H$-sweep is available
+     (`runs/<run_id>/h_sensitivity/`), the cluster-count posterior mean across
+     $H \in \{1, 3, 5, 10\}$ should agree to within 1 cluster.
 3. **Discrete-parameter diagnostics.**
    - Number of active clusters $T$ trace: visually plateau after burn-in.
    - Atomic-type histogram across post-warmup samples: should not be degenerate
