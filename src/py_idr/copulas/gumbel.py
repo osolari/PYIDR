@@ -35,15 +35,24 @@ class GumbelCopula(Copula):
     :meth:`cdf_diagonal` method works for any $K$.
     """
 
-    def __init__(self, theta: float, K: int) -> None:
-        """Bind dependence parameter and replicate dimension."""
-        if theta <= 1.0:
+    def __init__(self, theta: float | Float[Array, ""], K: int) -> None:
+        """Bind dependence parameter and replicate dimension.
+
+        ``theta`` may be a Python float or a JAX scalar (concrete or traced).
+        Concrete values are validated against $\\theta > 1$; traced values skip
+        the check so NumPyro NUTS samples flow through.
+        """
+        self.theta = jnp.asarray(theta)
+        self.K = int(K)
+        try:
+            theta_value = float(self.theta)
+        except Exception:  # noqa: BLE001  -- JAX tracer conversion errors
+            return
+        if theta_value <= 1.0:
             raise ValueError(
-                f"Gumbel requires theta > 1 for strict PLOD; got {theta}. "
+                f"Gumbel requires theta > 1 for strict PLOD; got {theta_value}. "
                 "theta == 1 is the independence copula."
             )
-        self.theta = float(theta)
-        self.K = int(K)
 
     def log_density(self, u: Float[Array, "n K"]) -> Float[Array, "n"]:
         """Return $\\log c_\\theta(u_i)$ at each row.

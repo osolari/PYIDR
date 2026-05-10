@@ -26,12 +26,23 @@ from py_idr.copulas.base import Copula
 class ClaytonCopula(Copula):
     """Archimedean Clayton copula; $\\theta > 0$."""
 
-    def __init__(self, theta: float, K: int) -> None:
-        """Bind dependence parameter and replicate dimension."""
-        if theta <= 0.0:
-            raise ValueError(f"Clayton requires theta > 0; got {theta}.")
-        self.theta = float(theta)
+    def __init__(self, theta: float | Float[Array, ""], K: int) -> None:
+        """Bind dependence parameter and replicate dimension.
+
+        ``theta`` may be a Python float or a JAX scalar (concrete or traced).
+        Concrete values are validated against the ``theta > 0`` constraint;
+        traced values skip the check (NumPyro NUTS samples flow through).
+        """
+        self.theta = jnp.asarray(theta)
         self.K = int(K)
+        # Validate only at concrete-time — traced tracers raise on float() with
+        # ConcretizationTypeError / TracerArrayConversionError.
+        try:
+            theta_value = float(self.theta)
+        except Exception:  # noqa: BLE001  -- JAX tracer conversion errors
+            return
+        if theta_value <= 0.0:
+            raise ValueError(f"Clayton requires theta > 0; got {theta_value}.")
 
     def log_density(self, u: Float[Array, "n K"]) -> Float[Array, "n"]:
         """Return $\\log c_\\theta(u_i)$ at each row."""
