@@ -1,73 +1,140 @@
-# Changelog: Hierarchical Nonparametric Bayesian IDR via Pitman-Yor Copula Mixtures
+# CHANGELOG - Phase Three Technical Development Pass
 
-This changelog documents the substantive corrections applied during proofreading and adaptation to the SAIM journal template. Corrections fall into three categories: critical mathematical errors identified by literature verification, citation upgrades for stronger or more accurate references, and structural changes for the SAIM template adaptation.
+## Summary
 
-## Critical mathematical corrections
+- Total changes applied by category: A technical/error corrections: 20; B theoretical development: 4; C rigor/completeness: 10; D clarity/organization: 5; E planned/placeholder clarification: 10; F new planned theory/method/experiment/handoff additions: 13; G substantive positioning/citation-verification additions: 2; H LaTeX/build/minor fixes: 16.
+- Technical-error fixes applied: claim-strength qualifications; corrected finite/infinite identifiability scope; corrected PY truncation-tail claim; corrected Bayes-mFDR threshold and denominator handling; separated Harris from geometric ergodicity; qualified variational consistency; harmonized S5/K settings; corrected atom/support counts and correlation parameterization.
+- Theoretical-development changes applied: sharpened assumptions, finite-sieve identifiability theorem, conditional contraction theorem, theory-scope limitation for heavy-tail atoms, and theory-to-experiment bridge.
+- Methodology-strengthening changes applied: clarified rank/marginal pipeline, atom parameter domains, PLOD-compatible correlation parameterization, PY predictive reassignment probabilities, valid correlation updates, diagnostics, VI truncation, and operational Bayes-mFDR computation.
+- Experiment-plan changes applied: added ablations, stress tests, Monte Carlo uncertainty reporting, preprocessing/QC requirements, reproducibility artifacts, and S5-sparse stress-test distinction.
+- Planned experiments preserved or clarified: S1--S5 simulations, real-data applications, runtime analysis, contraction diagnostics, PY-versus-DP behavior, and sensitivity analyses were preserved and locally clarified as planned.
+- Expected or projected results preserved or clarified: all expected-behavior language was retained but revised to avoid implying observed results.
+- Placeholder figures and tables preserved, clarified, or added: all placeholder figures and tables were preserved; figure titles/captions and table captions now identify planned or illustrative status; S5-sparse planned row added to the simulation-design table.
+- Implementation-plan material preserved or clarified: MCMC, VI, figure generation, data preprocessing, reproducibility, and coding-agent tasks were expanded.
+- Coding-agent-relevant tasks added or clarified: model implementation, sampler, VI, simulations, real-data preprocessing, figure/table generation, diagnostics, citation verification, and build tasks were documented in `CODING_AGENT_HANDOFF.md`.
+- Proposed changes not applied: none from the approved Phase Two plan were intentionally rejected; some citation/software items remain as handoff verification tasks rather than unsupported manuscript claims.
+- New package, macro, auxiliary file, figure file, table file, bibliography entry, placeholder, proposed experiment, theoretical result, methodology addition, or implementation task added: no new LaTeX package was added; a table column macro `Y` was added; no new bibliography entry was added, but three bibliography entries were updated; no new auxiliary source file was added beyond this changelog and `CODING_AGENT_HANDOFF.md`; placeholder figures were regenerated; S5-sparse was added as a planned stress-test row; finite-sieve and conditional theorem refinements were added; multiple implementation and experiment tasks were added in the handoff.
 
-### 1. Identifiability strategy: replaced Allman-Matias-Rhodes with Yakowitz-Spragins
+## Applied changes in document order
 
-The original draft invoked Allman, Matias, and Rhodes (2009, *Annals of Statistics*) for identifiability of the copula mixture component. This was a structural mismatch: the AMR theorem is Kruskal-based and requires conditional independence of the observed variables given the latent class, which Gaussian copula components by definition violate (the variates within each component are correlated through the correlation matrix). The corrected Theorem 3.1 invokes Yakowitz and Spragins (1968, *Annals of Mathematical Statistics*) instead, which only requires linear independence of the joint component densities. Gaussian copula densities with distinct correlation matrices are real-analytic on the open cube, satisfy linear independence, and are therefore identifiable up to label permutation. A new Remark 3.2 documents the reasoning explicitly.
+### Project/build/deliverables
 
-### 2. Posterior contraction: added Sklar regularity caveat and corrected primary citation
+- Build-H1 | `math_commands.tex` | H | Replaced warning-prone definition marker with `\coloneqq`. | Removes avoidable math font warnings while preserving meaning.
+- Build-H2 | `main.tex`, table files | H | Added a wrapped table column macro and reformatted wide tables using `tabularx`/`resizebox`. | Prevents clipped table content and overfull boxes.
+- Build-H3 | Section 3 and Appendix displays | H | Broke long theoretical and KL displays into multi-line forms. | Improves build quality and PDF readability.
+- Build-H4 | `README.md` | H | Updated root-file, BibTeX, figure-generation, and manuscript-status notes. | Improves Overleaf and coding-agent readiness.
+- Deliverable-H1 | `CHANGELOG.md` | H | Replaced the prior changelog with this identifier-keyed changelog. | Documents the current approved pass.
+- Deliverable-F1 | `CODING_AGENT_HANDOFF.md` | F | Added a standalone coding-agent handoff file. | Supports the next implementation and experiment iteration.
 
-The original draft attributed the rate `n^{-beta/(2*beta+K)}(log n)^t` to Wu and Ghosal (2010), which provides only L^1-consistency rather than a rate. The corrected Theorem 3.2 cites Shen, Tokdar, and Ghosal (2013, *Biometrika*) as the canonical multivariate Dirichlet-mixture contraction result, supplemented by Scricciolo (2014, *Bayesian Analysis*) for the Pitman-Yor adaptation specifically. A new supporting lemma (Lemma A.1, Sklar regularity for copula contraction) is added in the appendix to handle the transformation from densities on R^K to copulas on [0,1]^K, which is not automatic and requires regularity assumptions on the marginals.
+### Abstract
 
-### 3. Bernstein-Dirichlet contraction: corrected attribution from Ghosal (2001) to Rousseau (2010)
+- Abs-A1 | Abstract | A | Qualified identifiability, contraction, mFDR, VI, and geometric-ergodicity claims. | Prevents overclaiming relative to the current proof status.
+- Abs-E1 | Abstract | E | Clarified that figures and result tables are illustrative/placeholders. | Preserves planned material without implying completed experiments.
+- Abs-D1 | Abstract | D | Reordered and tightened model, inference, theory, and protocol summary. | Improves readability and publication-development readiness.
 
-The original draft attributed the adaptive Bernstein contraction rate `n^{-beta/(2*beta+1)}(log n)^t` to Ghosal (2001, *Annals of Statistics*), which provides only the suboptimal non-adaptive rate `n^{-1/3}(log n)^{5/6}`. The corrected Section 3.5.2 cites Rousseau (2010, *Annals of Statistics*) for the adaptive rate, with Petrone (1999) and Petrone-Wasserman (2002) as background and Kruijer-Rousseau-vdV (2010) for general location-scale extension.
+### Introduction
 
-### 4. Geometric ergodicity: softened to Harris ergodicity with explicit conjecture
+- 1-A1 | Section 1.1 | A | Replaced unsupported universal pairwise-FDR wording with calibrated-risk language. | Avoids unsupported empirical claims.
+- 1-C1 | Section 1.2 | C | Recast DP/PY cluster comparison as order-based rather than exact. | Improves stochastic-process precision.
+- 1-D1 | Section 1.3 | D | Converted dense contribution prose into structured contribution bullets. | Improves reviewability.
+- 1-E1 | Section 1.3 | E | Clarified empirical evaluations as planned. | Avoids fabricated-completion implications.
+- 1-F1 | Section 1.3 | F | Added design map connecting IDR limitations to PY-IDR components. | Strengthens methodological motivation.
+- 1-G1 | Section 1.3 | G | Replaced unsupported novelty absolutes with verification-aware positioning. | Reduces citation/novelty risk.
 
-The original draft asserted V-uniform geometric ergodicity of the slice-sampled Polya-urn sampler under Meyn-Tweedie Theorem 16.0.1. This is unproven for slice-sampled Pitman-Yor under Neal Algorithm 8: existing references (Walker 2007, Kalli-Griffin-Walker 2011, Papaspiliopoulos-Roberts 2008) establish correctness of the invariant distribution but not geometric rates. The corrected Theorem 3.4 establishes Harris ergodicity unconditionally via Meyn-Tweedie Theorem 13.0.1, and states geometric ergodicity as a conjecture supported by recent quantitative-mixing analyses for Dirichlet-process samplers (Ascolani et al. 2024, arXiv:2304.01731). A new Remark 3.6 documents this separation.
+### Related work
 
-### 5. mFDR control: added Heller-Rosset and Castillo-Roquain rate bridge
+- 2-H1 | Table 1 | H | Reformatted the related-work table to fit within text width. | Improves layout and compilation quality.
+- 2-A1 | Related work | A | Retained nestedIDR but moved implementation availability to verification status. | Avoids unsupported software-availability claims.
+- 2-A2 | Related work and bibliography | A | Updated eCV citation metadata to package/source-verification status. | Improves citation accuracy without inventing article metadata.
+- 2-A3 | Related work and bibliography | A | Updated BNP Archimedean citation to the 2025 version of record. | Improves bibliographic accuracy.
+- 2-D1 | Section 2 | D | Clarified direct baselines, methodological neighbors, and complementary methods. | Improves organization.
+- 2-G1 | Handoff | G | Added recent/software-dependent citation checks as handoff tasks. | Preserves citation integrity.
 
-The original draft suggested that posterior contraction at rate epsilon_n implies asymptotic mFDR control at the same rate via Sun-Cai (2007, JASA). Sun-Cai establishes asymptotic mFDR optimality of the oracle compound-decision rule and asymptotic mFDR control of consistent plug-ins as the number of hypotheses tends to infinity, but does not provide a result that converts a posterior contraction rate into an mFDR rate. The corrected Theorem 3.3 invokes Heller and Rosset (2021, JRSSB) and Castillo and Roquain (2020, Annals of Statistics) for the explicit rate-to-mFDR bridge.
+### Method: model and notation
 
-### 6. Variational consistency: qualified the scope of Wang-Blei (2019)
+- 3-C1 | Table 2 | C | Expanded notation for active clusters, PY reassignment, basis indicators, and thresholds. | Reduces notation ambiguity.
+- 3-A1 | Section 3.2.1 | A | Clarified empirical ranks as initialization/diagnostics or approximation, not replacement for modeled marginals. | Resolves rank/marginal inconsistency.
+- 3-A2 | Section 3.2.2 | A | Added PLOD-compatible constraints for structured correlation matrices. | Aligns model parameterization with assumptions.
+- 3-C2 | Section 3.2.2 | C | Added atom parameter domains for Gaussian, t, Clayton, and Gumbel atoms. | Improves implementability.
+- 3-C3 | Section 3.2.2 | C | Defined PY stick-breaking variables explicitly. | Makes model self-contained.
+- 3-A3 | Section 3.2.5 | A | Corrected structural-class and atomic-type support counts. | Fixes consistency error.
 
-The original draft cited Wang and Blei (2019, JASA) as the basis for variational consistency in the nonparametric setting. Their Theorem 5 is a parametric variational Bernstein-von Mises result requiring finite-dimensional theta in a compact parameter space. The corrected Theorem 3.5 invokes Wang-Blei for finite truncation only, and cites Alquier and Ridgway (2020, Annals of Statistics) and Yang-Pati-Bhattacharya (2020, Annals of Statistics) for the nonparametric extension.
+### Method: inference
 
-## Citation upgrades and additions
+- 3-A4 | Section 3.3.1 | A | Reframed sampler as PY Polya-urn auxiliary-atom MCMC rather than inconsistent slice/Algorithm-8 hybrid. | Makes sampler description coherent.
+- 3-M1 | Section 3.3.1 | F | Added occupied/new-cluster reassignment probabilities under the PY predictive rule. | Makes algorithm implementation-ready.
+- 3-A5 | Algorithm 1 | A | Replaced invalid Cholesky-correlation wording with covariance-to-correlation normalization and PLOD rejection. | Prevents invalid correlation matrices.
+- 3-C4 | Section 3.3.1 | C | Clarified Bernstein basis-membership likelihood contribution. | Connects marginal model to sampler.
+- 3-M2 | Section 3.3.1 | F | Added initialization, ESS/R-hat, label-invariant, NUTS, tie, and cluster diagnostics. | Improves robust implementation.
+- 3-H1 | Sections 3.3.1 and 4.9 | H | Harmonized analytic MCMC complexity with runtime discussion. | Removes cross-section inconsistency.
+- 3-C5 | Section 3.3.2 | C | Clarified finite truncation, variational factors, minibatch scaling, and approximation status. | Improves VI rigor.
 
-### Most relevant new references identified
+### Method: idr and Bayes-mFDR
 
-The closest published competitor is **Pan, Nieto-Barajas, and Craiu (2024, arXiv:2412.09539)**, which develops a Bayesian nonparametric mixture of Archimedean copulas with Pitman-Yor mixing. This is now cited prominently in the introduction and related work, and added to the comparator list in Table 2. The most direct hierarchical-IDR competitor is **Ranalli, Lyu, Koch, and Li (2026, *Statistics in Medicine*)**, the nestedIDR framework, which is now treated as the principal hierarchical baseline.
+- 3-A6 | Section 3.3.3 | A | Added largest-threshold/maximum-rejection formulation and zero-denominator convention. | Aligns with Sun-Cai-style step-up logic.
+- 3-C6 | Section 3.3.3 | C | Added operational sorted-running-average rejection rule. | Improves method-to-code traceability.
 
-The expanded literature review now covers the modern (2020-2026) landscape across four themes: IDR variants and reproducibility methods (eCV, nestedIDR, MaRR, IDR2D, ChIP-R, GMCM-AD, NPMLE replicability), Bayesian nonparametric copula models (Pan-Nieto-Barajas-Craiu, Burda-Prokhorov, Zhuang-Diao-Yi, Liu-Li, Feldman-Kowal, Dalla Valle et al., Smith-Loaiza-Maya-Nott, Murray et al., Smith-Khaled), Pitman-Yor mixture theory (Pitman-Yor 1997, Ishwaran-James, Favaro-Teh, Walker, Kalli-Griffin-Walker, Papaspiliopoulos-Roberts, Ascolani et al., Bystrova et al., Shen-Tokdar-Ghosal, Canale-De Blasi, Scricciolo, Rousseau, Kruijer-Rousseau-vdV), and modern multiple-testing methodology (Sun-Cai, Cai-Sun-Wang, Heller-Rosset, Castillo-Roquain, Bogomolov-Heller, Wang-Owen, Wang-Ramdas, Lei-Fithian, Ignatiadis-Huber, Heller-Yaacoby).
+### Theory
 
-### Real-data citations
+- 3-T1 | Section 3.4 assumptions | B | Split assumptions into smooth truth, mass/separation, KL support, sieve/tail, threshold regularity, and sampler regularity. | Makes theorem dependencies explicit.
+- 3-A7 | Theorem 3.1 | A | Replaced unsupported diagonal recovery with finite-sieve linear-independence identifiability. | Fixes proof gap.
+- 3-T2 | Theorem 3.1 | B | Separated finite-sieve identifiability from unrestricted infinite-PY extensions. | Prevents overextension of finite-mixture theory.
+- 3-A8 | Theorem 3.2 | A | Replaced invalid positive-discount exponential tail implication with explicit sieve-tail assumption/proof obligation. | Corrects central contraction issue.
+- 3-A9 | Theorem 3.2 | A | Corrected entropy reference to the sieve-covering lemma. | Improves cross-reference accuracy.
+- 3-T3 | Theorem 3.2 | B | Added bounded-smooth theory-scope remark for heavy-tail atoms. | Aligns theory with methodology.
+- 3-A10 | Theorem 3.2 and Appendix Lemma A.2 | A | Revised KL decomposition to state required transform/support conditions. | Repairs proof dependency.
+- 3-A11 | Theorem 3.3 | A | Added threshold regularity and denominator conditions; qualified rate. | Avoids overstating mFDR transfer.
+- 3-A12 | Theorem 3.4 | A | Split Harris ergodicity from conditional geometric ergodicity. | Fixes logical inconsistency.
+- 3-A13 | Theorem 3.5 | A | Recast VI consistency as finite-truncation conditional statement. | Avoids overstating variational theory.
+- 3-B1 | End of Section 3.4 | B | Added theory-to-experiment bridge. | Connects theory to planned evaluation.
 
-ENCODE 4 (Moore et al. 2020, *Nature*; Hitz et al. 2023 pipeline preprint), DREAM5 (Marbach et al. 2012, *Nature Methods*), Tabula Muris (2018 *Nature*; Senis 2020 *Nature*), and Pan-UKBB (Bycroft et al. 2018 *Nature*; Karczewski et al. 2024 medRxiv preprint) are added with full bibliographic detail.
+### Experiments
 
-## Structural changes for SAIM template adaptation
+- 4-E1 | Section 4 opening | E | Preserved protocol-first framing and propagated local status language. | Maintains planned-material clarity.
+- 4-A1 | Simulation tables | A | Changed placeholder table setting from unsupported K=4 to planned K=5. | Fixes design inconsistency.
+- 4-A2 | S5 design/ROC text | A | Added S5-sparse planned stress-test variant for pi*=0.10. | Harmonizes S5 descriptions.
+- 4-C1 | Simulation protocol | C | Added seed ledger, truth-object storage, rank/tie handling, and stored outputs. | Improves reproducibility.
+- 4-F1 | Section 4.6 | F | Added planned ablations for PY vs DP, heavy-tail atoms, learned marginals, structure classes, inference mode, and aggregation. | Strengthens experiment design.
+- 4-F2 | Section 4.3 | F | Added Monte Carlo SEs, uncertainty bands, calibration diagnostics, posterior predictive checks, and failure summaries. | Improves statistical rigor.
+- 4-E2 | Figures | E | Revised captions to label figures as illustrative synthetic placeholders. | Prevents false empirical interpretation.
+- 4-E3 | Result tables | E | Revised table captions to planned-output shells. | Preserves placeholders clearly.
+- 4-F3 | Section 4.6 | F | Added stress tests for weak dependence, ties, missing replicates, singularity, high K, and marginal misspecification. | Improves robustness plan.
+- 4-C2 | Section 4.7 | C | Added data manifests, feature-universe, replicate matching, score dictionaries, QC, tie, and missingness requirements. | Makes real-data plan implementable.
+- 4-A3 | Pan-UKBB text and bibliography | A | Updated Pan-UKBB citation metadata and real-data wording. | Improves source accuracy and status handling.
+- 4-E4 | Real-data tables | E | Preserved placeholder tables and clarified planned status. | Avoids false observed results.
+- 4-C3 | Runtime section | C | Separated analytic complexity from synthetic plotted values and future measured runtime. | Avoids implied completed timing experiments.
+- 4-F4 | Runtime/reproducibility | F | Added reproducibility requirements for seeds, environment, manifests, configs, output schemas, and containers/workflows. | Supports companion implementation.
 
-### Document structure
+### Conclusion
 
-The paper has been restructured from the original article-class layout into the SAIM `saim.cls` template with custom title box. Section structure follows the SAIM convention: abstract embedded in the title macro; introduction; related work; method (combining model, inference, and theory); experiments; conclusion; appendix. All inline algorithm definitions use the `algorithm2e` package as required by the template.
+- 5-A1 | Conclusion opening | A | Aligned conclusion with qualified theorem status. | Ensures consistency across manuscript.
+- 5-E1 | Practical recommendations | E | Marked recommendations as provisional implementation guidance. | Avoids empirical overclaiming.
+- 5-C1 | Limitations | C | Added identifiability, tail, bounded-copula, mFDR, geometric-ergodicity, and VI limitations. | Improves scientific rigor.
+- 5-D1 | Acknowledgments/code/data | D | Preserved placeholders and future code/data status. | Maintains publication-development readiness.
 
-### Figures and tables
+### Appendix
 
-All six figures (idr-FDR calibration, ROC/PR, posterior contraction, PY-vs-DP cluster behaviour, real-data evaluation, runtime scaling) are rendered as illustrative PDF figures with synthetic numerical content and are clearly labeled as illustrative on each figure caption. Tables include three notation/comparison tables (notation, related-work comparison, simulation design, datasets) and four placeholder-cell results tables (simulation FDR, simulation power, K-effect, real-data discoveries, real-data clusters, real-data runtime).
+- App-A-A1 | Appendix opening | A | Harmonized appendix status as supporting lemmas and proof obligations. | Removes conflict with full-proof claim.
+- App-A-A2 | Lemma A.2 | A | Revised KL lemma to state transform/support conditions. | Improves correctness.
+- App-A-A3 | Lemma A.3 | A | Removed invalid exponential conclusion for positive-discount PY residual. | Fixes mathematical error.
+- App-A-H1 | Lemma A.4 | H | Corrected support-count wording. | Fixes consistency.
+- App-A-F1 | Appendix remark | F | Added theory-status roadmap. | Documents established vs future theoretical work.
+- App-A-F2 | Appendix remark and handoff | F | Added theory-to-code diagnostics. | Connects assumptions to implementation checks.
+
+### Figures and script
+
+- Fig-H1 | `figures/generate_figures.py` | H | Changed hard-coded absolute output paths to project-local paths. | Makes figure regeneration portable.
+- Fig-E1 | Figure PDFs/script | E | Removed internal hard-coded figure numbers from generated titles and regenerated PDFs. | Avoids LaTeX numbering conflicts.
+- Fig-E2 | Figure captions/script | E | Preserved synthetic/illustrative labels in captions and internal figure text. | Prevents placeholder values from being treated as observed.
 
 ### Bibliography
 
-The bibliography uses `plainnat` style with the SAIM `natbib` setup. All preprints are flagged as `arXiv preprint` in the journal field; final journal information will be substituted at submission time for entries currently appearing as preprints.
+- Bib-A1 | `refs.bib` | A | Updated eCV, BNP Archimedean copula, and Pan-UKBB metadata where verified; left remaining items for handoff verification. | Improves citation accuracy.
+- Bib-F1 | Handoff | F | Added citation-verification tasks rather than unsupported new references. | Preserves citation integrity.
+- Bib-H1 | `refs.bib` | H | Applied safe formatting/metadata normalization only where supported. | Improves bibliography polish.
 
-### Build
+### Coding-agent handoff
 
-Build instructions: `pdflatex main; bibtex main; pdflatex main; pdflatex main`. The final compiled PDF is 31 pages with full bibliography and appendix.
-
-## Files in the package
-
-- `main.tex` -- main entry point with title, author, abstract, and section inputs
-- `saim.cls` -- SAIM journal class file with title-box macro
-- `math_commands.tex` -- math macros and theorem environments
-- `refs.bib` -- bibliography with all verified references
-- `latexmkrc` -- latexmk configuration
-- `assets/saim_logo.png` -- SAIM logo for title box
-- `sections/0-abstract.tex` through `sections/6.appendix.tex` -- modular section files
-- `tables/table_notation.tex`, `table_related_work.tex`, `table_sim_design.tex`, `table_sim_results.tex`, `table_datasets.tex`, `table_real_results.tex` -- standalone table snippets
-- `figures/generate_figures.py` -- Python script that generates all six illustrative figures
-- `figures/fig_*.pdf` -- six rendered figures
-- `CHANGELOG.md` -- this file
+- CA-F1 | `CODING_AGENT_HANDOFF.md` | F | Added implementation-ready task plan for model, sampler, VI, simulations, real-data, figures, diagnostics, and reproducibility. | Enables next agent iteration.
+- CA-F2 | `CODING_AGENT_HANDOFF.md` | F | Added projected/expected-results constraints and replacement protocol. | Prevents accidental fabrication.
+- CA-H1 | `CHANGELOG.md`, `CODING_AGENT_HANDOFF.md` | H | Added build status, changed-file summary, and known caveats. | Supports final delivery and future handoff.

@@ -15,238 +15,258 @@ We collect the principal symbols used throughout the paper in Table~\ref{tab:not
 
 \subsubsection{Latent class and copula representation}
 
-For $i = 1, \ldots, n$, let $Z_i \in \{0, 1\}$ be the latent reproducibility class with $\Pr(Z_i = 1) = \pi$, where $Z_i = 1$ denotes the reproducible component and $Z_i = 0$ the irreproducible component. The population uniformized vector is $\bU_i = (F_1(X_{i,1}), \ldots, F_K(X_{i,K}))^\top \in [0,1]^K$, where $F_j$ is the marginal CDF of replicate $j$; in practice $\bU_i$ is replaced by its empirical scaled-rank counterpart prior to the marginal-model step. Conditional on $Z_i = z$, the uniformized vector has copula density
+For $i = 1, \ldots, n$, let $Z_i \in \{0, 1\}$ be the latent reproducibility class with $\Pr(Z_i = 1) = \pi$, where $Z_i = 1$ denotes the reproducible component and $Z_i = 0$ the irreproducible component. The population uniformized vector is
+\[
+\bU_i = (F_1(X_{i,1}), \ldots, F_K(X_{i,K}))^\top \in [0,1]^K,
+\]
+where $F_j$ is the marginal CDF of replicate $j$. In the full model the $F_j$ are inferred by the Bernstein--Dirichlet marginals below. Empirical scaled ranks are used as initialization, diagnostics, and a practical rank-only approximation in sensitivity analyses; they are not a replacement for the marginal model in the theoretical statements. Conditional on $Z_i = z$, the uniformized vector has copula density
 \begin{equation}
-\bU_i \mid Z_i = z\ \sim\ c_z(\bU_i; \btheta_z),
+\bU_i \mid Z_i = z \sim c_z(\bU_i; \btheta_z),
 \label{eq:cop-density}
 \end{equation}
-where, by the IDR convention, $c_0$ is the independence copula on $[0,1]^K$ and $c_1$ is the reproducible-component copula. We retain this convention throughout for compatibility with the IDR literature; alternative weakly-dependent choices for $c_0$ are possible and would not affect the structural results. The local idr is the per-feature posterior of the irreproducible class, $\idr_i = \Pr(Z_i = 0 \mid \bU_i)$, and the aggregated $\IDR(\gamma)$ is the marginal FDR (mFDR) of the rejection set $\mathcal{R}(\gamma) = \{i : \idr_i < \gamma\}$,
+where, by the IDR convention, $c_0$ is the independence copula on $[0,1]^K$ and $c_1$ is the reproducible-component copula. We retain this convention throughout for compatibility with the IDR literature; weakly dependent alternatives for $c_0$ are a planned robustness extension rather than part of the present theory. The local idr is the posterior probability of the irreproducible class, $\idr_i = \Pr(Z_i = 0 \mid \bU_i)$, and the aggregated $\IDR(\gamma)$ is the marginal FDR of the rejection set $\mathcal{R}(\gamma) = \{i : \idr_i < \gamma\}$,
 \begin{equation}
-\IDR(\gamma) \;=\; \frac{\E\!\left[\sum_{i=1}^n (1-Z_i)\,\bm{1}\{\idr_i < \gamma\}\right]}{\E\!\left[\sum_{i=1}^n \bm{1}\{\idr_i < \gamma\}\right]},
+\IDR(\gamma) = \frac{\E\!\left[\sum_{i=1}^n (1-Z_i)\,\bm{1}\{\idr_i < \gamma\}\right]}{\E\!\left[\sum_{i=1}^n \bm{1}\{\idr_i < \gamma\}\right]},
 \label{eq:agg-idr}
 \end{equation}
-which serves as the threshold-free analogue of the BH cutoff and is the operational target of the Sun--Cai-type step-up rule \citep{SunCai2007}.
+with the convention that the ratio is undefined when the denominator is zero and is evaluated only over thresholds producing at least one rejection.
 
 \subsubsection{Reproducible-component copula}
 
 Conditional on $Z_i = 1$, the copula density is the Pitman--Yor mixture
 \begin{equation}
-c_1(\bU_i) \;=\; \sum_{m=1}^\infty w_m\, c_{\theta_m}(\bU_i),\qquad (w_1, w_2, \ldots) \sim \GEM(\alpha, \sigma), \quad (\theta_m, t_m) \stackrel{\mathrm{iid}}{\sim} P_0,
+c_1(\bU_i) = \sum_{m=1}^\infty w_m\, c_{\theta_m,t_m}(\bU_i),\qquad
+(w_1,w_2,\ldots) \sim \GEM(\alpha,\sigma),\quad (\theta_m,t_m) \stackrel{\mathrm{iid}}{\sim} P_0,
 \label{eq:py-mix}
 \end{equation}
-where each atom is a pair $(\theta_m, t_m)$ comprising continuous parameters $\theta_m$ and a discrete atomic-type indicator $t_m \in \{\text{Gauss}, t_5, \text{Clayton}, \text{Gumbel}\}$ that selects the copula family. The base measure $P_0$ factorizes as $P_0(\theta, t) = P_0(\theta \mid t)\, P_0(t)$, with $P_0(t)$ uniform on the four families. For Gaussian atoms, the structural class of the correlation matrix $R(\theta_m)$ is itself drawn at cluster instantiation from a uniform prior on the three classes \emph{exchangeable} ($R = (1-\rho) I + \rho \one\one^\top$), \emph{one-factor} ($R = D_1 + \lambda_1 \lambda_1^\top$), and \emph{two-factor} ($R = D_2 + \Lambda \Lambda^\top$ with $\Lambda \in \R^{K \times 2}$), where $D_q$ are diagonal matrices chosen so $R$ has unit diagonal. We exclude vine constructions for analytical tractability and defer them to future work. For non-Gaussian atomic types, $\theta_m$ comprises the corresponding family-specific dependence parameters.
+where $\alpha>0$ and $\sigma\in[0,1)$. In stick-breaking form, $V_m\sim\Beta(1-\sigma,\alpha+m\sigma)$ independently and $w_m=V_m\prod_{\ell<m}(1-V_\ell)$. Each atom comprises continuous parameters $\theta_m$ and an atomic-type indicator $t_m \in \{\text{Gauss}, t_5, \text{Clayton}, \text{Gumbel}\}$; $P_0(t)$ is uniform on the four families.
+
+For Gaussian and $t_5$ atoms, $\theta_m$ includes a correlation matrix $R_m$. The exchangeable class uses $R=(1-\rho)I+\rho\one\one^\top$ with $0<\rho<1$. The one-factor and two-factor classes are parameterized through an unconstrained positive definite matrix $\Sigma=D+\Lambda\Lambda^\top$ and normalized to a correlation matrix $R=\operatorname{diag}(\Sigma)^{-1/2}\Sigma\operatorname{diag}(\Sigma)^{-1/2}$. For atoms subject to the PLOD restriction below, the implementation either constrains the factor loadings to a common sign or rejects/proposes again until all pairwise correlations are strictly positive. Clayton atoms use dependence parameter $\theta>0$, and Gumbel atoms use $\theta>1$ when strict separation from independence is required. We exclude vine constructions for analytical tractability and defer them to future work.
 
 \subsubsection{Replicate-specific marginals}
 
 Per-replicate marginals $F_j$ have Bernstein--Dirichlet priors,
 \begin{equation}
-F_j(x) \;=\; \sum_{r=1}^{M_j} p_{j,r}\, B_r\!\left(F_j^{(0)}(x);\, M_j\right),\qquad B_r(t; M) \;=\; I_t(r, M-r+1),\qquad \bm{p}_j \sim \Dir(\alpha_F \one_{M_j}),
+F_j(x) = \sum_{r=1}^{M_j} p_{j,r}\, B_r\!\left(F_j^{(0)}(x); M_j\right),\qquad
+B_r(t;M)=I_t(r,M-r+1),\qquad \bm p_j\sim\Dir(\alpha_F\one_{M_j}),
 \label{eq:bernstein}
 \end{equation}
-where $B_r(t; M)$ is the cumulative Bernstein basis of order $M_j$ at index $r$, identified with the regularized incomplete beta function $I_t(r, M-r+1)$; $F_j^{(0)}$ is a coarse pilot CDF (e.g., a kernel-smoothed empirical CDF with a wide bandwidth); and $\alpha_F > 0$ is a smoothing hyperparameter. The Bernstein--Dirichlet construction is canonical for densities on $[0,1]$ \citep{Petrone1999,PetroneWasserman2002}.
+where $B_r(t;M)$ is the cumulative Bernstein basis of order $M_j$ at index $r$, identified with the regularized incomplete beta function; $F_j^{(0)}$ is a coarse pilot CDF; and $\alpha_F>0$ is a smoothing hyperparameter. The Bernstein--Dirichlet construction is canonical for densities on $[0,1]$ \citep{Petrone1999,PetroneWasserman2002}. In implementation, ties in the raw scores are handled by mid-ranks for initialization and by the pilot-CDF value in the likelihood contribution.
 
 \subsubsection{Identifiability constraint}
 
 The reproducible-component mixture is constrained to atoms with positive lower-orthant dependence (PLOD): for every atom index $m$,
 \begin{equation}
-C_{\theta_m}(u, \ldots, u) \;>\; u^K \quad \text{for all } u \in (0, 1),
+C_{\theta_m,t_m}(u,\ldots,u) > u^K \quad \text{for all } u\in(0,1),
 \label{eq:plod}
 \end{equation}
-where $C_{\theta_m}$ is the copula function corresponding to density $c_{\theta_m}$. The PLOD condition \citep[Definition 2.1]{Joe1997} is satisfied by Gaussian copulas with all pairwise correlations strictly positive, by $t$ copulas with positive correlation, and by Clayton and Gumbel copulas. Unlike the strict lower-tail-dependence condition $\lambda_L > 0$, PLOD does not exclude Gaussian atoms with $|\rho_{jk}| < 1$ and is therefore compatible with the dominant Gaussian-copula base measure. The role of \eqref{eq:plod} is to break the label symmetry between the reproducible and irreproducible components: the independence copula $c_0$ satisfies $C_0(u,\dots,u) = u^K$ exactly, so any atom with strict PLOD is distinguishable from $c_0$.
+where $C_{\theta_m,t_m}$ is the copula function corresponding to density $c_{\theta_m,t_m}$. The PLOD condition \citep[Definition 2.1]{Joe1997} is satisfied by Gaussian and $t$ copulas with strictly positive pairwise correlations and by Clayton and Gumbel copulas away from their independence boundary. PLOD alone distinguishes strict positive-dependence atoms from the independence copula but does not by itself identify the mixing weight $\pi$ in an arbitrary infinite mixture; the identifiability theorem below therefore adds an explicit separation and finite-sieve linear-independence condition.
 
 \subsubsection{Hyperpriors}
 \label{sec:hyperpriors}
 
-We place $\pi \sim \Beta(1,1)$, $\alpha \sim \mathrm{Gamma}(1,1)$, and $\sigma \sim \mathrm{Uniform}[0,1)$, the last specification being equivalent to $\Beta(1,1)$ truncated to exclude the boundary point $\sigma = 1$ excluded by the PY definition. The Bernstein smoothing hyperparameter satisfies $\alpha_F \sim \mathrm{Gamma}(1,1)$. The Bernstein degree $M_j$ has a discrete prior on $\{5, 10, 20, 40, 80\}$ with weights proportional to $1/M_j$, normalized so that
+We place $\pi \sim \Beta(1,1)$, $\alpha\sim\mathrm{Gamma}(1,1)$, and $\sigma\sim\mathrm{Uniform}[0,1)$, the last specification being equivalent to a flat prior on the admissible discount interval. The Bernstein smoothing hyperparameter satisfies $\alpha_F\sim\mathrm{Gamma}(1,1)$. The Bernstein degree $M_j$ has a discrete prior on $\{5,10,20,40,80\}$ with weights proportional to $1/M_j$,
 \begin{equation}
-\Pr(M_j = m) \;=\; \frac{1/m}{\sum_{m' \in \{5,10,20,40,80\}} 1/m'}, \qquad m \in \{5, 10, 20, 40, 80\}.
+\Pr(M_j=m)=\frac{1/m}{\sum_{m'\in\{5,10,20,40,80\}}1/m'},\qquad m\in\{5,10,20,40,80\}.
 \label{eq:m-prior}
 \end{equation}
-The base measure $P_0(\theta \mid t)$ on Gaussian-copula structures uses an LKJ($\eta = 2$) prior \citep{LewandowskiKurowickaJoe2009} on the correlation matrix $R$, with the induced prior on the Cholesky factor $L$ following from $R = LL^\top$. The choice $\eta = 2$ provides mild concentration toward the identity matrix and serves as a weakly informative default that biases toward simpler dependence structures in the absence of strong evidence. The structural-class indicator and the atomic-type indicator each take uniform priors over their respective four-element and three-element supports.
+For unstructured Gaussian-copula atoms we use an LKJ($\eta=2$) prior \citep{LewandowskiKurowickaJoe2009} on the correlation matrix. Structured Gaussian atoms draw a structural-class indicator uniformly over the three classes (exchangeable, one-factor, two-factor), while the atomic-type indicator is uniform over the four copula families. Thus the structural support has size three and the atomic-type support has size four.
 
 \subsection{Inference}
 \label{sec:inference}
 
-\subsubsection{Slice-sampled P\'olya-urn MCMC}
+\subsubsection{P\'olya-urn auxiliary-atom MCMC}
 
-We employ a slice-sampled P\'olya-urn MCMC scheme based on Neal's Algorithm~8 \citep{Neal2000}, extended from the Dirichlet process to the Pitman--Yor process via the predictive of \citet{Pitman1996BlackwellMacQueen} and \citet{IshwaranJames2001}. Algorithm~\ref{alg:mcmc} details one full sweep of the sampler. The conditional posterior class probability used in Step~1 is
+We use a Pitman--Yor P\'olya-urn MCMC scheme with Neal-style auxiliary atoms rather than a stick-breaking slice sampler. This choice avoids maintaining an explicit infinite stick during cluster reassignment while retaining the Pitman--Yor predictive distribution \citep{Pitman1996BlackwellMacQueen,IshwaranJames2001}. Algorithm~\ref{alg:mcmc} details one full sweep. The class-assignment probability is
 \begin{equation}
-\widehat\pi_i \;=\; \Pr(Z_i = 1 \mid \bU_i, \btheta, \bw, \bm{F}) \;=\; \frac{\pi\, c_1(\bU_i; \btheta, \bw)}{\pi\, c_1(\bU_i; \btheta, \bw) + (1 - \pi)\, c_0(\bU_i)},
+\widehat\pi_i = \Pr(Z_i=1\mid \bU_i,\btheta,\bw,\bm F)=
+\frac{\pi\,c_1(\bU_i;\btheta,\bw)}{\pi\,c_1(\bU_i;\btheta,\bw)+(1-\pi)c_0(\bU_i)},
 \label{eq:cond-class}
 \end{equation}
-with $c_1(\bU_i; \btheta, \bw) = \sum_m w_m\, c_{\theta_m}(\bU_i)$ and $c_0(\bU_i) = 1$ for the independence copula. The atomic-type indicator update in Step~3 uses an independence Metropolis proposal that draws the candidate type uniformly from the four families. The Bernstein-weight update in Step~4 is conjugate after introducing latent basis-membership indicators $S_{i,j} \in \{1, \ldots, M_j\}$ with $\Pr(S_{i,j} = r \mid \cdot) \propto p_{j,r}\, b_r(F_j^{(0)}(X_{i,j}); M_j)$, where $b_r(t; M) = M\binom{M-1}{r-1}t^{r-1}(1-t)^{M-r}$ is the Bernstein density basis; the conditional posterior is then $\bm{p}_j \mid \cdot \sim \Dir(\alpha_F + n_{j,1}, \ldots, \alpha_F + n_{j,M_j})$ with $n_{j,r} = \#\{i : S_{i,j} = r\}$. The PY hyperparameter updates use the auxiliary-variable scheme of \citet{EscobarWest1995} for $\alpha$ and a slice-sampled update for $\sigma$ on $[0,1)$.
+where $c_0(\bU_i)=1$. In a collapsed implementation, $c_1$ is evaluated through the current occupied clusters and the PY predictive rather than by truncating the infinite stick.
+
+For cluster reassignment, let $n_{m,-i}$ be the number of reproducible observations assigned to occupied cluster $m$ after temporarily removing observation $i$, and let $T_{-i}$ be the number of occupied clusters. Draw $H$ auxiliary atoms $\widetilde\theta_1,\ldots,\widetilde\theta_H\sim P_0$. Then the conditional weights are
+\begin{align}
+\Pr(z_i=m\mid\cdot) &\propto (n_{m,-i}-\sigma)\,c_{\theta_m,t_m}(\bU_i),\qquad m=1,\ldots,T_{-i},\label{eq:py-occupied}\\
+\Pr(z_i=\widetilde m_h\mid\cdot) &\propto \frac{\alpha+\sigma T_{-i}}{H}\,c_{\widetilde\theta_h,\widetilde t_h}(\bU_i),\qquad h=1,\ldots,H.\label{eq:py-new}
+\end{align}
+The occupied and auxiliary weights are normalized jointly; choosing an auxiliary atom instantiates a new occupied cluster.
+
+The Bernstein-weight update is conjugate after introducing latent basis-membership indicators $S_{i,j}\in\{1,\ldots,M_j\}$ with
+\begin{equation}
+\Pr(S_{i,j}=r\mid\cdot)\propto p_{j,r}\,b_r(F_j^{(0)}(X_{i,j});M_j),
+\end{equation}
+where $b_r(t;M)=M\binom{M-1}{r-1}t^{r-1}(1-t)^{M-r}$ is the Bernstein density basis. The conditional posterior is $\bm p_j\mid\cdot\sim\Dir(\alpha_F+n_{j,1},\ldots,\alpha_F+n_{j,M_j})$ with $n_{j,r}=\#\{i:S_{i,j}=r\}$.
 
 \begin{algorithm}[H]
 \DontPrintSemicolon
-\caption{One sweep of slice-sampled P\'olya-urn MCMC for PY-IDR.}
+\caption{One sweep of Pitman--Yor P\'olya-urn MCMC for PY-IDR.}
 \label{alg:mcmc}
-\KwIn{Current state $(\pi, \btheta, \bw, \bm{F}, \alpha, \sigma)$, $H$ auxiliary atoms, observed scores $\bX_{1:n}$.}
+\KwIn{Current state $(\pi,Z,z,\theta,t,\bm F,\alpha,\sigma)$, $H$ auxiliary atoms, observed scores $\bX_{1:n}$.}
 \KwOut{Updated state.}
-\textbf{Class assignment.} For each $i$, draw $Z_i \sim \mathrm{Bernoulli}(\widehat\pi_i)$ via Eq.~\eqref{eq:cond-class}\;
-\textbf{Cluster reassignment.} For each $i$ with $Z_i = 1$, sample cluster index $z_i$ via Algorithm~8 with $H$ auxiliary atoms drawn from $P_0$\;
-\textbf{Atom-parameter update.} For each occupied cluster $m$, update $\theta_m$ via NUTS on the unconstrained Cholesky parameterization $R(\theta_m) = LL^\top$ with $L_{j,j} = \exp(\eta_{j,j})$ and $L_{j,k}$ free for $j > k$\;
-\textbf{Atomic-type update.} For each occupied cluster $m$, update $t_m$ by independence Metropolis with uniform proposal over the four atomic families\;
-\textbf{Marginal-weight update.} Sample latent basis-membership indicators $S_{i,j}$ and update $\bm{p}_j \sim \Dir(\alpha_F + n_{j,1}, \ldots, \alpha_F + n_{j,M_j})$\;
-\textbf{Marginal-degree update.} Update $(M_j, \alpha_F)$ by Metropolis-within-Gibbs with random-walk proposals on $\log \alpha_F$ and a discrete proposal on $M_j$ over $\{5, 10, 20, 40, 80\}$\;
-\textbf{PY hyperparameter update.} Update $\alpha$ by the auxiliary-variable scheme of \citet{EscobarWest1995}; update $\sigma \in [0,1)$ by slice sampling\;
-\textbf{Mixing-proportion update.} Sample $\pi \sim \Beta(1 + n_1, 1 + n_0)$ where $n_z = \#\{i : Z_i = z\}$\;
+\textbf{Class assignment.} For each $i$, draw $Z_i\sim\mathrm{Bernoulli}(\widehat\pi_i)$ using Eq.~\eqref{eq:cond-class}\;
+\textbf{Cluster reassignment.} For each $i$ with $Z_i=1$, temporarily remove $i$ from its cluster, draw $H$ auxiliary atoms from $P_0$, and sample $z_i$ using Eqs.~\eqref{eq:py-occupied}--\eqref{eq:py-new}\;
+\textbf{Atom-parameter update.} For each occupied cluster, update continuous parameters using NUTS or Metropolis proposals on a valid unconstrained parameterization, normalizing covariance factors to correlation matrices and rejecting proposals outside the PLOD support\;
+\textbf{Atomic-type update.} For each occupied cluster, update $t_m$ by independence Metropolis with a uniform proposal over the four atomic families\;
+\textbf{Marginal update.} Sample latent basis-membership indicators $S_{i,j}$ and update $\bm p_j\sim\Dir(\alpha_F+n_{j,1},\ldots,\alpha_F+n_{j,M_j})$\;
+\textbf{Marginal-degree update.} Update $(M_j,\alpha_F)$ by Metropolis-within-Gibbs with random-walk proposals on $\log\alpha_F$ and a discrete proposal on $M_j\in\{5,10,20,40,80\}$\;
+\textbf{PY hyperparameter update.} Update $\alpha$ and $\sigma$ with auxiliary-variable or slice updates on their admissible supports\;
+\textbf{Mixing-proportion update.} Sample $\pi\sim\Beta(1+n_1,1+n_0)$ where $n_z=\#\{i:Z_i=z\}$\;
 \Return{Updated state.}\;
 \end{algorithm}
 
 \paragraph{Initialization and diagnostics.}
-We initialize the sampler from EM-IDR estimates of $(\pi, c_1)$ on the bivariate marginals collapsed to $K = 2$ pairs, with cluster assignments seeded by a $k$-means split of the rank-transformed data into a small number of groups. We monitor convergence by the split-$\widehat R$ statistic with threshold $1.01$ and require an effective sample size of at least $400$ per parameter before reporting posterior summaries.
+We initialize from EM-IDR estimates on bivariate collapsed pairs, with cluster assignments seeded by $k$-means or hierarchical clustering of rank-transformed data. Planned implementation diagnostics include deterministic seed ledgers, rank-tie summaries, overdispersed chain starts, split-$\widehat R\leq 1.01$, effective sample size at least 400 for reported scalar summaries, cluster-count trace plots, posterior label-invariant summaries, NUTS divergent-transition checks, and sensitivity to the auxiliary-atom count $H$.
 
 \paragraph{Complexity.}
-Each MCMC sweep is $O(nKT + K^3 T)$, where $T$ is the number of active clusters and $K$ is the replicate count. The first term is dominated by the per-cluster, per-feature copula-density evaluation; the second arises from the Cholesky factorization step on each cluster's $K \times K$ correlation matrix.
+Each MCMC sweep is $O(nKT+K^3T)$ when all active clusters are evaluated for each feature, where $T$ is the number of active clusters. The first term is dominated by per-cluster copula-density evaluation and the second by correlation-matrix operations. If a balanced tree or cached nearest-cluster screen is used in a future implementation, an additional logarithmic factor may appear; the analytic baseline used here does not require it.
 
 \subsubsection{Variational alternative}
 \label{sec:vi}
 
-A structured mean-field family with truncation $T$ at the PY stick yields a variational ELBO that we optimize by stochastic natural-gradient ascent in the framework of \citet{HoffmanBleiWangPaisley2013}, with consistency guarantees for the truncated parametric model following \citet{WangBlei2019} and for the nonparametric limit following \citet{AlquierRidgway2020} and \citet{YangPatiBhattacharya2020}. The variational family factorizes as
-\[
-q(Z, z, \theta, t, w, \pi, F, \alpha, \sigma) \;=\; \prod_i q(Z_i)\,\prod_i q(z_i)\,\prod_{m \leq T} q(\theta_m)\,\prod_{m \leq T} q(t_m)\,q(w)\,q(\pi)\,\prod_j q(F_j)\,q(\alpha)\,q(\sigma),
-\]
-with $q(Z_i)$ and $q(z_i)$ categorical, $q(\theta_m)$ Gaussian on the unconstrained Cholesky entries, $q(t_m)$ categorical over the four atomic types, $q(w)$ a product of independent $\Beta$ factors on the stick-breaking ratios, $q(\pi)$ a $\Beta$ distribution, $q(F_j)$ a Dirichlet on the Bernstein weights, and $q(\alpha)$, $q(\sigma)$ Gamma and truncated-Beta respectively. Per-iteration cost is $O(nKT \bar d)$ with $\bar d$ the mean atomic-parameter dimension; mini-batches of size $B \in \{500, 2000\}$ are used in practice. As a practical recommendation, we suggest the MCMC scheme for $n \lesssim 10^4$ where exact posterior summaries with credible bands are required, and the variational alternative for $n \gtrsim 10^5$ where the per-sweep cost of MCMC becomes prohibitive and approximate posterior summaries suffice.
+A structured mean-field family with finite truncation $T$ at the PY stick yields an ELBO optimized by stochastic natural-gradient ascent in the framework of \citet{HoffmanBleiWangPaisley2013}. The planned variational family is
+\begin{align*}
+q(Z,z,\theta,t,V,\pi,F,\alpha,\sigma)
+&=\prod_i q(Z_i)\prod_i q(z_i)\prod_{m\leq T}q(\theta_m)\prod_{m\leq T}q(t_m)\\
+&\quad\times\prod_{m\leq T}q(V_m)q(\pi)\prod_j q(F_j)q(\alpha)q(\sigma),
+\end{align*}
+where $q(Z_i)$ and $q(z_i)$ are categorical, $q(\theta_m)$ is Gaussian or transformed-Gaussian on the unconstrained atomic parameters, $q(t_m)$ is categorical over the four atomic types, $q(V_m)$ is Beta on the stick-breaking ratios, $q(\pi)$ is Beta, and $q(F_j)$ is Dirichlet on Bernstein weights. Per-iteration cost is $O(BKT\bar d)$ for mini-batch size $B$ and mean atomic-parameter dimension $\bar d$. We treat the variational algorithm as an implementation-oriented approximation: MCMC is the default for $n\lesssim10^4$ when posterior uncertainty is central, and VI is planned for $n\gtrsim10^5$ when approximate summaries are preferable to prohibitive MCMC cost.
 
 \subsubsection{Local idr, aggregated IDR, and Bayes-mFDR}
 
-The posterior local idr is the marginal posterior probability of the irreproducible class,
+The posterior local idr is
 \begin{equation}
-\widehat{\idr}_i \;=\; \Pr(Z_i = 0 \mid \mathrm{data}) \;=\; \int \Pr(Z_i = 0 \mid \mathrm{data}, \btheta, \bw, \bm{F})\, \pi(\btheta, \bw, \bm{F} \mid \mathrm{data})\, d(\btheta, \bw, \bm{F}).
+\widehat{\idr}_i=\Pr(Z_i=0\mid\mathrm{data})=
+\int \Pr(Z_i=0\mid\mathrm{data},\btheta,\bw,\bm F)\,\Pi(d\btheta,d\bw,d\bm F\mid\mathrm{data}).
 \label{eq:idr}
 \end{equation}
 The Bayes marginal false discovery rate at threshold $\gamma$ is
 \begin{equation}
-\mathrm{Bayes\text{-}mFDR}(\gamma) \;=\; \frac{\E[V(\gamma) \mid \mathrm{data}]}{\E[R(\gamma) \mid \mathrm{data}]},\qquad V(\gamma) = \sum_i (1 - Z_i)\bm{1}\{\widehat{\idr}_i < \gamma\},\;\; R(\gamma) = \sum_i \bm{1}\{\widehat{\idr}_i < \gamma\},
+\mathrm{Bayes\text{-}mFDR}(\gamma)=
+\frac{\E[V(\gamma)\mid\mathrm{data}]}{\max\{1,\E[R(\gamma)\mid\mathrm{data}]\}},
 \label{eq:bayes-mfdr}
 \end{equation}
-where $V$ and $R$ are the false-rejection and total-rejection counts under threshold $\gamma$. The Sun--Cai-type step-up cutoff is the largest $\gamma_\alpha$ such that the running average of sorted $\widehat{\idr}_{(1)} \leq \cdots \leq \widehat{\idr}_{(n)}$ satisfies $k^{-1} \sum_{j=1}^k \widehat{\idr}_{(j)} \leq \alpha$ at $k = R(\gamma_\alpha)$ \citep{SunCai2007}.
-
-\begin{remark}
-The local idr is a per-feature posterior used for ranking, whereas the aggregated IDR is a rejection-set average used for thresholding. The two are connected through the running-average threshold rule above, which is the empirical-Bayes plug-in counterpart of the optimal compound-decision rule of \citet{SunCai2007}.
-\end{remark}
+where $V(\gamma)=\sum_i(1-Z_i)\bm{1}\{\widehat\idr_i<\gamma\}$ and $R(\gamma)=\sum_i\bm{1}\{\widehat\idr_i<\gamma\}$. Operationally, sort $\widehat\idr_{(1)}\leq\cdots\leq\widehat\idr_{(n)}$ and define
+\begin{equation}
+\widehat k_\alpha=\max\left\{k\geq1:\frac{1}{k}\sum_{j=1}^k \widehat\idr_{(j)}\leq \alpha\right\},
+\label{eq:step-up}
+\end{equation}
+with no rejections if the set is empty. The rejection set consists of the $\widehat k_\alpha$ features with smallest posterior local idr. This is the empirical-Bayes plug-in counterpart of the optimal compound-decision rule of \citet{SunCai2007}.
 
 \subsection{Theoretical properties}
 \label{sec:theory}
 
-We state four results on identifiability, posterior contraction, asymptotic mFDR control, and ergodicity of the sampler. Full proofs and supporting lemmas appear in the appendix.
+We state results on identifiability, posterior contraction, asymptotic mFDR control, sampler ergodicity, and finite-truncation variational consistency. The statements are deliberately conditional where the current manuscript uses assumptions or proof sketches rather than complete proofs.
 
 \subsubsection{Assumptions}
 
-\begin{assumption}[Smoothness and boundedness]
+\begin{assumption}[Smooth bounded truth]
 \label{ass:smooth}
-The true reproducible-component copula density $c_1^*$ is $\beta$-H\"older with $\beta \geq 1$ on $[0,1]^K$ and is bounded above by a constant $B < \infty$, $\sup_{u \in [0,1]^K} c_1^*(u) \leq B$. The true marginal densities $f_j^*$ are $\beta$-H\"older on the support of $X_{\cdot, j}$.
+The true reproducible-component copula density $c_1^*$ is $\beta$-H\"older with $\beta\geq1$ on $[0,1]^K$ and is bounded above by $B<\infty$. The true marginal densities $f_j^*$ are $\beta$-H\"older on their supports and are bounded away from zero on compact interior subsets.
 \end{assumption}
 
-\begin{assumption}[Reproducible mass]
+\begin{assumption}[Mass and separation]
 \label{ass:pi}
-$\pi^* \in (0, 1)$ is bounded away from $\{0, 1\}$.
+The true reproducible mass satisfies $\pi^*\in(0,1)$ and is bounded away from $\{0,1\}$. The independence component is separated from the reproducible component in the sense that the reproducible mixing measure assigns no mass to independence-boundary atoms and satisfies the finite-sieve linear-independence condition in Theorem~\ref{thm:id}.
 \end{assumption}
 
-\begin{assumption}[Prior KL-support]
+\begin{assumption}[Prior KL support]
 \label{ass:kl}
-For every $\epsilon > 0$, the prior on the reproducible-component copula satisfies $\Pi(\KL(c_1^*, c_1) < \epsilon^2) > 0$, and analogously for each marginal.
+For every $\epsilon>0$, the prior on the reproducible-component copula assigns positive mass to KL neighborhoods of $c_1^*$, and each Bernstein--Dirichlet marginal prior assigns positive mass to KL neighborhoods of $f_j^*$.
 \end{assumption}
 
-\begin{assumption}[PY truncation]
+\begin{assumption}[Sieve and tail condition]
 \label{ass:py}
-The truncation level satisfies $T_n \asymp n \epsilon_n^2 / \log n$ as $n \to \infty$, where $\epsilon_n$ is the contraction rate of Theorem~\ref{thm:contract}.
+There exist sieves $\mathcal F_n$ satisfying
+\[
+\log N(\epsilon_n,\mathcal F_n,h)\lesssim n\epsilon_n^2,
+\qquad
+\Pi(\mathcal F_n^c)\lesssim \exp\{-(C+4)n\epsilon_n^2\}.
+\]
+For the Dirichlet-process special case $\sigma=0$, exponential stick-tail bounds provide one route to this condition. For fixed positive Pitman--Yor discount, the required exponential sieve-complement bound is treated here as an explicit assumption or future proof obligation rather than a consequence of the polynomial residual expectation alone.
 \end{assumption}
 
-\begin{assumption}[Slice-sampler regularity]
+\begin{assumption}[Decision-threshold regularity]
+\label{ass:decision}
+The oracle local-idr distribution has a continuous density in a neighborhood of the target Sun--Cai threshold, and the expected number of rejections at that threshold is asymptotically bounded away from zero at the scale used in the mFDR ratio.
+\end{assumption}
+
+\begin{assumption}[Sampler regularity]
 \label{ass:slice}
-The transition kernel of the slice-sampled P\'olya-urn sampler admits a positive transition density on a small set $C \subset \Theta$ with positive Lebesgue measure $\mu(C) > 0$, and a Lyapunov function $V(\btheta) = 1 + \norm{\btheta}_F^2$ (with $\norm{\cdot}_F$ the Frobenius norm on the matrix-valued components of $\btheta$) satisfies the geometric drift condition $\E[V(\btheta') \mid \btheta] \leq \lambda V(\btheta) + b\,\bm{1}_C(\btheta)$ for some $\lambda < 1$, $b < \infty$.
+The P\'olya-urn MCMC transition kernel is irreducible, aperiodic, and leaves the posterior invariant on each finite truncation/sieve used for computation. For geometric-rate conclusions, a separate small-set and Foster--Lyapunov drift condition is required.
 \end{assumption}
 
 \subsubsection{Identifiability}
 
-\begin{theorem}[Identifiability]
+\begin{theorem}[Finite-sieve identifiability]
 \label{thm:id}
-Under Assumptions~\ref{ass:smooth} and~\ref{ass:pi}, the joint $(\pi, c_0, c_1, F_1, \ldots, F_K)$ is identifiable up to label permutation of mixture atoms in $c_1$, given the PLOD constraint~\eqref{eq:plod} on the reproducible-component atoms.
+Consider a finite sieve in which the reproducible copula is a finite mixture of atoms satisfying PLOD, no atom lies on the independence boundary, and the collection consisting of the independence copula density together with the reproducible atom densities is linearly independent. Under Assumptions~\ref{ass:smooth} and~\ref{ass:pi}, the joint $(\pi,c_0,c_1,F_1,\ldots,F_K)$ is identifiable up to permutation of the reproducible atom labels.
 \end{theorem}
 
-\begin{proof}
-The argument proceeds in three steps.
-
-\emph{Step 1 (separation of marginals).} By Sklar's theorem \citep{Sklar1959}, the marginals $\{F_j\}_{j=1}^K$ are uniquely determined from the joint distribution of $\bX$, since each $F_j$ is the marginal CDF of $X_{\cdot,j}$. Substituting $\bU = (F_1(X_1), \ldots, F_K(X_K))$ reduces the identification problem to that of the copula mixture $\pi c_1 + (1-\pi) c_0$ on $[0,1]^K$.
-
-\emph{Step 2 (separation of components via PLOD).} The independence copula $c_0$ satisfies $C_0(u, \ldots, u) = u^K$ for all $u \in (0,1)$, while every PLOD atom in the reproducible component satisfies $C(u, \ldots, u) > u^K$. The diagonal section
-\[
-\Delta(u) \;\myeq\; C_{\mathrm{joint}}(u, \ldots, u) - u^K \;=\; \pi \int (C_\theta(u, \ldots, u) - u^K)\, dW(\theta)
-\]
-where $W$ is the implied mixing measure on atoms, is identically zero only when $\pi = 0$ and is strictly positive when $\pi > 0$. Differentiating $\Delta$ in $u$ at the boundary recovers $\pi$ uniquely as the residual mass; the irreproducible component is then identified as the unique copula with diagonal section $u^K$.
-
-\emph{Step 3 (identification of the reproducible mixture).} Identification of $c_1$ from the reproducible mixture follows from the linear-independence criterion of \citet{YakowitzSpragins1968}: a finite mixture of densities is identifiable up to label permutation if and only if the candidate component densities form a linearly independent family. Gaussian copula densities with distinct correlation matrices are real-analytic in $\bU$ on the open cube $(0,1)^K$, and any nontrivial linear combination of them with distinct correlation matrices cannot vanish on a set of positive Lebesgue measure, since real-analytic functions vanishing on a positive-measure set must be identically zero. The heavy-tail families ($t_5$, Clayton, Gumbel) are likewise linearly independent of each other and of the Gaussian family. Hence the Yakowitz--Spragins hypothesis is satisfied, and $c_1$ is identified up to the residual permutation of atom labels.
+\begin{proof}[Proof sketch]
+Sklar's theorem \citep{Sklar1959} identifies the marginals $F_j$ from the joint distribution of $\bX$ under the stated regularity conditions, reducing the problem to the copula mixture $(1-\pi)c_0+\pi c_1$. PLOD separates admissible reproducible atoms from the independence boundary, but the mixing weight is recovered by the finite-mixture identifiability argument rather than by a diagonal-section derivative. Under the stated linear independence of $\{c_0,c_{\theta_1,t_1},\ldots,c_{\theta_T,t_T}\}$, the criterion of \citet{YakowitzSpragins1968} implies uniqueness of the finite mixing representation up to label permutation. Gaussian copula densities with distinct admissible correlation matrices are analytic on the open cube, and the heavy-tail families are treated as separate linearly independent families on the finite sieve. Extension to unrestricted infinite PY mixtures requires additional completeness or weak-identifiability assumptions on the mixing measure.
 \end{proof}
 
 \begin{remark}
 \label{rem:amr-vs-yakowitz}
-We use \citet{YakowitzSpragins1968} rather than \citet{AllmanMatiasRhodes2009} as the primary identifiability tool. The latter's Kruskal-based theorem requires conditional independence of the observed variables given the latent class, which is violated by Gaussian-copula mixture components since the variates within each component are correlated. The Yakowitz--Spragins linear-independence criterion is well-suited to copula-mixture identifiability and avoids this structural obstacle.
+We use \citet{YakowitzSpragins1968} rather than \citet{AllmanMatiasRhodes2009} as the primary finite-sieve identifiability tool. The latter's Kruskal-based theorem requires conditional independence of the observed variables given the latent class, which is violated by correlated copula-mixture components.
 \end{remark}
 
 \subsubsection{Posterior contraction}
 
-\begin{theorem}[Hellinger posterior contraction]
+\begin{theorem}[Conditional Hellinger posterior contraction]
 \label{thm:contract}
-Under Assumptions~\ref{ass:smooth}--\ref{ass:py}, the posterior contracts in Hellinger distance at rate $\epsilon_n = n^{-\beta/(2\beta+K)} (\log n)^t$ for some $t > 0$:
+Under Assumptions~\ref{ass:smooth}--\ref{ass:py}, the posterior contracts in Hellinger distance at rate $\epsilon_n=n^{-\beta/(2\beta+K)}(\log n)^t$ for some $t>0$:
 \[
-\Pi\!\left(h(f, f^*) > M \epsilon_n \mid \bX_{1:n}\right) \;\to\; 0 \qquad \text{in } P^*\text{-probability,}
+\Pi\!\left(h(f,f^*)>M\epsilon_n\mid\bX_{1:n}\right)\to0\qquad\text{in }P^*\text{-probability,}
 \]
-for sufficiently large $M$, where $f$ is the joint density of $\bX_i$ implied by the model and $f^*$ is the truth.
+for sufficiently large $M$, where $f$ is the joint density implied by the model and $f^*$ is the truth.
 \end{theorem}
 
 \begin{proof}[Proof outline]
-We invoke the master contraction theorem of \citet{GhosalvdV2017}, Theorem~8.9. Three conditions are verified.
-
-\emph{Prior-mass condition.} For any $c_1^* \in C^\beta([0,1]^K)$ satisfying Assumption~\ref{ass:smooth}, an extension of the multivariate Dirichlet-mixture contraction theorem of \citet{ShenTokdarGhosal2013} from densities on $\R^K$ to copulas on $[0,1]^K$, together with the Pitman--Yor adaptation of \citet{Scricciolo2014BAPY}, shows that there exists a mixture with $T_n = O(n \epsilon_n^2 / \log n)$ Gaussian-copula atoms within $\epsilon_n$ in KL divergence of $c_1^*$. The transformation to the cube introduces an additional Sklar-based regularity step that we discharge in Lemma~\ref{lem:sklar-regularity} of the appendix. The Bernstein--Dirichlet prior on each marginal places positive mass on KL balls of radius $\epsilon_n$ around any $\beta$-H\"older marginal density, by the adaptive contraction analysis of \citet{Rousseau2010BetaMix}; the slower non-adaptive rate of \citet{Ghosal2001Bernstein} and the foundational consistency results of \citet{Petrone1999} and \citet{PetroneWasserman2002} are background. The KL prior-mass condition then follows from the mixture-entropy decomposition of Lemma~\ref{lem:mixent} in the appendix, which gives $\KL(f, f^*) \lesssim \KL(c, c^*) + \sum_j \KL(f_j, f_j^*)$ when $\sup c, \sup c^* \leq B < \infty$.
-
-\emph{Sieve construction.} The sieve $\mathcal{F}_n = \{\sum_{m \leq T_n} w_m\, c_{(\theta_m, t_m)}(\cdot) : \norm{\theta_m}_F \leq M_n\}$ has covering numbers bounded by Lemma~\ref{lem:pytruncation} of the appendix: $\log N(\epsilon, \mathcal{F}_n, h) \leq C T_n K^2 \log(M_n/\epsilon) + C T_n$, which is $\exp(n \epsilon_n^2)$ for $M_n = n^a$, $a < \infty$.
-
-\emph{Sieve complement.} The PY tail bound under Assumption~\ref{ass:py} gives $\Pi(\mathcal{F}_n^c) = o(\exp(-2n \epsilon_n^2))$, completing the verification.
-
-Combining marginal and copula contraction rates via the mixture-entropy decomposition yields the stated rate $\epsilon_n = n^{-\beta/(2\beta+K)} (\log n)^t$, where the $K$ in the denominator reflects the dimension of the copula and the corresponding curse-of-dimensionality penalty.
+The result is an application of the master contraction theorem of \citet{GhosalvdV2017} once prior mass, entropy, and sieve-complement conditions are verified. The KL-support condition is supplied by Assumption~\ref{ass:kl} together with Gaussian-copula approximation on the bounded smooth copula class and Bernstein--Dirichlet support for the marginals. Lemma~\ref{lem:sklar-regularity} and Lemma~\ref{lem:mixent} give the required copula/marginal comparison under bounded-density assumptions. Lemma~\ref{lem:cover} supplies the finite-sieve entropy calculation. The exponential sieve-complement probability is not implied by the positive-discount PY residual expectation alone and is therefore exactly the tail condition isolated in Assumption~\ref{ass:py}. Combining these ingredients yields the displayed $K$-dimensional nonparametric rate.
 \end{proof}
+
+\begin{remark}[Scope of the contraction theorem]
+\label{rem:bounded-scope}
+The theorem covers bounded smooth copula truths. Tail-dependent atoms such as Clayton, Gumbel, and $t_5$ copulas are part of the proposed methodology and planned robustness evaluation, but boundary-singular copula densities require additional theory beyond the bounded interior statement above.
+\end{remark}
 
 \begin{corollary}[Gaussian-only base measure]
 \label{cor:gauss-only}
-If the base measure $P_0$ is restricted to Gaussian-copula atoms only, the conclusion of Theorem~\ref{thm:contract} holds with the same rate $\epsilon_n$.
+If the base measure $P_0$ is restricted to bounded Gaussian-copula atoms and Assumption~\ref{ass:py} is verified for the resulting sieve, the conclusion of Theorem~\ref{thm:contract} holds with the same rate.
 \end{corollary}
 
 \subsubsection{Asymptotic Bayes-mFDR control}
 
 \begin{theorem}[Asymptotic Bayes-mFDR control]
 \label{thm:fdr}
-Suppose Theorem~\ref{thm:contract} holds, and additionally suppose that the limiting CDF of $\widehat{\idr}_i$ under $P^*$ is continuous and Lipschitz in a neighborhood of the Sun--Cai threshold $\gamma_\alpha^* = \inf\{\gamma : \mFDR^*(\gamma) \leq \alpha\}$. Then the Sun--Cai-type step-up rule applied to the posterior $\widehat{\idr}_i$ controls Bayes-mFDR at the nominal level $\alpha + O(\epsilon_n)$ as $n \to \infty$.
+Suppose Theorem~\ref{thm:contract} holds and that Assumption~\ref{ass:decision} holds. If the posterior local idr estimates satisfy a uniform or threshold-local error bound $\delta_n\to0$, then the Sun--Cai-type step-up rule in Eq.~\eqref{eq:step-up} controls Bayes-mFDR at level $\alpha+O(\delta_n)$. When the available posterior contraction result gives only $L^1$ local-idr consistency, the conclusion is convergence of the plug-in Bayes-mFDR to the oracle mFDR rather than a sharp uniform rate.
 \end{theorem}
 
 \begin{proof}[Proof outline]
-Theorem~\ref{thm:contract} implies uniform $L^1$-consistency of the posterior local idr for the oracle local idr $\idr_i^* = \Pr_{P^*}(Z_i = 0 \mid \bU_i)$, since $|\widehat{\idr}_i - \idr_i^*| \leq C h(f, f^*)$ on the event of contraction. The continuity and Lipschitz assumptions on the limiting CDF combined with the continuous mapping theorem applied to the threshold map $\gamma \mapsto \mFDR(\gamma)$ transfer exact mFDR control of the oracle Sun--Cai rule \citep{SunCai2007} to its plug-in counterpart, with error term $O(\epsilon_n)$. The rate-to-mFDR bridge underlying this transfer is the empirical-Bayes multiple-testing analysis of \citet{HellerRosset2021} and the spike-and-slab framework of \citet{CastilloRoquain2020}.
+The oracle Sun--Cai rule controls the target mFDR under the compound-decision model \citep{SunCai2007}. A uniform or threshold-local local-idr error bound transfers the oracle rejection threshold to the plug-in threshold by continuity of the local-idr distribution at the target cutoff. The denominator lower-bound condition in Assumption~\ref{ass:decision} prevents instability when the rejection set is empty or nearly empty. The rate-to-mFDR bridge is consistent with the empirical-Bayes multiple-testing analyses of \citet{HellerRosset2021} and \citet{CastilloRoquain2020}, but the precise rate is only as strong as the local-idr error bound established for the present model.
 \end{proof}
 
 \subsubsection{Ergodicity of the sampler}
 
-\begin{theorem}[Harris ergodicity, with geometric-rate conjecture]
+\begin{theorem}[Harris ergodicity and conditional geometric ergodicity]
 \label{thm:erg}
-Under Assumption~\ref{ass:slice}, the slice-sampled P\'olya-urn kernel $P$ is Harris ergodic. Under the additional hypothesis that the small set $C$ contains the support of the cluster-occupancy configuration with high posterior probability, $P$ is $V$-uniformly geometrically ergodic with rate $\rho < 1$:
-\[
-\norm{P^k(\btheta, \cdot) - \Pi(\cdot \mid \mathrm{data})}_V \;\leq\; C\, V(\btheta)\, \rho^k \qquad \text{for all } k \geq 0.
-\]
+Under the invariance, irreducibility, and aperiodicity conditions in Assumption~\ref{ass:slice}, the finite-sieve P\'olya-urn MCMC kernel is Harris ergodic with stationary distribution equal to the posterior restricted to the computational sieve. If, in addition, a small-set condition and a Foster--Lyapunov drift condition hold for the chosen finite-dimensional parameterization, then the kernel is $V$-uniformly geometrically ergodic.
 \end{theorem}
 
 \begin{proof}[Proof outline]
-Harris ergodicity follows from Theorem~13.0.1 of \citet{MeynTweedie2009}: the sampler is irreducible and aperiodic by construction (the auxiliary-atom step of Algorithm~8 supplies positive transition probability between any two configurations differing by one cluster reassignment), and the existence of a small set follows from the positive transition density required by Assumption~\ref{ass:slice}. The geometric-rate strengthening invokes Theorem~16.0.1 of \citet{MeynTweedie2009}, which requires the geometric drift condition of Assumption~\ref{ass:slice} together with the small-set condition; the latter is well-established in finite-dimensional Cholesky parameterizations \citep{RobertsRosenthal2004}, but its extension to the infinite-dimensional configuration space of the PY mixture is a separate technical step that we conjecture but do not establish in full. The recent quantitative-mixing analysis of \citet{Ascolani2024Mixing} for related Dirichlet-process Gibbs samplers provides analogous bounds that support the conjecture.
+Harris ergodicity follows from standard general-state-space Markov chain theory \citep{MeynTweedie2009,RobertsRosenthal2004}: the auxiliary-atom step gives positive probability of moving between neighboring cluster configurations, continuous atom proposals have positive density on admissible parameter neighborhoods, and the Gibbs/Metropolis composition leaves the posterior invariant. Geometric ergodicity is stronger; it requires a small-set and drift analysis on the selected finite representation. We therefore state it conditionally rather than as a completed result for the unrestricted PY mixture. Recent quantitative-mixing results for nonparametric mixture samplers \citep{Ascolani2024Mixing} indicate a plausible route but do not directly prove the present claim.
 \end{proof}
 
-\begin{remark}
-\label{rem:erg-gap}
-We deliberately separate Harris ergodicity from geometric ergodicity in Theorem~\ref{thm:erg}. Harris ergodicity is established and provides asymptotic correctness of MCMC averages; geometric ergodicity is a stronger quantitative-mixing statement that we treat as a conjecture pending a full Foster--Lyapunov drift analysis on the infinite-dimensional configuration space of the PY mixture. We do not appeal to Meyn--Tweedie 16.0.1 as a black box.
-\end{remark}
-
-\begin{theorem}[Variational consistency]
+\begin{theorem}[Finite-truncation variational consistency]
 \label{thm:vi}
-Under Assumptions~\ref{ass:smooth}--\ref{ass:py} and a finite truncation of the PY stick at level $T$, the variational posterior $q^*$ minimizing the KL divergence to the true posterior within the structured mean-field family of Section~\ref{sec:vi} satisfies $h(\widehat f^{q^*}, f^*) \to 0$ in $P^*$-probability. Under additional regularity matching the conditions of \citet{AlquierRidgway2020} for nonparametric BNP models, the rate of convergence is the same $\epsilon_n$ as in Theorem~\ref{thm:contract}.
+Fix a truncation level $T<\infty$ and suppose the truncated model is correctly specified or approximates the truth with vanishing truncation error as $T=T_n$ grows. If the exact posterior for the truncated model contracts and the structured variational family contains distributions within $o(n\epsilon_n^2)$ KL divergence of that posterior, then the variational posterior predictive density is Hellinger consistent. Matching the rate in Theorem~\ref{thm:contract} requires the additional variational approximation and truncation assumptions used in \citet{AlquierRidgway2020}, \citet{YangPatiBhattacharya2020}, and \citet{WangBlei2019}.
 \end{theorem}
 
 \begin{proof}[Proof outline]
-For finite truncation, the parametric Bernstein--von Mises framework of \citet{WangBlei2019} applies and gives the result. For nonparametric extension, the argument follows \citet{AlquierRidgway2020} and \citet{YangPatiBhattacharya2020}: variational consistency holds whenever the true posterior contracts at rate $\epsilon_n$ and the variational family contains a sequence of distributions whose KL divergence to the true posterior is $o(n \epsilon_n^2)$. The structured mean-field family of Section~\ref{sec:vi} has full-rank factors over each parameter block, and standard arguments verify that the projected truth lies within $o(n \epsilon_n^2)$ KL distance of the variational family.
+For fixed finite truncation, the problem is finite-dimensional after the correlation and marginal-degree parameterizations are fixed, and variational consistency follows from standard posterior concentration plus the variational KL approximation condition. For a growing truncation, the residual stick mass and the approximation error of the structured mean-field projection must both be controlled. These are recorded as assumptions rather than asserted as completed proof steps for the unrestricted PY-copula model.
 \end{proof}
+
+\paragraph{Theory-to-experiment bridge.}
+The planned experiments are designed to stress-test the assumptions above. S1--S3 evaluate calibration and contraction in Gaussian settings close to the bounded theory; S4 tests marginal misspecification and the Bernstein--Dirichlet correction; S5 tests the methodological value of tail-dependent atoms beyond the bounded-theory scope; PY-versus-DP ablations test rare-cluster behavior; and Bayes-mFDR calibration plots evaluate the threshold-transfer assumptions in Theorem~\ref{thm:fdr}.

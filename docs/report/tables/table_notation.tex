@@ -3,30 +3,33 @@
 \caption{Principal notation used throughout the paper.}
 \label{tab:notation}
 \small
-\begin{tabular}{ll}
+\setlength{\tabcolsep}{4pt}
+\begin{tabularx}{\textwidth}{lY}
 \toprule
 Symbol & Meaning \\
 \midrule
 $n$ & number of features \\
 $K$ & number of replicates \\
 $X_{i,j}$ & raw score of feature $i$ on replicate $j$ \\
-$\bU_i = (U_{i,1}, \ldots, U_{i,K})$ & uniformized vector $U_{i,j} = F_j(X_{i,j})$ \\
-$Z_i \in \{0, 1\}$ & latent reproducibility class indicator for feature $i$ \\
-$\pi = \Pr(Z_i = 1)$ & reproducible-component proportion \\
-$c_0, c_1$ & irreproducible and reproducible-component copula densities \\
+$\bU_i=(U_{i,1},\ldots,U_{i,K})$ & uniformized vector with $U_{i,j}=F_j(X_{i,j})$ \\
+$Z_i\in\{0,1\}$ & latent reproducibility class indicator \\
+$\pi=\Pr(Z_i=1)$ & reproducible-component proportion \\
+$c_0,c_1$ & irreproducible and reproducible-component copula densities \\
 $F_j$ & marginal CDF of replicate $j$ \\
-$\sigma \in [0, 1)$ & Pitman--Yor discount parameter \\
-$\alpha > -\sigma$ & Pitman--Yor concentration parameter \\
-$\beta$ & H\"older smoothness exponent of true densities \\
-$T_n$ & PY truncation level for sieve construction \\
-$\theta_m$ & parameters of the $m$-th mixture atom \\
-$t_m$ & atomic-type indicator (Gauss / $t_5$ / Clayton / Gumbel) \\
-$w_m$ & PY stick-breaking weight of the $m$-th atom \\
-$z_i \in \mathbb{N}$ & cluster assignment of feature $i$ within reproducible component \\
+$\sigma\in[0,1)$ & Pitman--Yor discount parameter \\
+$\alpha>0$ & Pitman--Yor concentration parameter \\
+$T,T_n$ & variational truncation level or theoretical sieve truncation level \\
+$T_{-i}$ & number of occupied reproducible clusters after removing feature $i$ \\
+$n_{m,-i}$ & count in occupied cluster $m$ after removing feature $i$ \\
+$\theta_m,t_m$ & continuous parameters and atomic-type indicator of atom $m$ \\
+$w_m,V_m$ & PY mixture weight and stick-breaking ratio \\
+$z_i\in\mathbb N$ & cluster assignment within the reproducible component \\
 $M_j$ & Bernstein basis order for marginal $j$ \\
-$H$ & number of auxiliary atoms in Algorithm~8 \\
-$h(\cdot, \cdot)$ & Hellinger distance \\
-$\epsilon_n$ & posterior contraction rate \\
+$S_{i,j}$ & Bernstein basis-membership indicator for score $X_{i,j}$ \\
+$H$ & number of auxiliary atoms in Algorithm~\ref{alg:mcmc} \\
+$h(\cdot,\cdot)$ & Hellinger distance \\
+$\epsilon_n,\delta_n$ & posterior contraction rate and local-idr error scale \\
+$\widehat k_\alpha$ & number of rejections selected by the Bayes-mFDR step-up rule \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{table}

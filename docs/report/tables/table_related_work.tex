@@ -1,23 +1,24 @@
 \begin{table}[H]
 \centering
-\caption{Comparison of IDR variants and related reproducibility methods along key capability dimensions. ``SC step-up'' refers to the Sun--Cai-type step-up rule applied to the local idr.}
+\hbadness=10000
+\caption{Comparison of IDR variants and related reproducibility methods. ``SC step-up'' refers to the Sun--Cai-type step-up rule applied to local idr or local-fdr-style scores.}
 \label{tab:related-work}
-\small
-\setlength{\tabcolsep}{3pt}
-\begin{tabular}{lccccc}
+\scriptsize
+\setlength{\tabcolsep}{2pt}
+\begin{tabularx}{\textwidth}{p{2.2cm}p{1.2cm}YYYY}
 \toprule
-Method & Max $K$ & Copula family & Marginal model & FDR control & Theory \\
+Method & Max $K$ & Copula family & Marginal model & FDR control & Theory/status \\
 \midrule
-Vanilla IDR \citep{LiBrownHuangBickel2011}        & 2          & Gaussian, fixed         & shared latent Gaussian & SC step-up & EM consistency \\
-IDR2D \citep{Krismer2020IDR2D}                    & 2          & Gaussian, fixed         & shared latent Gaussian & SC step-up & --- \\
-ChIP-R \citep{Newell2021ChIPR}                    & $\geq 3$   & none (rank product)     & rank-based             & p-value     & --- \\
-eCV \citep{Iakovidis2024eCV}                      & $\geq 3$   & implicit (CV-based)     & shared                 & SC step-up & --- \\
-nestedIDR \citep{Ranalli2026nestedIDR}            & $\geq 2$ per source & Gaussian, per-source & shared per source & SC step-up & --- \\
-MaRR \citep{Philtron2018MaRR}                     & $\geq 2$   & none (rank-based)       & nonparametric          & frequentist & consistency \\
-GMCM-AD \citep{KasaRajan2020GMCM}                 & $\geq 2$   & Gaussian mixture, fixed $K$ & shared latent Gaussian & --- & --- \\
-NPMLE replicability \citep{Yi2024NPMLE}           & $\geq 2$   & none (density)          & nonparametric          & frequentist & consistency \\
-BNP Archimedean copula \citep{PanNietoBarajasCraiu2024} & arbitrary & PY Archimedean, scalar param. & --- & --- & --- \\
-\textbf{PY-IDR (this paper)}                      & arbitrary  & PY Gaussian + heavy-tail mixture & per-replicate Bernstein & SC plug-in step-up & contraction + mFDR \\
+Vanilla IDR \citep{LiBrownHuangBickel2011} & 2 & Gaussian, fixed & shared latent Gaussian & SC step-up & EM consistency \\
+IDR2D \citep{Krismer2020IDR2D} & 2 & Gaussian, fixed & shared latent Gaussian & SC step-up & genomic-interaction extension \\
+ChIP-R \citep{Newell2021ChIPR} & $\geq3$ & none; rank product & rank-based & $p$-value & direct ChIP/ATAC baseline \\
+eCV \citep{Iakovidis2024eCV} & $\geq3$ & implicit CV summary & score/rank summary & IDR extension & package defaults to verify \\
+nestedIDR \citep{Ranalli2026nestedIDR} & $\geq2$ per source & Gaussian, per source & shared per source & SC step-up & direct hierarchical comparator \\
+MaRR \citep{Philtron2018MaRR} & $\geq2$ & none; rank-based & nonparametric & frequentist & consistency \\
+GMCM-AD \citep{KasaRajan2020GMCM} & $\geq2$ & finite Gaussian mixture & shared latent Gaussian & -- & optimization comparator \\
+NPMLE replicability \citep{Yi2024NPMLE} & $\geq2$ & none; density-based & nonparametric & frequentist & consistency \\
+BNP Archimedean copula \citep{PanNietoBarajasCraiu2024} & arbitrary & PY Archimedean & known or modeled margins & -- & methodological neighbor \\
+\textbf{PY-IDR (this paper)} & arbitrary & PY Gaussian plus planned heavy-tail atoms & per-replicate Bernstein & SC plug-in step-up & conditional contraction + mFDR \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{table}

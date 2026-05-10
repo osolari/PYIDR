@@ -1,33 +1,52 @@
 \beginappendix
 
-\section{Supporting lemmas}
+\section{Supporting lemmas and proof obligations}
 \label{app:lemmas}
 
-This appendix provides statements of the supporting lemmas invoked in the proofs of Theorems~\ref{thm:contract} and~\ref{thm:erg}. Detailed proofs are deferred to a forthcoming technical appendix.
+This appendix provides supporting lemmas and proof-obligation notes for the theoretical results in Section~\ref{sec:theory}. The current manuscript contains proof sketches and conditional arguments; a future technical appendix should replace the proof-obligation notes with complete proofs where possible.
 
 \begin{lemma}[Sklar regularity for copula contraction]
 \label{lem:sklar-regularity}
-Let $f$ and $f^*$ be joint densities on $\R^K$ with strictly positive marginals $f_j$ and $f_j^*$ that are $\beta$-H\"older on their supports, and let $c, c^*$ denote the corresponding copula densities on $[0,1]^K$ obtained by Sklar's theorem. If $\sup f / f^* < \infty$ on the joint support, then there exists a constant $C = C(\beta, K, B) < \infty$ such that
+Let $f$ and $f^*$ be joint densities on $\R^K$ with strictly positive marginals $f_j$ and $f_j^*$ that are $\beta$-H\"older on their supports, and let $c$ and $c^*$ denote the corresponding copula densities on $[0,1]^K$. If the density ratios are bounded on the relevant support and the marginal transformations are regular, then there exists a constant $C=C(\beta,K,B)<\infty$ such that
 \[
-h^2(c, c^*) \;\leq\; C\, \KL(f, f^*) + C \sum_{j=1}^K \KL(f_j, f_j^*).
+h^2(c,c^*) \leq C\,\KL(f,f^*) + C\sum_{j=1}^K\KL(f_j,f_j^*).
 \]
 \end{lemma}
 
-\begin{lemma}[Mixture entropy decomposition]
+\begin{lemma}[Copula/marginal KL decomposition]
 \label{lem:mixent}
-Let $f$ be a joint density on $\R^K$ with copula $c$ and marginals $\{f_j\}$, and analogously for $f^*, c^*, \{f_j^*\}$. Then $\KL(f, f^*) = \KL(c, c^*) + \sum_{j=1}^K \KL(f_j, f_j^*)$.
+Suppose
+\[
+f(x)=c(F_1(x_1),\ldots,F_K(x_K))\prod_{j=1}^K f_j(x_j),
+\]
+and analogously for $f^*$, with common support and mutually absolutely continuous marginals. Then
+\[
+\KL(f^*,f)
+=\KL(c^*,c) + \sum_{j=1}^K \KL(f_j^*,f_j),
+\]
+where the copula KL term is evaluated under the probability-integral transform induced by the true marginals. If the candidate and true marginal transforms differ, the identity is replaced by the corresponding bounded-distortion inequality under the regularity conditions of Lemma~\ref{lem:sklar-regularity}.
 \end{lemma}
 
-\begin{lemma}[PY truncation tail bound]
+\begin{lemma}[PY truncation residual]
 \label{lem:pytruncation}
-Let $\bw \sim \GEM(\alpha, \sigma)$ with $\sigma \in [0, 1)$. The truncation residual $r_T = \sum_{m > T} w_m$ satisfies $\E[r_T] \leq \exp(-T \log(1 + 1/\alpha))$ for $\sigma = 0$ and $\E[r_T] = O(T^{-(1-\sigma)/\sigma})$ for $\sigma \in (0, 1)$. The truncation level $T_n \asymp n \epsilon_n^2 / \log n$ ensures $\E[r_{T_n}] = o(\exp(-2n \epsilon_n^2))$.
+Let $\bw\sim\GEM(\alpha,\sigma)$ with $\sigma\in[0,1)$ and let $r_T=\sum_{m>T}w_m$. For $\sigma=0$, $\E[r_T]\leq\exp\{-T\log(1+1/\alpha)\}$. For fixed $\sigma\in(0,1)$, $\E[r_T]=O(T^{-(1-\sigma)/\sigma})$ under the usual positive-discount asymptotics. Consequently, a polynomial residual expectation does not by itself imply the exponential sieve-complement probability required in Assumption~\ref{ass:py}. Establishing that probability for the positive-discount copula mixture is a separate proof obligation.
 \end{lemma}
 
 \begin{lemma}[Sieve covering numbers]
 \label{lem:cover}
-Let $\mathcal{F}_T(M) = \{\sum_{m \leq T} w_m\, c_{(\theta_m, t_m)} : \norm{\theta_m}_F \leq M\}$ denote the truncated sieve of mixtures with at most $T$ active atoms and bounded atomic-parameter Frobenius norm. Then
+Let $\mathcal F_T(M)=\{\sum_{m\leq T}w_m c_{(\theta_m,t_m)}:\norm{\theta_m}_F\leq M\}$ denote the truncated sieve of mixtures with at most $T$ active atoms and bounded atomic-parameter norm. Under bounded smooth atomic densities and finite discrete supports,
 \[
-\log N(\epsilon, \mathcal{F}_T(M), h) \;\leq\; C T K^2 \log(M / \epsilon) + C T,
+\log N(\epsilon,\mathcal F_T(M),h)\leq C T K^2\log(M/\epsilon)+CT,
 \]
-where the second term arises from the discrete atomic-type indicator and the four structural-class indicator.
+where the second term accounts for the four atomic-type indicators and, for Gaussian atoms, the three structural-class indicators.
 \end{lemma}
+
+\begin{remark}[Theory status roadmap]
+\label{rem:theory-roadmap}
+The finite-sieve identifiability argument, entropy calculation, operational Bayes-mFDR rule, and finite-truncation algorithmic formulation are ready for manuscript use under the stated assumptions. The unrestricted positive-discount PY contraction theorem, the boundary-singular copula theory for heavy-tail atoms, the geometric drift/minorization proof, and the matching-rate variational statement remain future theoretical work. The planned experiments in Section~\ref{sec:experiments} are designed to diagnose these assumptions empirically rather than to serve as proofs.
+\end{remark}
+
+\begin{remark}[Theory-to-code diagnostics]
+\label{rem:theory-code}
+The coding implementation should expose diagnostics corresponding to the assumptions above: PLOD and positive-correlation checks for atoms, rank and marginal calibration plots for the Sklar step, posterior cluster-count traces for the PY prior, empirical Hellinger error in simulations for contraction diagnostics, and realized-FDR curves for the Bayes-mFDR threshold-transfer assumption.
+\end{remark}

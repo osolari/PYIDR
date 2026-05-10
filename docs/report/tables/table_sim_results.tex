@@ -1,61 +1,64 @@
 \begin{table}[H]
 \centering
-\caption{Realized FDR at nominal $\alpha = 0.05$ across simulation regimes S1--S5, averaged over 100 replications. Each cell will report mean (Monte Carlo SE in parentheses). Boldface will indicate the closest method to the nominal level. Placeholder ``XX.X'' cells will be filled in the companion experimental paper. Setting: $K = 4$, $n = 10{,}000$.}
+\caption{Planned realized FDR at nominal $\alpha=0.05$ across simulation regimes S1--S5, averaged over 100 replications. Each cell will report mean (Monte Carlo SE). Boldface will indicate the closest method to the nominal level. Placeholder ``XX.X'' cells will be filled in the companion experimental paper. Setting: $K=5$, $n=10{,}000$.}
 \label{tab:sim-fdr}
-\small
+\scriptsize
+\resizebox{\textwidth}{!}{%
 \begin{tabular}{lccccc}
 \toprule
 Method & S1 & S2 & S3 & S4 & S5 \\
 \midrule
-Vanilla IDR \citep{LiBrownHuangBickel2011}   & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) \\
-eCV \citep{Iakovidis2024eCV}                  & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) \\
-nestedIDR \citep{Ranalli2026nestedIDR}        & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) \\
-MaRR \citep{Philtron2018MaRR}                 & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) \\
-ChIP-R \citep{Newell2021ChIPR}                & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) \\
-GMCM-AD \citep{KasaRajan2020GMCM}             & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) \\
+Vanilla IDR \citep{LiBrownHuangBickel2011} & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) \\
+eCV \citep{Iakovidis2024eCV} & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) \\
+nestedIDR \citep{Ranalli2026nestedIDR} & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) \\
+MaRR \citep{Philtron2018MaRR} & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) \\
+ChIP-R \citep{Newell2021ChIPR} & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) \\
+GMCM-AD \citep{KasaRajan2020GMCM} & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) \\
 BNP-Archimedean \citep{PanNietoBarajasCraiu2024} & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) \\
-\textbf{PY-IDR (MCMC)}                        & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) \\
-\textbf{PY-IDR (VI)}                          & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) \\
+\textbf{PY-IDR (MCMC)} & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) \\
+\textbf{PY-IDR (VI)} & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) \\
 \bottomrule
-\end{tabular}
+\end{tabular}}
 \end{table}
 
 \begin{table}[H]
 \centering
-\caption{Power (true positive rate at realized FDR $\leq$ 0.05) across simulation regimes S1--S5, averaged over 100 replications. Each cell will report mean (Monte Carlo SE in parentheses). Boldface will indicate the highest power. Setting: $K = 4$, $n = 10{,}000$.}
+\caption{Planned power at realized FDR $\leq0.05$ across simulation regimes S1--S5, averaged over 100 replications. Each cell will report mean (Monte Carlo SE). Boldface will indicate the highest power. Setting: $K=5$, $n=10{,}000$.}
 \label{tab:sim-power}
-\small
+\scriptsize
+\resizebox{\textwidth}{!}{%
 \begin{tabular}{lccccc}
 \toprule
 Method & S1 & S2 & S3 & S4 & S5 \\
 \midrule
-Vanilla IDR \citep{LiBrownHuangBickel2011}   & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) \\
-eCV \citep{Iakovidis2024eCV}                  & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) \\
-nestedIDR \citep{Ranalli2026nestedIDR}        & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) \\
-MaRR \citep{Philtron2018MaRR}                 & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) \\
-ChIP-R \citep{Newell2021ChIPR}                & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) \\
-GMCM-AD \citep{KasaRajan2020GMCM}             & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) \\
+Vanilla IDR \citep{LiBrownHuangBickel2011} & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) \\
+eCV \citep{Iakovidis2024eCV} & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) \\
+nestedIDR \citep{Ranalli2026nestedIDR} & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) \\
+MaRR \citep{Philtron2018MaRR} & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) \\
+ChIP-R \citep{Newell2021ChIPR} & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) \\
+GMCM-AD \citep{KasaRajan2020GMCM} & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) \\
 BNP-Archimedean \citep{PanNietoBarajasCraiu2024} & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) \\
-\textbf{PY-IDR (MCMC)}                        & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) \\
-\textbf{PY-IDR (VI)}                          & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) \\
+\textbf{PY-IDR (MCMC)} & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) \\
+\textbf{PY-IDR (VI)} & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) & XX.X (X.X) \\
 \bottomrule
-\end{tabular}
+\end{tabular}}
 \end{table}
 
 \begin{table}[H]
 \centering
-\caption{Effect of replicate count $K$ on power and realized FDR for the proposed method, regime S5 (heavy-tail), $n = 10{,}000$. Each cell reports power / realized FDR as percentages.}
+\caption{Planned effect of replicate count $K$ on power and realized FDR for regime S5, $n=10{,}000$. Each cell will report power / realized FDR as percentages.}
 \label{tab:sim-K}
 \small
+\resizebox{\textwidth}{!}{%
 \begin{tabular}{lcccc}
 \toprule
-Method & $K = 2$ & $K = 5$ & $K = 10$ & $K = 50$ \\
+Method & $K=2$ & $K=5$ & $K=10$ & $K=50$ \\
 \midrule
-Vanilla IDR (pairwise)              & XX.X / X.X & XX.X / X.X & XX.X / X.X & XX.X / X.X \\
-eCV                                  & XX.X / X.X & XX.X / X.X & XX.X / X.X & XX.X / X.X \\
-nestedIDR                            & XX.X / X.X & XX.X / X.X & XX.X / X.X & XX.X / X.X \\
-\textbf{PY-IDR (MCMC)}               & XX.X / X.X & XX.X / X.X & XX.X / X.X & XX.X / X.X \\
-\textbf{PY-IDR (VI)}                 & XX.X / X.X & XX.X / X.X & XX.X / X.X & XX.X / X.X \\
+Vanilla IDR (pairwise) & XX.X / X.X & XX.X / X.X & XX.X / X.X & XX.X / X.X \\
+eCV & XX.X / X.X & XX.X / X.X & XX.X / X.X & XX.X / X.X \\
+nestedIDR & XX.X / X.X & XX.X / X.X & XX.X / X.X & XX.X / X.X \\
+\textbf{PY-IDR (MCMC)} & XX.X / X.X & XX.X / X.X & XX.X / X.X & XX.X / X.X \\
+\textbf{PY-IDR (VI)} & XX.X / X.X & XX.X / X.X & XX.X / X.X & XX.X / X.X \\
 \bottomrule
-\end{tabular}
+\end{tabular}}
 \end{table}

@@ -1,18 +1,19 @@
 \begin{table}[H]
 \centering
-\caption{Summary of real datasets used in the empirical evaluation. Replicate counts and feature counts are approximate and vary across experiments within each consortium. ``Pre-processing'' refers to the canonical upstream pipeline used by the consortium release. Detailed accession identifiers will be reported in the companion experimental paper.}
+\hbadness=10000
+\caption{Summary of planned real datasets. Replicate counts and feature counts are approximate and will be fixed in data manifests before fitting. ``Pre-processing'' refers to the canonical upstream pipeline or planned score extraction.}
 \label{tab:datasets}
-\small
-\setlength{\tabcolsep}{4pt}
-\begin{tabular}{lllll}
+\scriptsize
+\setlength{\tabcolsep}{2pt}
+\begin{tabularx}{\textwidth}{p{2.4cm}p{1.4cm}p{1.9cm}YY}
 \toprule
-Dataset & $K$ & Approx.\ $n$ & Source / accession & Pre-processing \\
+Dataset & $K$ & Approx. $n$ & Source / accession & Pre-processing \\
 \midrule
-ENCODE 4 CTCF ChIP-seq      & 2--6           & 30k--80k peaks      & ENCODE consortium release   & MACS2 narrow-peak calls \\
-ENCODE 4 ATAC-seq           & 2--4           & 70k--200k peaks     & ENCODE consortium release   & MACS2 broad-peak calls \\
-DREAM5 challenge            & 35 algorithms  & 100k edges          & DREAM consortium archive    & per-algorithm rank lists \\
-Tabula Muris pseudobulk     & 8 tissues      & 23k genes           & Tabula Muris atlas (SmartSeq2) & tissue-pooled counts \\
-Pan-UKBB GWAS               & 6 ancestries   & 10M variants        & Pan-UKBB DAC release        & PLINK/SAIGE statistics \\
+ENCODE 4 CTCF ChIP-seq & 2--6 & 30k--80k peaks & ENCODE release & MACS2 narrow-peak scores; accession list to be frozen \\
+ENCODE 4 ATAC-seq & 2--4 & 70k--200k peaks & ENCODE release & MACS2 broad-peak or accessibility scores \\
+DREAM5 challenge & 35 algorithms & 100k edges & DREAM archive & per-algorithm rank lists \\
+Tabula Muris pseudobulk & 2--8 tissues/technologies & 23k genes & Tabula Muris atlas & tissue/technology pseudobulk counts \\
+Pan-UKBB GWAS & up to 6 ancestries & millions of variants & Pan-UKBB resource & ancestry-specific summary statistics and QC \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{table}
