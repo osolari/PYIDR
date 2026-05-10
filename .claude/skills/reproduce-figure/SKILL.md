@@ -24,16 +24,16 @@ or the relevant data-collection skill first.
 
 | ID | LaTeX label | Source CSV | Module |
 |----|-------------|------------|--------|
-| F1 | fig:calibration | artifacts/sim/calibration_long.csv | stick_idr.figures.f1_idr_calibration |
-| F2 | fig:roc-pr | artifacts/sim/roc_pr_S5_K10.csv | stick_idr.figures.f2_roc_pr |
-| F3 | fig:contract | artifacts/sim/contraction_S1.csv | stick_idr.figures.f3_contraction |
-| F4 | fig:py-vs-dp | artifacts/sim/py_vs_dp_*.csv | stick_idr.figures.f4_py_vs_dp |
-| F5 | fig:realdata | artifacts/real/*.csv | stick_idr.figures.f5_realdata |
-| F6 | fig:runtime | artifacts/runtime/*.csv | stick_idr.figures.f6_runtime |
+| F1 | fig:calibration | artifacts/sim/calibration_long.csv | py_idr.figures.f1_idr_calibration |
+| F2 | fig:roc-pr | artifacts/sim/roc_pr_S5_K10.csv | py_idr.figures.f2_roc_pr |
+| F3 | fig:contract | artifacts/sim/contraction_S1.csv | py_idr.figures.f3_contraction |
+| F4 | fig:py-vs-dp | artifacts/sim/py_vs_dp_*.csv | py_idr.figures.f4_py_vs_dp |
+| F5 | fig:realdata | artifacts/real/*.csv | py_idr.figures.f5_realdata |
+| F6 | fig:runtime | artifacts/runtime/*.csv | py_idr.figures.f6_runtime |
 
 ## Prerequisites
 
-- `.venv` activated; `stick_idr.doctor()` is green.
+- `.venv` activated; `py_idr.doctor()` is green.
 - The required CSV exists. If not: tell the user which simulation/data-collection skill
   to run first.
 
@@ -41,15 +41,15 @@ or the relevant data-collection skill first.
 
 1. **Validate the CSV schema:**
    ```bash
-   python -m stick_idr.eval.validate_sim_csv <csv>
+   python -m py_idr.eval.validate_sim_csv <csv>
    ```
    This is paranoid by design — figure scripts are not robust to schema drift.
 2. **Render:**
    ```bash
-   python -m stick_idr.figures.<module> \
+   python -m py_idr.figures.<module> \
      --results <csv> \
      --out docs/report/figures/<filename>.pdf \
-     --style-file src/stick_idr/figures/_style.py
+     --style-file src/py_idr/figures/_style.py
    ```
 3. **Inspect the output.** Open the PDF (or use `pdftoppm <pdf> /tmp/<name>` to render
    to PNG and present it to the user). Confirm legend, palette, and panel labels match

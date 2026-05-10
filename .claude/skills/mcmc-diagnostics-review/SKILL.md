@@ -31,7 +31,7 @@ that.
 
 1. **Load the trace into arviz:**
    ```python
-   import stick_idr.inference.mcmc.diagnostics as diag
+   import py_idr.inference.mcmc.diagnostics as diag
    ix = diag.load_trace("runs/<run_id>/trace.zarr")
    ```
 2. **Continuous-parameter diagnostics.**

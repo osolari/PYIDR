@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Pre-commit hook: validate configs/preregistration/hypotheses.yaml.
 
-Loads `stick_idr.preregistration.schema.HypothesesFile` (pydantic) and parses the YAML.
+Loads `py_idr.preregistration.schema.HypothesesFile` (pydantic) and parses the YAML.
 A schema mismatch is a hard failure — preregistered thresholds must not silently drift.
 """
 
@@ -19,7 +19,7 @@ def main(argv: list[str]) -> int:
         sys.stderr.write("check-hypotheses-schema: PyYAML not installed; skipping.\n")
         return 0
     try:
-        from stick_idr.preregistration.schema import (
+        from py_idr.preregistration.schema import (
             HypothesesFile,  # type: ignore[import-not-found]
         )
     except (ImportError, NotImplementedError):

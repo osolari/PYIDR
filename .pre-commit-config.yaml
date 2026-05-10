@@ -53,7 +53,7 @@ repos:
         name: Each figure/table reproducer references its LaTeX label
         language: system
         entry: python scripts/hooks/check_figure_backlinks.py
-        files: ^src/stick_idr/(figures|tables)/.*\.py$
+        files: ^src/py_idr/(figures|tables)/.*\.py$
 
       - id: check-hypotheses-schema
         name: hypotheses.yaml validates against pydantic schema

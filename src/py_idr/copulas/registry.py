@@ -18,12 +18,12 @@ from collections.abc import Callable
 
 import jax.numpy as jnp
 
-from stick_idr.algebra.plod import assert_plod
-from stick_idr.copulas.base import Copula
-from stick_idr.copulas.clayton import ClaytonCopula
-from stick_idr.copulas.gaussian import GaussianCopula
-from stick_idr.copulas.gumbel import GumbelCopula
-from stick_idr.copulas.student_t import StudentTCopula
+from py_idr.algebra.plod import assert_plod
+from py_idr.copulas.base import Copula
+from py_idr.copulas.clayton import ClaytonCopula
+from py_idr.copulas.gaussian import GaussianCopula
+from py_idr.copulas.gumbel import GumbelCopula
+from py_idr.copulas.student_t import StudentTCopula
 
 ATOMIC_TYPES: tuple[str, ...] = ("gauss", "t5", "clayton", "gumbel")
 

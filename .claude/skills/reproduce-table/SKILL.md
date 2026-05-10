@@ -21,13 +21,13 @@ Triggered by any of:
 
 | ID | LaTeX label | Source | Module |
 |----|-------------|--------|--------|
-| T1 | tab:notation | src/stick_idr/_notation.yaml | stick_idr.tables.t1_notation |
-| T2 | tab:related-work | src/stick_idr/_comparators.yaml | stick_idr.tables.t2_related_work |
-| T3 | tab:sim-design | enumerated from simulation/scenarios.py | stick_idr.tables.t3_sim_design |
-| T4 | tab:sim-fdr / tab:sim-power | artifacts/sim/calibration_long.csv | stick_idr.tables.t4_sim_fdr_power |
-| T5 | tab:sim-K | artifacts/sim/K_effect.csv | stick_idr.tables.t5_sim_K |
-| T6 | tab:datasets | src/stick_idr/_datasets.yaml | stick_idr.tables.t6_datasets |
-| T7 | tab:real-disc / tab:real-clusters / tab:real-runtime | artifacts/real/*.csv | stick_idr.tables.t7_real_results |
+| T1 | tab:notation | src/py_idr/_notation.yaml | py_idr.tables.t1_notation |
+| T2 | tab:related-work | src/py_idr/_comparators.yaml | py_idr.tables.t2_related_work |
+| T3 | tab:sim-design | enumerated from simulation/scenarios.py | py_idr.tables.t3_sim_design |
+| T4 | tab:sim-fdr / tab:sim-power | artifacts/sim/calibration_long.csv | py_idr.tables.t4_sim_fdr_power |
+| T5 | tab:sim-K | artifacts/sim/K_effect.csv | py_idr.tables.t5_sim_K |
+| T6 | tab:datasets | src/py_idr/_datasets.yaml | py_idr.tables.t6_datasets |
+| T7 | tab:real-disc / tab:real-clusters / tab:real-runtime | artifacts/real/*.csv | py_idr.tables.t7_real_results |
 
 ## Prerequisites
 
@@ -37,11 +37,11 @@ Triggered by any of:
 ## Procedure
 
 1. **Validate the source:**
-   - YAML: `python -m stick_idr.tables._validate <table-id>`
-   - CSV: `python -m stick_idr.eval.validate_sim_csv <csv>`
+   - YAML: `python -m py_idr.tables._validate <table-id>`
+   - CSV: `python -m py_idr.eval.validate_sim_csv <csv>`
 2. **Render:**
    ```bash
-   python -m stick_idr.tables.<module> \
+   python -m py_idr.tables.<module> \
      --in <source> \
      --out docs/report/tables/<filename>.tex
    ```

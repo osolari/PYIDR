@@ -24,7 +24,7 @@ Each skill is a directory with a `SKILL.md` describing:
 
 ## Conventions
 
-- Skills assume `.venv/` is activated and `stick_idr.doctor()` is green.
+- Skills assume `.venv/` is activated and `py_idr.doctor()` is green.
 - Skills write artifacts into `artifacts/<skill-name>/<run-id>/` and traces into `runs/<run-id>/`.
 - Skills never modify `docs/report/sections/*.tex`.
 - Skills emit a sidecar `manifest.json` with git SHA, config hash, and dataset version.

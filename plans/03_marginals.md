@@ -12,7 +12,7 @@ with conjugate Dirichlet weight updates and a discrete prior on $M_j$.
 
 ## Deliverables
 
-### `src/stick_idr/marginals/`
+### `src/py_idr/marginals/`
 
 - `pilot.py` — `kde_pilot_cdf(x, bandwidth)` returns a coarse pilot $F_j^{(0)}$ used as the index in the Bernstein basis.
 - `bernstein.py`

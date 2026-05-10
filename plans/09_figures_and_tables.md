@@ -13,28 +13,28 @@ Replace the synthetic figures and placeholder tables in `docs/report/figures/` a
 
 | ID | LaTeX label | Source CSV | Module |
 |----|------------|------------|--------|
-| F1 | fig:calibration | `artifacts/sim/calibration_long.csv` | `stick_idr.figures.f1_idr_calibration` |
-| F2 | fig:roc-pr | `artifacts/sim/roc_pr_S5_K10.csv` | `stick_idr.figures.f2_roc_pr` |
-| F3 | fig:contract | `artifacts/sim/contraction_S1.csv` | `stick_idr.figures.f3_contraction` |
-| F4 | fig:py-vs-dp | `artifacts/sim/py_vs_dp_clusters.csv` + `cluster_traces.csv` | `stick_idr.figures.f4_py_vs_dp` |
-| F5 | fig:realdata | `artifacts/real/discovery_counts.csv` + `posterior_band.csv` | `stick_idr.figures.f5_realdata` |
-| F6 | fig:runtime | `artifacts/runtime/per_iter.csv` + `ess_per_s.csv` | `stick_idr.figures.f6_runtime` |
+| F1 | fig:calibration | `artifacts/sim/calibration_long.csv` | `py_idr.figures.f1_idr_calibration` |
+| F2 | fig:roc-pr | `artifacts/sim/roc_pr_S5_K10.csv` | `py_idr.figures.f2_roc_pr` |
+| F3 | fig:contract | `artifacts/sim/contraction_S1.csv` | `py_idr.figures.f3_contraction` |
+| F4 | fig:py-vs-dp | `artifacts/sim/py_vs_dp_clusters.csv` + `cluster_traces.csv` | `py_idr.figures.f4_py_vs_dp` |
+| F5 | fig:realdata | `artifacts/real/discovery_counts.csv` + `posterior_band.csv` | `py_idr.figures.f5_realdata` |
+| F6 | fig:runtime | `artifacts/runtime/per_iter.csv` + `ess_per_s.csv` | `py_idr.figures.f6_runtime` |
 
 ## Table inventory
 
 | ID | LaTeX label | Source | Module |
 |----|------------|--------|--------|
-| T1 | tab:notation | `src/stick_idr/_notation.yaml` (single source of truth) | `stick_idr.tables.t1_notation` |
-| T2 | tab:related-work | `src/stick_idr/_comparators.yaml` | `stick_idr.tables.t2_related_work` |
-| T3 | tab:sim-design | enumerated from `simulation/scenarios.py` | `stick_idr.tables.t3_sim_design` |
-| T4 | tab:sim-fdr / tab:sim-power | `artifacts/sim/calibration_long.csv` | `stick_idr.tables.t4_sim_fdr_power` |
-| T5 | tab:sim-K | `artifacts/sim/K_effect.csv` | `stick_idr.tables.t5_sim_K` |
-| T6 | tab:datasets | `src/stick_idr/_datasets.yaml` | `stick_idr.tables.t6_datasets` |
-| T7 | tab:real-disc / tab:real-clusters / tab:real-runtime | `artifacts/real/*.csv` | `stick_idr.tables.t7_real_results` |
+| T1 | tab:notation | `src/py_idr/_notation.yaml` (single source of truth) | `py_idr.tables.t1_notation` |
+| T2 | tab:related-work | `src/py_idr/_comparators.yaml` | `py_idr.tables.t2_related_work` |
+| T3 | tab:sim-design | enumerated from `simulation/scenarios.py` | `py_idr.tables.t3_sim_design` |
+| T4 | tab:sim-fdr / tab:sim-power | `artifacts/sim/calibration_long.csv` | `py_idr.tables.t4_sim_fdr_power` |
+| T5 | tab:sim-K | `artifacts/sim/K_effect.csv` | `py_idr.tables.t5_sim_K` |
+| T6 | tab:datasets | `src/py_idr/_datasets.yaml` | `py_idr.tables.t6_datasets` |
+| T7 | tab:real-disc / tab:real-clusters / tab:real-runtime | `artifacts/real/*.csv` | `py_idr.tables.t7_real_results` |
 
 ## Deliverables
 
-### `src/stick_idr/figures/`
+### `src/py_idr/figures/`
 
 Each module exposes `make(args)` and a Typer subcommand. Style is consolidated in
 `_style.py` (matplotlib rcParams, palette matching the synthetic figure script).
@@ -42,7 +42,7 @@ Each module exposes `make(args)` and a Typer subcommand. Style is consolidated i
 The figure scripts MUST NOT do data collection — they consume CSVs only. The CSV is the
 contract between the simulation/eval driver and the figure script.
 
-### `src/stick_idr/tables/`
+### `src/py_idr/tables/`
 
 Each module renders a single LaTeX table fragment with `booktabs` headers; the resulting
 file lands under `docs/report/tables/<name>.tex` exactly where the paper's `\input` directives
@@ -54,7 +54,7 @@ version.
 See §9 of `IMPLEMENTATION_PLAN.md`. Each invocation enforces the convention that:
 - `--results <csv>` is required.
 - `--out <pdf|tex>` is required.
-- `--style-file` defaults to `src/stick_idr/figures/_style.py`.
+- `--style-file` defaults to `src/py_idr/figures/_style.py`.
 
 ## Tests
 
@@ -71,4 +71,4 @@ See §9 of `IMPLEMENTATION_PLAN.md`. Each invocation enforces the convention tha
 ## Notes
 
 - The placeholder figures of `docs/report/figures/generate_figures.py` use a fixed palette (`#1b4d3e` for PY-IDR, `#9d4e0d` for Vanilla IDR, etc.). `_style.py` reproduces that palette so swap-in is seamless.
-- `t1_notation.py` and `t6_datasets.py` are derived from YAML registries inside `src/stick_idr/_notation.yaml` and `src/stick_idr/_datasets.yaml` — the YAML is the single source of truth that both the Python code and the LaTeX paper draw from.
+- `t1_notation.py` and `t6_datasets.py` are derived from YAML registries inside `src/py_idr/_notation.yaml` and `src/py_idr/_datasets.yaml` — the YAML is the single source of truth that both the Python code and the LaTeX paper draw from.

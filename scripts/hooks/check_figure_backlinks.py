@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Pre-commit hook: every figure/table reproducer references its LaTeX label.
 
-Each module under src/stick_idr/figures/ and src/stick_idr/tables/ MUST contain its
+Each module under src/py_idr/figures/ and src/py_idr/tables/ MUST contain its
 target LaTeX label (e.g. `fig:calibration`, `tab:sim-fdr`) in the module docstring.
 """
 

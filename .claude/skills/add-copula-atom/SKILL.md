@@ -22,7 +22,7 @@ differently (that's a model-config edit, not a registry edit).
 
 ## Prerequisites
 
-- `.venv` activated; `stick_idr.doctor()` is green.
+- `.venv` activated; `py_idr.doctor()` is green.
 - `git status` is clean OR all in-progress changes are on a feature branch.
 - The new family's PLOD status is documented; non-PLOD families cannot enter the
   reproducible-component base measure (would break Theorem 3.1).
@@ -32,7 +32,7 @@ differently (that's a model-config edit, not a registry edit).
 1. **Verify PLOD status.** Compute $C(u, ..., u) - u^K$ analytically or numerically on
    a $u$-grid with $K \in \{2, 5, 10\}$. If the family is not PLOD, stop and explain
    to the user why; the family can still be a comparator but not an atomic type.
-2. **Add the density module.** Create `src/stick_idr/copulas/<name>.py` implementing
+2. **Add the density module.** Create `src/py_idr/copulas/<name>.py` implementing
    the abstract `Copula` interface from `copulas/base.py`:
    - `log_density(u: jnp.ndarray) -> jnp.ndarray`
    - `cdf_diagonal(u: jnp.ndarray) -> jnp.ndarray`
@@ -58,7 +58,7 @@ differently (that's a model-config edit, not a registry edit).
 
 ## Expected outputs
 
-- `src/stick_idr/copulas/<name>.py`
+- `src/py_idr/copulas/<name>.py`
 - `tests/unit/test_copula_logpdfs.py` updated
 - `tests/property/test_plod_invariance.py` updated
 - `docs/math/copula_family_<name>.md` (new)

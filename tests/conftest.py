@@ -1,4 +1,4 @@
-"""Shared pytest fixtures for the StickIDR test suite."""
+"""Shared pytest fixtures for the PY-IDR test suite."""
 
 from __future__ import annotations
 

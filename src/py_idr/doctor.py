@@ -1,10 +1,10 @@
 """Environment sanity check.
 
-`stick_idr.doctor()` runs a battery of cheap probes and reports green / yellow / red.
-Invoke via the CLI (`stick-idr doctor`) or directly:
+`py_idr.doctor()` runs a battery of cheap probes and reports green / yellow / red.
+Invoke via the CLI (`py-idr doctor`) or directly:
 
->>> import stick_idr
->>> stick_idr.doctor()
+>>> import py_idr
+>>> py_idr.doctor()
 
 The function returns 0 if all probes are green and a non-zero exit code otherwise so
 CI and pre-commit can gate on it.
@@ -90,9 +90,9 @@ def _probe_numpyro() -> ProbeResult:
 def _probe_plod_roundtrip() -> ProbeResult:
     """Verify PLOD holds for every atomic type at K=2 and that c_0 correctly fails."""
     try:
-        from stick_idr.algebra.plod import assert_plod
-        from stick_idr.copulas.independence import IndependenceCopula
-        from stick_idr.copulas.registry import REPRESENTATIVES
+        from py_idr.algebra.plod import assert_plod
+        from py_idr.copulas.independence import IndependenceCopula
+        from py_idr.copulas.registry import REPRESENTATIVES
     except Exception as e:  # pragma: no cover
         return ProbeResult("plod-roundtrip", FAIL, f"import error: {e}")
     K = 2

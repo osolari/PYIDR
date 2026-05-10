@@ -29,7 +29,7 @@ from jaxtyping import Array, Float
 from scipy import stats as _sps
 from scipy.stats import multivariate_t as _scipy_mvt
 
-from stick_idr.copulas.base import Copula
+from py_idr.copulas.base import Copula
 
 NU: float = 5.0  # fixed degrees of freedom per the report (§3.3.2)
 

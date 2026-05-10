@@ -1,4 +1,4 @@
-"""CLI entrypoint: `stick-idr <command>`.
+"""CLI entrypoint: `py-idr <command>`.
 
 Subcommands are stubs at the skeleton stage and route into the Python modules.
 """
@@ -7,9 +7,9 @@ from __future__ import annotations
 
 import typer
 
-from stick_idr.doctor import doctor as run_doctor
+from py_idr.doctor import doctor as run_doctor
 
-app = typer.Typer(help="StickIDR — Pitman-Yor IDR command line.")
+app = typer.Typer(help="PY-IDR — Pitman-Yor IDR command line.")
 
 
 @app.command()

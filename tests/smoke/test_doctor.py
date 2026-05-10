@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import pytest
 
-import stick_idr
+import py_idr
 
 
 @pytest.mark.smoke
 def test_doctor_runs_and_is_green() -> None:
     """The skeleton-stage doctor() exits 0 (skipped probes do not count as failure)."""
-    code = stick_idr.doctor(verbose=False)
+    code = py_idr.doctor(verbose=False)
     assert code == 0

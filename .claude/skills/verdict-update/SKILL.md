@@ -29,11 +29,11 @@ Triggered by any of:
 
 1. **Load and validate the preregistration:**
    ```bash
-   python -m stick_idr.preregistration.loader configs/preregistration/hypotheses.yaml
+   python -m py_idr.preregistration.loader configs/preregistration/hypotheses.yaml
    ```
 2. **Compute the verdict:**
    ```bash
-   python -m stick_idr.preregistration.verdict \
+   python -m py_idr.preregistration.verdict \
      --measurements runs/<run_id>/measurements.json \
      --preregistration configs/preregistration/hypotheses.yaml \
      --out runs/<run_id>/verdict.json
@@ -42,7 +42,7 @@ Triggered by any of:
    `pass | fail | falsified`, `evidence_path`.
 3. **Update the ledger:**
    ```bash
-   python -m stick_idr.preregistration.ledger \
+   python -m py_idr.preregistration.ledger \
      --append runs/<run_id>/verdict.json \
      --ledger docs/experiments/ledger.md
    ```

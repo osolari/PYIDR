@@ -34,7 +34,7 @@ Do NOT use this skill for general MCMC diagnostics — use `mcmc-diagnostics-rev
    (the existing $T$ + $H$ auxiliary atoms drawn from $P_0$), compute:
    $\Pr(z_i = m) \propto (n_m - \sigma) \cdot c_{\theta_m}(\bU_i)$ for occupied clusters
    $\Pr(z_i = T+h) \propto (\alpha + T\sigma) / H \cdot c_{\theta_{T+h}}(\bU_i)$ for aux atoms.
-4. **Compare to JAX implementation.** Call `stick_idr.pym.algo8.reassignment_log_probs(state, i, key)` and
+4. **Compare to JAX implementation.** Call `py_idr.pym.algo8.reassignment_log_probs(state, i, key)` and
    diff against the analytical computation. Tolerance: `1e-6` in float64.
 5. **Monte-Carlo check.** Repeat the JAX `algo8.step(state, i, key)` $10^5$ times with
    different keys; histogram the new $z_i$ values; assert each bucket frequency matches

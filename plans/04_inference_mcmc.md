@@ -21,7 +21,7 @@ Step 8.  Mixing proportion       π ~ Beta(1+n_1, 1+n_0)
 
 ## Deliverables
 
-### `src/stick_idr/pym/`
+### `src/py_idr/pym/`
 
 - `stickbreak.py` — `gem_sample(key, alpha, sigma, T)` returning truncated stick-breaking weights $w_{1:T}$.
 - `predictive.py` — PY Blackwell–MacQueen predictive (Pitman 1996).
@@ -30,7 +30,7 @@ Step 8.  Mixing proportion       π ~ Beta(1+n_1, 1+n_0)
 - `alpha_update.py` — Escobar–West auxiliary-variable update for $\alpha$.
 - `sigma_update.py` — slice-sampled update for $\sigma \in [0, 1)$.
 
-### `src/stick_idr/inference/mcmc/`
+### `src/py_idr/inference/mcmc/`
 
 - `class_assign.py` — vectorized $Z_i \sim \mathrm{Bernoulli}(\widehat\pi_i)$.
 - `reassign.py` — `vmap` over features calling `pym.algo8.step`.
@@ -41,7 +41,7 @@ Step 8.  Mixing proportion       π ~ Beta(1+n_1, 1+n_0)
 - `sweep.py` — the orchestrator: takes a `SamplerState` PyTree and returns a new one.
 - `diagnostics.py` — wraps `arviz` for split-$\widehat R$, ESS, divergences, energy, and cluster-occupancy traces.
 
-### `src/stick_idr/model/`
+### `src/py_idr/model/`
 
 - `state.py` — `SamplerState` PyTree (frozen dataclass) carrying $\pi$, $\alpha$, $\sigma$, active clusters, atomic types, Bernstein weights, $M_j$, $\alpha_F$, latent $Z_i$, $z_i$.
 - `joint.py` — `joint_log_prob(state, U)` for diagnostics.

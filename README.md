@@ -1,4 +1,4 @@
-# StickIDR
+# PY-IDR
 
 A reference implementation of **PY-IDR** — a hierarchical nonparametric Bayesian
 extension of the Irreproducible Discovery Rate (IDR) framework. The reproducible
@@ -30,7 +30,7 @@ pytest -m smoke
 ## Status
 
 Skeleton stage. Algorithmic submodules raise `NotImplementedError` and reference the
-sub-plan that owns them. The `stick_idr.doctor()` probe is green on a fresh env.
+sub-plan that owns them. The `py_idr.doctor()` probe is green on a fresh env.
 
 ## License
 

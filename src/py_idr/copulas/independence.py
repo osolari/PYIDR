@@ -12,7 +12,7 @@ from __future__ import annotations
 import jax.numpy as jnp
 from jaxtyping import Array, Float
 
-from stick_idr.copulas.base import Copula
+from py_idr.copulas.base import Copula
 
 
 class IndependenceCopula(Copula):

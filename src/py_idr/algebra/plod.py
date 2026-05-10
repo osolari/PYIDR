@@ -23,7 +23,7 @@ from __future__ import annotations
 import jax.numpy as jnp
 from jaxtyping import Array, Bool, Float
 
-from stick_idr.copulas.base import Copula
+from py_idr.copulas.base import Copula
 
 
 def default_grid(n_grid: int = 99) -> Float[Array, "n_grid"]:
@@ -74,7 +74,7 @@ def assert_plod(
 ) -> None:
     """Raise ``ValueError`` if the copula fails PLOD on the default grid.
 
-    Used by :mod:`stick_idr.copulas.registry` at import time and by the simulation
+    Used by :mod:`py_idr.copulas.registry` at import time and by the simulation
     harness on every newly instantiated atom.
     """
     u_grid = default_grid(n_grid)

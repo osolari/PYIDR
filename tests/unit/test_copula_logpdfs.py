@@ -10,11 +10,11 @@ import numpy as np
 import pytest
 from scipy import stats as sps
 
-from stick_idr.copulas.clayton import ClaytonCopula
-from stick_idr.copulas.gaussian import GaussianCopula
-from stick_idr.copulas.gumbel import GumbelCopula
-from stick_idr.copulas.independence import IndependenceCopula
-from stick_idr.copulas.student_t import NU, StudentTCopula
+from py_idr.copulas.clayton import ClaytonCopula
+from py_idr.copulas.gaussian import GaussianCopula
+from py_idr.copulas.gumbel import GumbelCopula
+from py_idr.copulas.independence import IndependenceCopula
+from py_idr.copulas.student_t import NU, StudentTCopula
 
 
 @pytest.mark.unit

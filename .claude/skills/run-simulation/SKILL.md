@@ -21,7 +21,7 @@ dedicated `run-encode-ctcf`-style follow-on) instead.
 
 ## Prerequisites
 
-- `.venv` activated; `stick_idr.doctor()` is green.
+- `.venv` activated; `py_idr.doctor()` is green.
 - `configs/simulation/S<N>.yaml` exists OR is created on the fly from the user's args.
 - Output directory `artifacts/sim/` exists (created if not).
 
@@ -40,7 +40,7 @@ dedicated `run-encode-ctcf`-style follow-on) instead.
    `(K, n)` before launching the full sweep. Confirm the output schema is correct.
 2. **Launch the sweep:**
    ```bash
-   python -m stick_idr.simulation.replicates \
+   python -m py_idr.simulation.replicates \
      --regime <S> --K <K> --n <n> --reps <reps> \
      --inference <mcmc|vi> --seed <seed> \
      --out artifacts/sim/<S>_K<K>_n<n>.csv
@@ -49,13 +49,13 @@ dedicated `run-encode-ctcf`-style follow-on) instead.
    realized FDR at $\alpha=0.05$, and ESS-per-second.
 4. **Validate.** After the run completes:
    ```bash
-   python -m stick_idr.eval.validate_sim_csv artifacts/sim/<S>_K<K>_n<n>.csv
+   python -m py_idr.eval.validate_sim_csv artifacts/sim/<S>_K<K>_n<n>.csv
    ```
    This checks the schema, NaN-freeness, and that realized FDR is finite for every row.
 5. **Append to the master.** If running as part of a sweep, concatenate to
    `artifacts/sim/calibration_long.csv`:
    ```bash
-   python -m stick_idr.simulation.concat \
+   python -m py_idr.simulation.concat \
      --in artifacts/sim/<S>_K<K>_n<n>.csv \
      --out artifacts/sim/calibration_long.csv \
      --append

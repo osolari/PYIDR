@@ -20,7 +20,7 @@ A reproducible simulation harness that can run the full S1–S5 × $K \in \{2,5,
 
 ## Deliverables
 
-### `src/stick_idr/simulation/`
+### `src/py_idr/simulation/`
 
 - `scenarios.py`
   - `simulate_S1(rng, K, n, pi_star=0.30, rho=0.85)` etc., returning `SimulationResult(X, true_Z, true_pi, true_copula_params)`.
@@ -44,7 +44,7 @@ set -euo pipefail
 for regime in S1 S2 S3 S4 S5; do
   for K in 2 5 10 50; do
     for n in 2000 10000 50000; do
-      python -m stick_idr.simulation.replicates --regime $regime --K $K --n $n --reps 100 \
+      python -m py_idr.simulation.replicates --regime $regime --K $K --n $n --reps 100 \
         --out artifacts/sim/${regime}_K${K}_n${n}.csv
     done
   done

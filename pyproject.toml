@@ -3,13 +3,13 @@ requires = ["hatchling>=1.21"]
 build-backend = "hatchling.build"
 
 [project]
-name = "stick_idr"
+name = "py_idr"
 version = "0.0.1"
 description = "Hierarchical nonparametric Bayesian IDR via Pitman-Yor copula mixtures (PY-IDR)."
 readme = "README.md"
 requires-python = ">=3.11,<3.13"
 license = { text = "Apache-2.0" }
-authors = [{ name = "StickIDR contributors" }]
+authors = [{ name = "PY-IDR contributors" }]
 keywords = ["statistics", "bayesian-nonparametrics", "copula", "idr", "fdr", "pitman-yor"]
 classifiers = [
     "Development Status :: 2 - Pre-Alpha",
@@ -85,15 +85,15 @@ dev = [
 ]
 
 [project.scripts]
-stick-idr = "stick_idr.cli:app"
+py-idr = "py_idr.cli:app"
 
 [project.urls]
-Homepage = "https://github.com/your-org/StickIDR"
-Documentation = "https://your-org.github.io/StickIDR"
-Issues = "https://github.com/your-org/StickIDR/issues"
+Homepage = "https://github.com/your-org/PY-IDR"
+Documentation = "https://your-org.github.io/PY-IDR"
+Issues = "https://github.com/your-org/PY-IDR/issues"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/stick_idr"]
+packages = ["src/py_idr"]
 
 [tool.ruff]
 src = ["src"]
@@ -132,10 +132,10 @@ ignore = [
 "notebooks/**" = ["D"]
 "docs/**" = ["D"]
 # jaxtyping shape strings like Float[Array, "n K"] register as F821/F722 forward refs.
-"src/stick_idr/algebra/**" = ["F821", "F722"]
-"src/stick_idr/copulas/**" = ["F821", "F722"]
-"src/stick_idr/marginals/**" = ["F821", "F722"]
-"src/stick_idr/pym/**" = ["F821", "F722"]
+"src/py_idr/algebra/**" = ["F821", "F722"]
+"src/py_idr/copulas/**" = ["F821", "F722"]
+"src/py_idr/marginals/**" = ["F821", "F722"]
+"src/py_idr/pym/**" = ["F821", "F722"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"
@@ -179,7 +179,7 @@ ignore_missing_imports = true
 # under mypy's PEP-484 forward-reference resolution. Disable for the math-heavy
 # subpackages where jaxtyping is dominant; the math correctness is verified by tests.
 [[tool.mypy.overrides]]
-module = ["stick_idr.algebra.*", "stick_idr.copulas.*", "stick_idr.marginals.*", "stick_idr.pym.*"]
+module = ["py_idr.algebra.*", "py_idr.copulas.*", "py_idr.marginals.*", "py_idr.pym.*"]
 disable_error_code = ["name-defined"]
 
 [tool.pytest.ini_options]
@@ -200,7 +200,7 @@ markers = [
 ]
 
 [tool.coverage.run]
-source = ["src/stick_idr"]
+source = ["src/py_idr"]
 branch = true
 
 [tool.coverage.report]

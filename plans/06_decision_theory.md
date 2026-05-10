@@ -14,7 +14,7 @@ Given a posterior trace (MCMC) or a variational posterior (VI), produce:
 
 ## Deliverables
 
-### `src/stick_idr/decision/`
+### `src/py_idr/decision/`
 
 - `local_idr.py`
   - `from_mcmc(trace) -> idr` averages $\Pr(Z_i = 0 \mid \cdot)$ across the post-warmup samples.

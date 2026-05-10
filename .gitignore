@@ -220,7 +220,7 @@ __marimo__/
 # Claude Code per-user settings (skills/ is tracked)
 .claude/settings.local.json
 
-# StickIDR runtime outputs
+# PY-IDR runtime outputs
 .venv/
 runs/
 artifacts/

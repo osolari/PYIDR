@@ -12,7 +12,7 @@ $T = 30$, mini-batch $B \in \{500, 2000\}$, 200 epochs.
 
 ## Deliverables
 
-### `src/stick_idr/inference/vi/`
+### `src/py_idr/inference/vi/`
 
 - `family.py` — variational distributions:
   - $q(Z_i)$, $q(z_i)$ — categorical (vectorised)

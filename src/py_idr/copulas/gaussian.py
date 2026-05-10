@@ -27,7 +27,7 @@ from jax.scipy.stats import norm as jnorm
 from jaxtyping import Array, Float
 from scipy.stats import multivariate_normal as _scipy_mvn
 
-from stick_idr.copulas.base import Copula
+from py_idr.copulas.base import Copula
 
 
 class GaussianCopula(Copula):
@@ -37,7 +37,7 @@ class GaussianCopula(Copula):
     ----------
     L
         Lower-triangular Cholesky factor of $R$. Must have unit row-norm so $R$ has
-        unit diagonal (use :func:`stick_idr.algebra.correlation.unit_normalise_cholesky`
+        unit diagonal (use :func:`py_idr.algebra.correlation.unit_normalise_cholesky`
         if needed).
     """
 

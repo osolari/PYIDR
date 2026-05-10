@@ -8,17 +8,17 @@ import pytest
 from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
 
-from stick_idr.algebra.correlation import (
+from py_idr.algebra.correlation import (
     Exchangeable,
     OneFactor,
     corr_to_cholesky,
 )
-from stick_idr.algebra.plod import assert_plod, holds
-from stick_idr.copulas.clayton import ClaytonCopula
-from stick_idr.copulas.gaussian import GaussianCopula
-from stick_idr.copulas.gumbel import GumbelCopula
-from stick_idr.copulas.independence import IndependenceCopula
-from stick_idr.copulas.student_t import StudentTCopula
+from py_idr.algebra.plod import assert_plod, holds
+from py_idr.copulas.clayton import ClaytonCopula
+from py_idr.copulas.gaussian import GaussianCopula
+from py_idr.copulas.gumbel import GumbelCopula
+from py_idr.copulas.independence import IndependenceCopula
+from py_idr.copulas.student_t import StudentTCopula
 
 
 @pytest.mark.property

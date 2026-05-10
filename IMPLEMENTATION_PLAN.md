@@ -1,4 +1,4 @@
-# StickIDR — Implementation Plan
+# PY-IDR — Implementation Plan
 
 Engineering plan for turning the **PY-IDR** report in [docs/report/](docs/report/) into a
 professional, reproducible research codebase. Reference: the model and inference scheme
@@ -18,7 +18,7 @@ generator is [generate_figures.py](docs/report/figures/generate_figures.py).
 The plan has three layers:
 
 1. **Repo skeleton & tooling** — directory layout, JAX/NumPyro env, lint, types, precommit, CI/CD, release.
-2. **Package architecture** — `stick_idr` library mapped one-to-one onto the report's components: copula atoms, PY mixture, Bernstein–Dirichlet marginals, Algorithm 8 + NUTS, structured-MF VI, and the Sun–Cai-type plug-in step-up rule.
+2. **Package architecture** — `py_idr` library mapped one-to-one onto the report's components: copula atoms, PY mixture, Bernstein–Dirichlet marginals, Algorithm 8 + NUTS, structured-MF VI, and the Sun–Cai-type plug-in step-up rule.
 3. **Deliverables** — docs (MkDocs), `.ipynb` tutorials, figure/table reproducer scripts, tests, logging, and the W1–W6 workstreams below.
 
 Every artifact in the repo is traceable to either a theorem (Thm 3.1 identifiability,
@@ -42,7 +42,7 @@ If an artifact lacks such a link, it does not belong.
 ## 1. Repository Layout
 
 ```
-StickIDR/
+PY-IDR/
 ├── README.md                         # Top-level story, quickstart, links out
 ├── IMPLEMENTATION_PLAN.md            # This document
 ├── plans/                            # Detailed per-workstream sub-plans
@@ -88,7 +88,7 @@ StickIDR/
 │   ├── make_all_tables.sh            # T1–T7 from artifacts/*.csv
 │   └── benchmark_runtime.sh          # F6 runtime / ESS-per-second harness
 │
-├── src/stick_idr/                    # The package — see §3
+├── src/py_idr/                    # The package — see §3
 │   └── ...
 │
 ├── configs/                          # Hydra/OmegaConf configs
@@ -179,7 +179,7 @@ Idempotent, OS-aware bootstrap. Detects accelerator (CPU / CUDA / Apple Metal), 
 
 ```bash
 #!/usr/bin/env bash
-# scripts/create_env.sh — bootstrap dev env for StickIDR
+# scripts/create_env.sh — bootstrap dev env for PY-IDR
 set -euo pipefail
 IFS=$'\n\t'
 
@@ -194,7 +194,7 @@ INSTALL_EXTRAS="${INSTALL_EXTRAS:-dev,docs}"
 4. on CUDA hosts: pip install -U "jax[cuda12]" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
    on Apple Silicon: pip install jax-metal
 5. pre-commit install --install-hooks
-6. python -c "import stick_idr; stick_idr.doctor()"   # sanity (§3.10)
+6. python -c "import py_idr; py_idr.doctor()"   # sanity (§3.10)
 7. print next-step hints: source .venv/bin/activate && pytest -m smoke
 ```
 
@@ -220,12 +220,12 @@ Default dev path resolves from `pyproject.toml` at install time. For reproducibl
 
 ---
 
-## 3. Package Architecture (`src/stick_idr/`)
+## 3. Package Architecture (`src/py_idr/`)
 
 The package mirrors §3 of the report module-for-module so a reader going from section to module has no translation to do.
 
 ```
-src/stick_idr/
+src/py_idr/
 ├── __init__.py                       # Public API surface; version; doctor()
 ├── _version.py                       # __version__ — bumped by release CI
 │
@@ -363,15 +363,15 @@ src/stick_idr/
 │   ├── profiling.py                  # jax.profiler + step timings
 │   └── typing.py                     # PyTree dataclasses; jaxtyping shapes
 │
-├── cli.py                            # `stick-idr` entrypoint (fit, eval, sim, figure, table, doctor)
-└── doctor.py                         # stick_idr.doctor(): JAX backend, NumPyro version,
+├── cli.py                            # `py-idr` entrypoint (fit, eval, sim, figure, table, doctor)
+└── doctor.py                         # py_idr.doctor(): JAX backend, NumPyro version,
                                       # PLOD probe round-trip, Bernstein basis sanity
 ```
 
 ### Public API (surface)
 
 Exported at top level so users can write
-`from stick_idr import PYMixture, GaussianCopula, ClaytonCopula, GumbelCopula, StudentTCopula, BernsteinMarginal, fit_mcmc, fit_vi, local_idr, bayes_mfdr, sun_cai_threshold, doctor`.
+`from py_idr import PYMixture, GaussianCopula, ClaytonCopula, GumbelCopula, StudentTCopula, BernsteinMarginal, fit_mcmc, fit_vi, local_idr, bayes_mfdr, sun_cai_threshold, doctor`.
 
 ### Migration from the report
 
@@ -411,9 +411,9 @@ Exported at top level so users can write
 5. **Security** — `detect-private-key`, `gitleaks`, `bandit` low-FP profile on `src/`.
 6. **LaTeX** — `chktex` (warn-only) on `docs/report/**.tex`.
 7. **Project-specific** custom hooks:
-   - `scripts/hooks/check_plod.py` — round-trips a small grid of correlation matrices through `stick_idr.algebra.plod.holds()` and asserts the report's positive examples (Gaussian with all-positive ρ, Clayton, Gumbel) pass while the independence copula fails.
+   - `scripts/hooks/check_plod.py` — round-trips a small grid of correlation matrices through `py_idr.algebra.plod.holds()` and asserts the report's positive examples (Gaussian with all-positive ρ, Clayton, Gumbel) pass while the independence copula fails.
    - `scripts/hooks/check_hypotheses_schema.py` — validates `configs/preregistration/hypotheses.yaml` against the pydantic schema.
-   - `scripts/hooks/check_figure_backlinks.py` — every `src/stick_idr/figures/*.py` and `tables/*.py` must reference its `fig:*` / `tab:*` LaTeX label in the docstring.
+   - `scripts/hooks/check_figure_backlinks.py` — every `src/py_idr/figures/*.py` and `tables/*.py` must reference its `fig:*` / `tab:*` LaTeX label in the docstring.
 
 ---
 
@@ -516,12 +516,12 @@ Organised by what they guarantee. All tests run under `pytest` with markers (`un
 - Throughput regression: `benchmarks.yml` pushes a CSV; PRs fail if MCMC throughput drops > 5% on the smoke shape.
 
 ### 6.9 Smoke (`tests/`, `smoke` marker)
-- `stick_idr.doctor()` succeeds.
+- `py_idr.doctor()` succeeds.
 - `scripts/make_all_figures.sh --dry-run` exits 0.
 
 ### Coverage targets
-- `src/stick_idr/algebra/`, `copulas/`, `marginals/`, `decision/`: **100%** line+branch.
-- `src/stick_idr/inference/`, `pym/`, `model/`: **≥ 90%**.
+- `src/py_idr/algebra/`, `copulas/`, `marginals/`, `decision/`: **100%** line+branch.
+- `src/py_idr/inference/`, `pym/`, `model/`: **≥ 90%**.
 - Overall: **≥ 85%**.
 
 ---
@@ -590,12 +590,12 @@ nav:
 - Every math page ends with a `Try it in a notebook` link.
 - Every experiments page opens with its dataset table row, its hypothesis (if any), and the command that produces it:
   ```
-  $ stick-idr fit --config configs/data/encode_ctcf.yaml --inference mcmc
-  $ stick-idr eval --trace runs/<run_id>/trace.zarr
-  $ stick-idr figure --fig f1
+  $ py-idr fit --config configs/data/encode_ctcf.yaml --inference mcmc
+  $ py-idr eval --trace runs/<run_id>/trace.zarr
+  $ py-idr figure --fig f1
   ```
 - API reference is fully generated from docstrings (numpy style, enforced by ruff/pydocstyle).
-- Dark mode enabled; maths via MathJax; cross-refs via `[`PYMixture`][stick_idr.PYMixture]` syntax.
+- Dark mode enabled; maths via MathJax; cross-refs via `[`PYMixture`][py_idr.PYMixture]` syntax.
 
 ---
 
@@ -627,10 +627,10 @@ Notebook execution in CI:
 
 ## 9. Figure and Table Reproducer Scripts
 
-Every `src/stick_idr/figures/*.py` and `src/stick_idr/tables/*.py` has the same interface:
+Every `src/py_idr/figures/*.py` and `src/py_idr/tables/*.py` has the same interface:
 
 ```python
-# src/stick_idr/figures/f1_idr_calibration.py
+# src/py_idr/figures/f1_idr_calibration.py
 """Reproducer for fig:calibration (Figure 2 in the report).
 
 Inputs:
@@ -645,7 +645,7 @@ docs/report/figures/generate_figures.py (which uses synthetic numbers).
 
 Convention:
 - **No data collection in figure scripts.** A figure script reads a CSV from `artifacts/`.
-- **CSVs are produced by evaluation scripts** (`src/stick_idr/eval/*.py`) or by the simulation driver.
+- **CSVs are produced by evaluation scripts** (`src/py_idr/eval/*.py`) or by the simulation driver.
 - **The figure script signs its output**: writes a sidecar JSON with the git SHA, dataset version, and `fig:*` / `tab:*` label it implements.
 
 `scripts/make_all_figures.sh`:
@@ -654,10 +654,10 @@ Convention:
 #!/usr/bin/env bash
 set -euo pipefail
 for fig in f1_idr_calibration f2_roc_pr f3_contraction f4_py_vs_dp f5_realdata f6_runtime; do
-  python -m stick_idr.figures.${fig} \
+  python -m py_idr.figures.${fig} \
     --results artifacts/${fig}.csv \
     --out docs/report/figures/$(python -c "import sys; print({'f1_idr_calibration':'fig_idr_calibration','f2_roc_pr':'fig_roc_pr','f3_contraction':'fig_contraction','f4_py_vs_dp':'fig_py_vs_dp','f5_realdata':'fig_realdata','f6_runtime':'fig_runtime'}['${fig}'])").pdf \
-    --style-file src/stick_idr/figures/_style.py
+    --style-file src/py_idr/figures/_style.py
 done
 ```
 
@@ -696,11 +696,11 @@ What every fitting run logs, without exception (drives the ledger):
 
 | Workstream | Scope | Repo impact |
 |---|---|---|
-| **W1 — Skeleton + reference numerics** (2w) | Pure-Python copula densities, Bernstein basis, PLOD probe, fitness & shape tests | `src/stick_idr/{algebra,copulas,marginals,model}/*`, `tests/{unit,property}/*`, MkDocs site up, notebooks 00–03. |
-| **W2 — Sampler v0** (3w) | Algorithm 1 sweep end-to-end on a tiny S1 cell | `src/stick_idr/{pym,inference/mcmc}/*`, `tests/inference/*`, notebooks 04–05, `experiments/sim_S1/`. |
-| **W3 — Decision theory + simulation S1–S5** (3w) | Sun–Cai plug-in + Bayes-mFDR; full S1–S5 sweep at K∈{2,5,10,50}, n∈{2k,10k,50k}; verdict for FDR-calibration & power hypotheses | `src/stick_idr/decision/*`, `src/stick_idr/simulation/*`, figures F1–F4, tables T3–T5. |
-| **W4 — Variational alternative** (2w, overlaps) | Structured-MF VI with stochastic natural gradients | `src/stick_idr/inference/vi/*`, notebook on VI; F6 runtime. |
-| **W5 — Real-data pipelines** (4w) | ENCODE 4 CTCF / ATAC, DREAM5, Tabula Muris pseudobulk, Pan-UKBB | `src/stick_idr/data/*`, `experiments/{encode_ctcf,encode_atac,dream5,tabula_muris,pan_ukbb}/`, F5, T6, T7. |
+| **W1 — Skeleton + reference numerics** (2w) | Pure-Python copula densities, Bernstein basis, PLOD probe, fitness & shape tests | `src/py_idr/{algebra,copulas,marginals,model}/*`, `tests/{unit,property}/*`, MkDocs site up, notebooks 00–03. |
+| **W2 — Sampler v0** (3w) | Algorithm 1 sweep end-to-end on a tiny S1 cell | `src/py_idr/{pym,inference/mcmc}/*`, `tests/inference/*`, notebooks 04–05, `experiments/sim_S1/`. |
+| **W3 — Decision theory + simulation S1–S5** (3w) | Sun–Cai plug-in + Bayes-mFDR; full S1–S5 sweep at K∈{2,5,10,50}, n∈{2k,10k,50k}; verdict for FDR-calibration & power hypotheses | `src/py_idr/decision/*`, `src/py_idr/simulation/*`, figures F1–F4, tables T3–T5. |
+| **W4 — Variational alternative** (2w, overlaps) | Structured-MF VI with stochastic natural gradients | `src/py_idr/inference/vi/*`, notebook on VI; F6 runtime. |
+| **W5 — Real-data pipelines** (4w) | ENCODE 4 CTCF / ATAC, DREAM5, Tabula Muris pseudobulk, Pan-UKBB | `src/py_idr/data/*`, `experiments/{encode_ctcf,encode_atac,dream5,tabula_muris,pan_ukbb}/`, F5, T6, T7. |
 | **W6 — Public release** (2w) | Open-source v0.1 → v1.0 | Tag `v1.0.0`, Zenodo DOI, blog post, `release.yml` publishes. |
 
 Each workstream is a GitHub Project column; issues carry a `W1`–`W6` label and link to the corresponding `fig:*` / `tab:*` / theorem tag.
@@ -737,12 +737,12 @@ Each workstream is a GitHub Project column; issues carry a `W1`–`W6` label and
 - [ ] `scripts/create_env.sh` installs a working env on macOS (CPU/Metal) and Linux+CUDA in < 5 min.
 - [ ] `pytest -m smoke` passes on a fresh clone.
 - [ ] `mkdocs build --strict` passes; site deployed to `gh-pages`.
-- [ ] Every figure in `docs/report/figures/` has a reproducer in `src/stick_idr/figures/` and a hyperlinked `docs/experiments/*.md` page.
-- [ ] Every table in `docs/report/tables/` has a reproducer in `src/stick_idr/tables/`.
+- [ ] Every figure in `docs/report/figures/` has a reproducer in `src/py_idr/figures/` and a hyperlinked `docs/experiments/*.md` page.
+- [ ] Every table in `docs/report/tables/` has a reproducer in `src/py_idr/tables/`.
 - [ ] Every theorem (3.1–3.5) and lemma (A.1–A.4) has a corresponding test or property check.
 - [ ] Algorithm 1 sweep runs end-to-end on a tiny S1 cell, recovers $\pi^*$ within MC error, reports a Sun–Cai threshold, and writes a Zarr trace with a SHA-256 manifest.
 - [ ] CI green on `main`; nightly benchmark publishes.
-- [ ] `stick_idr.doctor()` returns all-green on a target dev machine.
+- [ ] `py_idr.doctor()` returns all-green on a target dev machine.
 - [ ] W1–W3 issues closed; companion paper rebuild produces a PDF whose tables and figures point at `artifacts/*.csv` rather than the synthetic `generate_figures.py`.
 
 ---
@@ -756,7 +756,7 @@ Skills capture recurring engineering workflows so a future agent can be invoked 
 | `add-copula-atom` | Adding a new copula family to the `copulas/registry.py` and updating Algorithm 8 step 4 |
 | `algorithm8-sanity` | Running the Algorithm 8 reassignment sanity check on a saved sampler state |
 | `run-simulation` | Launching one of the S1–S5 cells with the standard MC replication |
-| `add-real-dataset` | Adding a new data loader under `src/stick_idr/data/` with checksum + smoke loader |
+| `add-real-dataset` | Adding a new data loader under `src/py_idr/data/` with checksum + smoke loader |
 | `reproduce-figure` | Regenerating one of F1–F6 from `artifacts/*.csv` |
 | `reproduce-table` | Regenerating one of T1–T7 |
 | `verdict-update` | Producing the hypothesis verdict JSON from a finished run and updating the ledger |
@@ -770,7 +770,7 @@ Each skill has a `SKILL.md` with: when-to-invoke heuristics, prerequisites, the 
 
 Suggested sequence (single engineer, 5 hours/day):
 
-1. **Day 1–2** — Bootstrap: `pyproject.toml`, `create_env.sh`, `.pre-commit-config.yaml`, `ci.yml`, `src/stick_idr/` skeleton with stubs, doctor() smoke test. Write notebook 00 (IDR recap on K=2 synthetic data).
+1. **Day 1–2** — Bootstrap: `pyproject.toml`, `create_env.sh`, `.pre-commit-config.yaml`, `ci.yml`, `src/py_idr/` skeleton with stubs, doctor() smoke test. Write notebook 00 (IDR recap on K=2 synthetic data).
 2. **Day 3–4** — `algebra/correlation.py` (Cholesky ↔ R, LKJ(η=2)), `copulas/{independence,gaussian}.py`, `algebra/plod.py`, unit + property tests. Notebook 01.
 3. **Day 5** — `pym/stickbreak.py`, `marginals/{bernstein,dirichlet_weights}.py`, unit tests; notebooks 02 + 03.
 4. **Day 6–7** — `copulas/{student_t,clayton,gumbel}.py` + property tests; PLOD test sweep. MkDocs site live with the math primer pages.

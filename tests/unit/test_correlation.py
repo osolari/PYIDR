@@ -1,4 +1,4 @@
-"""Unit tests for stick_idr.algebra.correlation."""
+"""Unit tests for py_idr.algebra.correlation."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import jax
 import jax.numpy as jnp
 import pytest
 
-from stick_idr.algebra import correlation as C
+from py_idr.algebra import correlation as C
 
 
 @pytest.mark.unit

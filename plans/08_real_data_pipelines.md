@@ -20,7 +20,7 @@ Five reproducible real-data pipelines that take raw consortium releases and prod
 
 ## Deliverables
 
-### `src/stick_idr/data/`
+### `src/py_idr/data/`
 
 - `encode_ctcf.py`
   - `download(target_dir)` — pulls MACS2 narrow-peak BEDs.
@@ -46,7 +46,7 @@ Each contains:
 #!/usr/bin/env bash
 set -euo pipefail
 for ds in encode_ctcf encode_atac dream5 tabula_muris pan_ukbb; do
-  python -m stick_idr.experiments.${ds}.run \
+  python -m py_idr.experiments.${ds}.run \
     --config experiments/${ds}/config.yaml \
     --out artifacts/real/${ds}/
 done

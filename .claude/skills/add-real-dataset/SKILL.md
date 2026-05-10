@@ -31,7 +31,7 @@ that's a config-only change.
 1. **Decide the score per replicate.** This is a one-time decision; record it in
    `docs/experiments/<name>.md` as the canonical preprocessing rule. The choice
    determines the marginal model; rank-transform is the default.
-2. **Add the loader.** Create `src/stick_idr/data/<name>.py` with:
+2. **Add the loader.** Create `src/py_idr/data/<name>.py` with:
    - `download(target_dir: Path, force: bool = False)` — fetches the raw release.
    - `load(...) -> pd.DataFrame` — parses to a tidy long-format DataFrame.
    - `to_score_matrix(df) -> jnp.ndarray` — emits $(n, K)$ score matrix.
@@ -47,7 +47,7 @@ that's a config-only change.
      BNP-Archimedean on the same input where applicable.
 6. **Wire to the global launcher.** Append a stanza for `<name>` to
    `scripts/run_real_data.sh`.
-7. **Update the dataset table.** Add a row to `src/stick_idr/_datasets.yaml` (the
+7. **Update the dataset table.** Add a row to `src/py_idr/_datasets.yaml` (the
    single source of truth for `tab:datasets`); `tables/t6_datasets.py` renders it on
    the next `make_all_tables.sh` run.
 8. **Add a docs page.** `docs/experiments/<name>.md` opens with the dataset table row,
@@ -56,17 +56,17 @@ that's a config-only change.
    ```bash
    bash scripts/verify_checksums.sh
    pytest tests/integration/test_<name>_dryrun.py
-   pre-commit run --files src/stick_idr/data/<name>.py experiments/<name>/*
+   pre-commit run --files src/py_idr/data/<name>.py experiments/<name>/*
    ```
 
 ## Expected outputs
 
-- `src/stick_idr/data/<name>.py`
+- `src/py_idr/data/<name>.py`
 - `experiments/<name>/{config.yaml, run.py, evaluate.py, compare.py}`
 - `tests/integration/test_<name>_dryrun.py`
 - `tests/fixtures/<name>/` (committed sample input)
 - `docs/experiments/<name>.md`
-- updated `src/stick_idr/_datasets.yaml`, `data/splits.py`, `scripts/run_real_data.sh`
+- updated `src/py_idr/_datasets.yaml`, `data/splits.py`, `scripts/run_real_data.sh`
 
 ## Failure modes
 

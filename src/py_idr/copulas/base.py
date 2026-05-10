@@ -2,7 +2,7 @@
 
 Every concrete atomic type in the PY-IDR base measure subclasses :class:`Copula` and
 implements :meth:`log_density` and :meth:`cdf_diagonal`. The PLOD probe in
-:mod:`stick_idr.algebra.plod` consumes only the diagonal section, so a custom
+:mod:`py_idr.algebra.plod` consumes only the diagonal section, so a custom
 family can be registered without implementing the full multivariate CDF.
 
 See plans/02_algebra_and_copulas.md.
@@ -34,7 +34,7 @@ class Copula(ABC):
     def cdf_diagonal(self, u: Float[Array, "n"]) -> Float[Array, "n"]:
         r"""Return $C(u, \ldots, u)$ on a 1-D grid in $(0, 1)$.
 
-        Used by :func:`stick_idr.algebra.plod.holds` to gate registration of the
+        Used by :func:`py_idr.algebra.plod.holds` to gate registration of the
         family into the base measure.
         """
         raise NotImplementedError

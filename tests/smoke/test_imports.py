@@ -7,18 +7,18 @@ import importlib
 import pytest
 
 PUBLIC_MODULES = [
-    "stick_idr",
-    "stick_idr.algebra.correlation",
-    "stick_idr.algebra.plod",
-    "stick_idr.copulas.base",
-    "stick_idr.copulas.registry",
-    "stick_idr.marginals.bernstein",
-    "stick_idr.pym.algo8",
-    "stick_idr.pym.stickbreak",
-    "stick_idr.inference.mcmc.sweep",
-    "stick_idr.decision.sun_cai",
-    "stick_idr.cli",
-    "stick_idr.doctor",
+    "py_idr",
+    "py_idr.algebra.correlation",
+    "py_idr.algebra.plod",
+    "py_idr.copulas.base",
+    "py_idr.copulas.registry",
+    "py_idr.marginals.bernstein",
+    "py_idr.pym.algo8",
+    "py_idr.pym.stickbreak",
+    "py_idr.inference.mcmc.sweep",
+    "py_idr.decision.sun_cai",
+    "py_idr.cli",
+    "py_idr.doctor",
 ]
 
 

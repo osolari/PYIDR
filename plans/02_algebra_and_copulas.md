@@ -12,7 +12,7 @@ argument.
 
 ## Deliverables
 
-### `src/stick_idr/algebra/`
+### `src/py_idr/algebra/`
 
 - `correlation.py`
   - `cholesky_to_corr(L) -> R` and `corr_to_cholesky(R) -> L` round-trip.
@@ -24,7 +24,7 @@ argument.
 - `ranks.py` — empirical-rank to pseudo-uniform $U$, with three tie-breaking strategies (`average`, `random`, `truncate`).
 - `numerics.py` — `safe_log`, `logsumexp_axis`, jitter helpers for Cholesky.
 
-### `src/stick_idr/copulas/`
+### `src/py_idr/copulas/`
 
 - `base.py` — abstract `Copula` with `log_density(u: jnp.ndarray) -> jnp.ndarray` and `cdf_diagonal(u: jnp.ndarray) -> jnp.ndarray` (the diagonal section, used by `plod.holds`).
 - `independence.py` — $c_0(u) = 1$.

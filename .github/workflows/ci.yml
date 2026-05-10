@@ -44,7 +44,7 @@ jobs:
       - name: Smoke + non-gpu tests
         env:
           JAX_PLATFORMS: cpu
-        run: pytest -m "not gpu and not slow" --cov=stick_idr --cov-report=xml
+        run: pytest -m "not gpu and not slow" --cov=py_idr --cov-report=xml
       - name: Upload coverage
         if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
         uses: codecov/codecov-action@v4

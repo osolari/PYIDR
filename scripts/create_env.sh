@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# scripts/create_env.sh — bootstrap dev env for StickIDR (PY-IDR).
+# scripts/create_env.sh — bootstrap dev env for PY-IDR (PY-IDR).
 #
 # Idempotent. Detects accelerator (CPU / CUDA / Apple Metal), installs the matched
 # JAX wheel, sets up pre-commit. CI calls this with INSTALL_EXTRAS=dev.
@@ -76,7 +76,7 @@ if [[ -f .pre-commit-config.yaml ]]; then
 fi
 
 # 6. Smoke-check.
-python -c "import stick_idr; raise SystemExit(stick_idr.doctor())"
+python -c "import py_idr; raise SystemExit(py_idr.doctor())"
 
 echo
 echo "[create_env] done. next steps:"
