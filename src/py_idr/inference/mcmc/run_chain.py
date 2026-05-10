@@ -49,6 +49,23 @@ class ChainResult:
     final_state: SimpleSweepState
 
 
+@dataclass(frozen=True)
+class MultiChainResult:
+    """Output of :func:`run_multi_chain_simple` (multi-chain variant).
+
+    Attributes
+    ----------
+    idata
+        ``arviz.InferenceData`` with shape (num_chains, draws) on each
+        posterior variable — required for split-$\\widehat R$.
+    final_states
+        Per-chain final states; ``len(final_states) == num_chains``.
+    """
+
+    idata: az.InferenceData
+    final_states: tuple[SimpleSweepState, ...]
+
+
 def run_chain_simple(
     *,
     F0: Float[Array, "n K"],
@@ -123,6 +140,101 @@ def run_chain_simple(
     }
     idata = az.from_dict({"posterior": posterior_group})
     return ChainResult(idata=idata, final_state=state)
+
+
+def run_multi_chain_simple(
+    *,
+    F0: Float[Array, "n K"],
+    M: int,
+    key: jax.Array,
+    num_chains: int = 4,
+    n_warmup: int = 200,
+    n_samples: int = 200,
+    alpha_F: float = 1.0,
+    nuts_warmup: int = 50,
+    overdispersed: bool = True,
+) -> MultiChainResult:
+    """Run ``num_chains`` independent chains and stack into a multi-chain idata.
+
+    Per §3.3.1 of the revised report, the diagnostics list requires at least 4
+    overdispersed chains so split-$\\widehat R$ can flag mixing failures. We run
+    them sequentially (Python loop) rather than via ``jax.pmap`` to keep the
+    orchestrator simple — each chain is independent and only the final
+    materialisation into an InferenceData stacks them.
+
+    Parameters
+    ----------
+    F0, M, n_warmup, n_samples, alpha_F, nuts_warmup
+        Same as :func:`run_chain_simple`.
+    num_chains
+        Number of chains; default 4 to match the §3.3.1 explicit requirement.
+    key
+        Root JAX PRNG key; split into per-chain subkeys before each chain runs.
+    overdispersed
+        If True (default), per-chain initial states are drawn from a
+        dispersed distribution over (pi, rho) so chains start from genuinely
+        different points and split-$\\widehat R$ has signal.
+
+    Returns
+    -------
+    A :class:`MultiChainResult` with idata of shape ``(num_chains, n_samples)``
+    on each posterior variable.
+    """
+    if num_chains < 1:
+        raise ValueError(f"num_chains must be >= 1; got {num_chains}")
+    if F0.ndim != 2:
+        raise ValueError(f"F0 must be 2-D (n, K); got shape {F0.shape}")
+
+    n, K = F0.shape
+    chain_keys = jax.random.split(key, num_chains + 1)
+    init_keys = jax.random.split(chain_keys[0], num_chains)
+    per_chain_keys = chain_keys[1:]
+
+    # Overdispersed inits: scatter pi in (0.2, 0.8), rho in (0.1, 0.9).
+    if overdispersed:
+        pi_inits = jnp.linspace(0.2, 0.8, num_chains)
+        rho_inits = jnp.linspace(0.15, 0.85, num_chains)
+    else:
+        pi_inits = jnp.full(num_chains, 0.5)
+        rho_inits = jnp.full(num_chains, 0.3)
+    del init_keys  # not used — but reserved for future stochastic perturbations
+
+    pi_chains: list[np.ndarray] = []
+    rho_chains: list[np.ndarray] = []
+    n_rep_chains: list[np.ndarray] = []
+    final_states: list[SimpleSweepState] = []
+
+    for c in range(num_chains):
+        init_state = initial_simple_state(
+            n=n,
+            K=K,
+            M=M,
+            pi_init=float(pi_inits[c]),
+            rho_init=float(rho_inits[c]),
+        )
+        chain_res = run_chain_simple(
+            F0=F0,
+            M=M,
+            key=per_chain_keys[c],
+            n_warmup=n_warmup,
+            n_samples=n_samples,
+            initial_state=init_state,
+            alpha_F=alpha_F,
+            nuts_warmup=nuts_warmup,
+        )
+        posterior = chain_res.idata.posterior
+        pi_chains.append(np.asarray(posterior["pi"]).reshape(-1))
+        rho_chains.append(np.asarray(posterior["rho"]).reshape(-1))
+        n_rep_chains.append(np.asarray(posterior["n_reproducible"]).reshape(-1))
+        final_states.append(chain_res.final_state)
+
+    posterior_group = {
+        "pi": np.stack(pi_chains, axis=0),  # (num_chains, draws)
+        "rho": np.stack(rho_chains, axis=0),
+        "n_reproducible": np.stack(n_rep_chains, axis=0),
+    }
+    idata = az.from_dict({"posterior": posterior_group})
+    return MultiChainResult(idata=idata, final_states=tuple(final_states))
 
 
 def summarise(result: ChainResult, var_names: list[str] | None = None) -> "az.InferenceData":
