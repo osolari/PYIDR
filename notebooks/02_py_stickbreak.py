@@ -21,6 +21,7 @@
 # %%
 from __future__ import annotations
 
+import jax
 import jax.numpy as jnp
 import matplotlib.pyplot as plt
 import numpy as np
@@ -29,24 +30,14 @@ import numpy as np
 # ## Stick-breaking weights
 #
 # Recall: $V_t \sim \mathrm{Beta}(1 - \sigma, \alpha + t \sigma)$, then
-# $w_t = V_t \prod_{s < t}(1 - V_s)$. PY-IDR's `gem_sample` helper is
-# in progress (see `py_idr.pym.stickbreak`); for the tutorial we
-# implement the truncated stick-breaking inline — it's only a few
-# lines.
-
-
+# $w_t = V_t \prod_{s < t}(1 - V_s)$. PY-IDR exposes this as
+# :func:`py_idr.pym.stickbreak.gem_sample`.
 # %%
-def gem_truncated(rng: np.random.Generator, alpha: float, sigma: float, T: int) -> np.ndarray:
-    """Return truncated PY stick-breaking weights w_{1:T}."""
-    V = rng.beta(1.0 - sigma, alpha + np.arange(1, T + 1) * sigma)
-    log_one_minus_V = np.log1p(-V)
-    log_w = np.log(V) + np.concatenate([[0.0], np.cumsum(log_one_minus_V[:-1])])
-    return np.exp(log_w)
-
+from py_idr.pym.stickbreak import gem_sample
 
 K_trunc = 30  # truncation level for visualisation
 n_draws = 500
-rng = np.random.default_rng(0)
+key = jax.random.PRNGKey(0)
 
 settings = [
     ("DP (sigma=0, alpha=1)", 1.0, 0.0),
@@ -56,7 +47,8 @@ settings = [
 
 fig, axes = plt.subplots(1, 3, figsize=(15, 4), sharey=True)
 for ax, (label, alpha, sigma) in zip(axes, settings, strict=False):
-    W = np.stack([gem_truncated(rng, alpha, sigma, K_trunc) for _ in range(n_draws)])
+    sub_keys = jax.random.split(key, n_draws)
+    W = np.stack([np.asarray(gem_sample(k, alpha, sigma, K_trunc)) for k in sub_keys])
     ax.plot(np.arange(1, K_trunc + 1), W.mean(axis=0), "o-", label="mean weight")
     ax.fill_between(
         np.arange(1, K_trunc + 1),
