@@ -37,7 +37,10 @@ import jax.numpy as jnp
 import numpy as np
 
 from py_idr.decision.local_idr import from_mcmc
-from py_idr.inference.mcmc.run_chain import run_multi_chain_simple
+from py_idr.inference.mcmc.run_chain import (
+    run_multi_chain_multi,
+    run_multi_chain_simple,
+)
 from py_idr.marginals.transform import empirical_rank_transform
 from py_idr.simulation.evaluation import evaluate_recovery
 from py_idr.simulation.scenarios import (
@@ -87,6 +90,22 @@ _SIMULATORS: dict[str, Callable[..., SimulationResult]] = {
 }
 
 
+# Regimes that default to the multi-cluster chain driver. S1-S4 stay on
+# the T=1 fast path because their reproducible component is a single
+# Gaussian copula by construction; S5 / S5-sparse are the heavy-tail
+# mixture, so we route them through run_multi_chain_multi.
+_T_GT_1_REGIMES: frozenset[str] = frozenset({"S5", "S5-sparse"})
+
+
+def _resolve_chain_type(regime: str, chain_type: str) -> str:
+    """Resolve the chain-type request, handling ``"auto"`` as regime-aware default."""
+    if chain_type == "auto":
+        return "T>1" if regime in _T_GT_1_REGIMES else "T=1"
+    if chain_type not in ("T=1", "T>1"):
+        raise ValueError(f"chain_type must be 'auto', 'T=1', or 'T>1'; got {chain_type!r}")
+    return chain_type
+
+
 @dataclass(frozen=True)
 class FitResult:
     """Output of :func:`_fit_to_idr` — the per-feature posterior plus summaries.
@@ -102,7 +121,15 @@ class FitResult:
     pi_posterior_mean
         Posterior mean of the reproducible mass.
     rho_posterior_mean
-        Posterior mean of the Gaussian-copula correlation (for T = 1 fits).
+        Posterior mean of the Gaussian-copula correlation. Set to
+        :data:`math.nan` under the multi-cluster path, where no single
+        $\\rho$ summarises the mixture.
+    T_posterior_mean
+        Posterior mean of the active cluster count $T$. NaN for the
+        T=1 fast path; meaningful only for ``chain_type == "T>1"``.
+    method
+        Human-readable method label that downstream rows record. One of
+        ``"PY-IDR (MCMC, T=1)"`` or ``"PY-IDR (MCMC, T>1)"``.
     num_chains, num_samples_per_chain
         Chain configuration — recorded so the eventual row reflects it.
     """
@@ -110,6 +137,8 @@ class FitResult:
     idr: jnp.ndarray
     pi_posterior_mean: float
     rho_posterior_mean: float
+    T_posterior_mean: float
+    method: str
     num_chains: int
     num_samples_per_chain: int
 
@@ -122,12 +151,29 @@ def _fit_to_idr(
     n_samples: int,
     nuts_warmup: int,
     M: int,
+    chain_type: str = "auto",
+    T_max: int = 10,
+    H: int = 5,
+    py_hyperparam_warmup: int = 50,
 ) -> FitResult:
     """Rank → chain → posterior local idr; no decision step yet.
 
     Pulled out so a sweep can fit one chain and evaluate at many
     $\\alpha$ values without paying the chain cost per $\\alpha$.
+
+    Parameters
+    ----------
+    sim
+        Simulation result. ``sim.regime`` determines the default chain
+        when ``chain_type == "auto"``.
+    chain_type
+        One of ``"auto"``, ``"T=1"``, ``"T>1"``. ``"auto"`` picks the
+        multi-cluster path for S5 / S5-sparse and the T=1 path for
+        S1-S4.
+    T_max, H, py_hyperparam_warmup
+        Multi-cluster-only knobs. Ignored on the T=1 path.
     """
+    chain_type_resolved = _resolve_chain_type(sim.regime, chain_type)
     K = sim.K
 
     # Build the pilot CDF from the simulated X via the empirical-rank transform.
@@ -135,43 +181,72 @@ def _fit_to_idr(
         [empirical_rank_transform(sim.X[:, j]) for j in range(K)],
         axis=1,
     )
-
-    # Multi-chain fit (T = 1 sampler — single Gaussian atom is the right model
-    # for S1–S4; for S5 the T = 1 fit is deliberately misspecified, see
-    # run_replicate_S5 docstring).
     key = jax.random.PRNGKey(sim.seed)
-    result = run_multi_chain_simple(
-        F0=F0,
-        M=M,
-        key=key,
-        num_chains=num_chains,
-        n_warmup=n_warmup,
-        n_samples=n_samples,
-        nuts_warmup=nuts_warmup,
-    )
 
-    # Posterior mean π, ρ from the chain (scalar summaries).
-    pi_samples = np.asarray(result.idata.posterior["pi"]).reshape(-1)
-    rho_samples = np.asarray(result.idata.posterior["rho"]).reshape(-1)
-    pi_mean = float(np.mean(pi_samples))
-    rho_mean = float(np.mean(rho_samples))
+    pi_mean: float
+    rho_mean: float
+    T_mean: float
+    method: str
+    z_samples: np.ndarray | None
 
-    # Proper Monte Carlo posterior local idr from the Z trace. The chain driver
-    # accumulates z_samples of shape (num_chains, n_samples, n); we flatten the
-    # first two dims so decision.local_idr.from_mcmc averages over all chains.
-    z_samples = result.z_samples  # (num_chains, n_samples, n)
+    if chain_type_resolved == "T=1":
+        result_simple = run_multi_chain_simple(
+            F0=F0,
+            M=M,
+            key=key,
+            num_chains=num_chains,
+            n_warmup=n_warmup,
+            n_samples=n_samples,
+            nuts_warmup=nuts_warmup,
+        )
+        pi_samples = np.asarray(result_simple.idata.posterior["pi"]).reshape(-1)
+        rho_samples = np.asarray(result_simple.idata.posterior["rho"]).reshape(-1)
+        pi_mean = float(np.mean(pi_samples))
+        rho_mean = float(np.mean(rho_samples))
+        T_mean = float("nan")
+        method = "PY-IDR (MCMC, T=1)"
+        z_samples = result_simple.z_samples
+    else:
+        result_multi = run_multi_chain_multi(
+            F0=F0,
+            M=M,
+            key=key,
+            num_chains=num_chains,
+            n_warmup=n_warmup,
+            n_samples=n_samples,
+            T_max=T_max,
+            H=H,
+            nuts_warmup=nuts_warmup,
+            py_hyperparam_warmup=py_hyperparam_warmup,
+        )
+        pi_samples = np.asarray(result_multi.idata.posterior["pi"]).reshape(-1)
+        T_samples = np.asarray(result_multi.idata.posterior["T"]).reshape(-1)
+        pi_mean = float(np.mean(pi_samples))
+        rho_mean = float("nan")  # No single rho under the mixture.
+        T_mean = float(np.mean(T_samples))
+        method = "PY-IDR (MCMC, T>1)"
+        z_samples = result_multi.z_samples
+
     if z_samples is None:
         raise RuntimeError(
-            "chain driver did not produce z_samples; this should not happen with "
-            "the current run_multi_chain_simple implementation."
+            f"{chain_type_resolved} chain driver did not produce z_samples; "
+            "this should not happen with the current run_multi_chain_* "
+            "implementations."
         )
-    z_flat = z_samples.reshape(-1, z_samples.shape[-1])  # (chains * samples, n)
+
+    # Proper Monte Carlo posterior local idr from the Z trace. The chain
+    # drivers accumulate z_samples of shape (num_chains, n_samples, n);
+    # we flatten the first two dims so decision.local_idr.from_mcmc
+    # averages over all chains.
+    z_flat = z_samples.reshape(-1, z_samples.shape[-1])
     idr = from_mcmc(jnp.asarray(z_flat))
 
     return FitResult(
         idr=idr,
         pi_posterior_mean=pi_mean,
         rho_posterior_mean=rho_mean,
+        T_posterior_mean=T_mean,
+        method=method,
         num_chains=num_chains,
         num_samples_per_chain=n_samples,
     )
@@ -185,7 +260,7 @@ def _make_row(sim: SimulationResult, fit: FitResult, alpha: float) -> ReplicateR
         K=sim.K,
         n=sim.n,
         replicate_seed=sim.seed,
-        method="PY-IDR (MCMC, T=1)",
+        method=fit.method,
         alpha=alpha,
         pi_true=sim.true_pi,
         pi_posterior_mean=fit.pi_posterior_mean,
@@ -208,6 +283,10 @@ def _fit_and_evaluate(
     n_samples: int,
     nuts_warmup: int,
     M: int,
+    chain_type: str = "auto",
+    T_max: int = 10,
+    H: int = 5,
+    py_hyperparam_warmup: int = 50,
 ) -> ReplicateRow:
     """Single-alpha convenience wrapper around :func:`_fit_to_idr` + :func:`_make_row`."""
     fit = _fit_to_idr(
@@ -217,6 +296,10 @@ def _fit_and_evaluate(
         n_samples=n_samples,
         nuts_warmup=nuts_warmup,
         M=M,
+        chain_type=chain_type,
+        T_max=T_max,
+        H=H,
+        py_hyperparam_warmup=py_hyperparam_warmup,
     )
     return _make_row(sim, fit, alpha)
 
@@ -233,36 +316,49 @@ def run_replicate(
     n_samples: int = 100,
     nuts_warmup: int = 20,
     M: int = 5,
+    chain_type: str = "auto",
+    T_max: int = 10,
+    H: int = 5,
+    py_hyperparam_warmup: int = 50,
     scenario_kwargs: dict[str, Any] | None = None,
 ) -> ReplicateRow:
-    """Run one end-to-end replicate of any S1–S4 regime.
+    """Run one end-to-end replicate of any S1–S5 regime.
 
     Dispatch order:
 
     1. Look up the regime simulator in :data:`_SIMULATORS`.
-    2. Call it with ``K, n, seed`` plus any regime-specific kwargs (e.g.
-       ``pi_star``, ``rho``, ``sigma_grid``, ``skewness_grid``).
-    3. Pipe through the shared rank → chain → idr → Sun--Cai pipeline.
+    2. Call it with ``K, n, seed`` plus any regime-specific kwargs.
+    3. Resolve ``chain_type``: ``"auto"`` picks the multi-cluster path
+       for S5 / S5-sparse and the T=1 fast path for S1-S4.
+    4. Pipe through the shared rank → chain → idr → Sun--Cai pipeline.
 
     Parameters
     ----------
     regime
-        One of ``"S1"``, ``"S2"``, ``"S3"``, ``"S4"``. Selects the
-        scenario generator.
+        One of the keys in :data:`_SIMULATORS` (``"S1"``..``"S5-sparse"``).
     K, n, seed
         Forwarded to the simulator. ``seed`` is also used as the chain
         PRNGKey so a replicate is fully reproducible from this one int.
     alpha
         Sun--Cai operating level. Default 0.05 matches §4.4.
     num_chains, n_warmup, n_samples, nuts_warmup
-        Forwarded to :func:`run_multi_chain_simple`.
+        Forwarded to the chain driver.
     M
         Bernstein degree (held fixed across the chain for this commit).
+    chain_type
+        ``"auto"`` (default), ``"T=1"``, or ``"T>1"``. ``"auto"``
+        selects the multi-cluster path for S5 / S5-sparse and the T=1
+        path for S1-S4.
+    T_max, H, py_hyperparam_warmup
+        Multi-cluster knobs. ``T_max`` caps the active cluster count
+        (default 10). ``H`` is the auxiliary-atom count per Pólya-urn
+        step (default 5). All three are ignored on the T=1 path.
     scenario_kwargs
         Regime-specific overrides forwarded to the simulator. Examples:
         ``{"pi_star": 0.30, "rho": 0.85}`` for S1/S2,
         ``{"sigma_grid": (1.0, 1.5, 2.0)}`` for S3,
-        ``{"skewness_grid": (-1.0, 0.0, 1.0)}`` for S4.
+        ``{"skewness_grid": (-1.0, 0.0, 1.0)}`` for S4,
+        ``{"tau": 0.6, "sigma_grid": (1.0, 1.5, 2.0)}`` for S5/S5-sparse.
 
     Returns
     -------
@@ -286,6 +382,10 @@ def run_replicate(
         n_samples=n_samples,
         nuts_warmup=nuts_warmup,
         M=M,
+        chain_type=chain_type,
+        T_max=T_max,
+        H=H,
+        py_hyperparam_warmup=py_hyperparam_warmup,
     )
 
 
@@ -442,25 +542,25 @@ def run_replicate_S5(
     M: int = 5,
     sigma_grid: tuple[float, ...] = (1.0, 1.5, 2.0),
     nu: int = 5,
+    chain_type: str = "auto",
+    T_max: int = 10,
+    H: int = 5,
+    py_hyperparam_warmup: int = 50,
 ) -> ReplicateRow:
     """End-to-end S5 replicate — heavy-tail mixture of $t_5$ / Clayton / Gumbel atoms.
 
-    .. note::
-       For S5 the T = 1 fast path is the *wrong* model — the
-       reproducible data come from a three-family mixture and a single
-       Gaussian-copula cluster cannot capture them. Running this driver
-       today gives a *baseline* (deliberately misspecified) fit; the
-       expected behaviour is biased posterior summaries with realised
-       FDR drifting above the nominal $\\alpha$. The multi-cluster chain
-       driver (planned in plan 04 follow-on) is what should consume S5.
+    Routes through the **multi-cluster** chain driver by default
+    (``chain_type="auto"`` resolves to ``"T>1"`` for S5). The latent
+    copula is an equal-weight mixture of three families calibrated to
+    Kendall's $\\tau$ (default 0.6, matching the report's S5 design);
+    marginals are per-replicate scaled $t_\\nu$. The chain learns the
+    number of active clusters $T$ from the data via the Pitman-Yor
+    prior.
 
-    The function is still useful right now for: (a) sweep-CSV plumbing
-    that needs *some* S5 row to wire end-to-end, and (b) ablation
-    studies that explicitly compare T = 1 vs T > 1 on S5.
-
-    The latent copula is parameterised by Kendall's $\\tau$ (default
-    0.6, matching the report's S5 design); marginals are per-replicate
-    scaled $t_\\nu$.
+    For ablation studies, pass ``chain_type="T=1"`` to force the
+    deliberately misspecified single-Gaussian fit — useful for
+    establishing the baseline that PY-IDR's multi-cluster atom is
+    supposed to beat.
 
     Parameters
     ----------
@@ -474,6 +574,12 @@ def run_replicate_S5(
         Per-replicate $t_\\nu$ marginal scale; cycled mod $K$.
     nu
         Degrees of freedom for the elliptical copula and the marginals.
+    chain_type
+        ``"auto"`` (default; resolves to T>1 here), ``"T=1"``, or
+        ``"T>1"``.
+    T_max, H, py_hyperparam_warmup
+        Multi-cluster driver knobs forwarded to
+        :func:`run_multi_chain_multi`.
     """
     return run_replicate(
         "S5",
@@ -486,6 +592,10 @@ def run_replicate_S5(
         n_samples=n_samples,
         nuts_warmup=nuts_warmup,
         M=M,
+        chain_type=chain_type,
+        T_max=T_max,
+        H=H,
+        py_hyperparam_warmup=py_hyperparam_warmup,
         scenario_kwargs={
             "pi_star": pi_star,
             "tau": tau,
@@ -510,12 +620,17 @@ def run_replicate_S5_sparse(
     M: int = 5,
     sigma_grid: tuple[float, ...] = (1.0, 1.5, 2.0),
     nu: int = 5,
+    chain_type: str = "auto",
+    T_max: int = 10,
+    H: int = 5,
+    py_hyperparam_warmup: int = 50,
 ) -> ReplicateRow:
     """End-to-end S5-sparse replicate — S5 mixture with reduced reproducible mass.
 
     Identical to :func:`run_replicate_S5` except the default
     ``pi_star`` drops from 0.30 to 0.10. The report's S5-sparse cell
-    is the planned ROC/PR stress test.
+    is the planned ROC/PR stress test. Routes through the
+    multi-cluster chain driver by default.
     """
     return run_replicate(
         "S5-sparse",
@@ -528,6 +643,10 @@ def run_replicate_S5_sparse(
         n_samples=n_samples,
         nuts_warmup=nuts_warmup,
         M=M,
+        chain_type=chain_type,
+        T_max=T_max,
+        H=H,
+        py_hyperparam_warmup=py_hyperparam_warmup,
         scenario_kwargs={
             "pi_star": pi_star,
             "tau": tau,

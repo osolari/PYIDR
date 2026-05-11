@@ -105,6 +105,87 @@ def test_run_replicate_rejects_unknown_regime() -> None:
 
 
 @pytest.mark.unit
+def test_resolve_chain_type_auto_picks_T1_for_S1_to_S4() -> None:
+    """`auto` resolves to T=1 for the four Gaussian-copula regimes."""
+    from py_idr.simulation.replicates import _resolve_chain_type
+
+    for regime in ("S1", "S2", "S3", "S4"):
+        assert _resolve_chain_type(regime, "auto") == "T=1"
+
+
+@pytest.mark.unit
+def test_resolve_chain_type_auto_picks_Tgt1_for_S5() -> None:
+    """`auto` resolves to T>1 for S5 and S5-sparse."""
+    from py_idr.simulation.replicates import _resolve_chain_type
+
+    for regime in ("S5", "S5-sparse"):
+        assert _resolve_chain_type(regime, "auto") == "T>1"
+
+
+@pytest.mark.unit
+def test_resolve_chain_type_passthrough() -> None:
+    """Explicit chain_type values are returned verbatim."""
+    from py_idr.simulation.replicates import _resolve_chain_type
+
+    assert _resolve_chain_type("S5", "T=1") == "T=1"
+    assert _resolve_chain_type("S1", "T>1") == "T>1"
+
+
+@pytest.mark.unit
+def test_resolve_chain_type_rejects_invalid() -> None:
+    """Anything other than {auto, T=1, T>1} raises."""
+    from py_idr.simulation.replicates import _resolve_chain_type
+
+    with pytest.raises(ValueError, match="chain_type"):
+        _resolve_chain_type("S1", "blarg")
+
+
+@pytest.mark.integration
+@pytest.mark.slow
+def test_run_replicate_S5_routes_to_multi_cluster_chain() -> None:
+    """S5 produces a row with method='PY-IDR (MCMC, T>1)' and NaN rho_posterior_mean."""
+    import math
+
+    from py_idr.simulation.replicates import run_replicate_S5
+
+    row = run_replicate_S5(
+        K=2,
+        n=40,
+        seed=0,
+        num_chains=2,
+        n_warmup=3,
+        n_samples=5,
+        nuts_warmup=5,
+        T_max=3,
+        H=3,
+        py_hyperparam_warmup=5,
+    )
+    assert row.method == "PY-IDR (MCMC, T>1)"
+    assert math.isnan(row.rho_posterior_mean)
+    # The T>1 fit still produces a valid pi posterior.
+    assert 0.0 < row.pi_posterior_mean < 1.0
+
+
+@pytest.mark.integration
+@pytest.mark.slow
+def test_run_replicate_S5_can_be_forced_to_T1() -> None:
+    """Passing chain_type='T=1' forces the misspecified fast path (ablation use case)."""
+    from py_idr.simulation.replicates import run_replicate_S5
+
+    row = run_replicate_S5(
+        K=2,
+        n=40,
+        seed=0,
+        num_chains=2,
+        n_warmup=3,
+        n_samples=5,
+        nuts_warmup=5,
+        chain_type="T=1",
+    )
+    assert row.method == "PY-IDR (MCMC, T=1)"
+
+
+@pytest.mark.unit
 def test_run_replicate_forwards_scenario_kwargs() -> None:
     """Dispatcher routes scenario_kwargs to the simulator.
 

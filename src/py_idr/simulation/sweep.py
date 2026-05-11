@@ -58,6 +58,10 @@ def run_sweep(
     n_samples: int = 100,
     nuts_warmup: int = 20,
     M: int = 5,
+    chain_type: str = "auto",
+    T_max: int = 10,
+    H: int = 5,
+    py_hyperparam_warmup: int = 50,
     scenario_kwargs: dict[str, Any] | None = None,
 ) -> list[ReplicateRow]:
     """Run ``num_replicates`` independent replicates of one regime.
@@ -83,7 +87,14 @@ def run_sweep(
         Sun-Cai operating levels to evaluate at. Each emits one row per
         replicate.
     num_chains, n_warmup, n_samples, nuts_warmup, M
-        Forwarded to :func:`py_idr.inference.mcmc.run_chain.run_multi_chain_simple`.
+        Forwarded to the chain driver
+        (:func:`py_idr.inference.mcmc.run_chain.run_multi_chain_simple` or
+        :func:`py_idr.inference.mcmc.run_chain.run_multi_chain_multi`).
+    chain_type
+        ``"auto"`` (default; T>1 for S5/S5-sparse, T=1 otherwise),
+        ``"T=1"``, or ``"T>1"``.
+    T_max, H, py_hyperparam_warmup
+        Multi-cluster driver knobs (ignored on the T=1 path).
     scenario_kwargs
         Regime-specific overrides forwarded to the simulator
         (e.g. ``{"pi_star": 0.30}`` for S1).
@@ -120,6 +131,10 @@ def run_sweep(
             n_samples=n_samples,
             nuts_warmup=nuts_warmup,
             M=M,
+            chain_type=chain_type,
+            T_max=T_max,
+            H=H,
+            py_hyperparam_warmup=py_hyperparam_warmup,
         )
         for alpha in alphas:
             rows.append(_make_row(sim, fit, float(alpha)))
