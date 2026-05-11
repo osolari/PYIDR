@@ -48,6 +48,7 @@ def _toy_df(
                         "pi_posterior_mean": 0.31,
                         "rho_true": 0.85,
                         "rho_posterior_mean": 0.83,
+                        "T_posterior_mean": float("nan"),
                         "k_alpha": 30,
                         "realized_fdr": max(0.0, min(1.0, fdr)),
                         "power": 0.80,

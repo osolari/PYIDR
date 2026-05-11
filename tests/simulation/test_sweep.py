@@ -43,6 +43,8 @@ def test_run_sweep_rejects_empty_alphas() -> None:
 
 def _toy_row(regime: str = "S1", seed: int = 0, alpha: float = 0.05) -> ReplicateRow:
     """Hand-built ReplicateRow for testing IO without paying chain cost."""
+    import math
+
     return ReplicateRow(
         regime=regime,
         K=2,
@@ -54,6 +56,7 @@ def _toy_row(regime: str = "S1", seed: int = 0, alpha: float = 0.05) -> Replicat
         pi_posterior_mean=0.32,
         rho_true=0.85,
         rho_posterior_mean=0.83,
+        T_posterior_mean=math.nan,
         k_alpha=5,
         realized_fdr=0.04,
         power=0.80,

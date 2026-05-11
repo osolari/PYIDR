@@ -24,9 +24,17 @@ from py_idr.figures.f1_calibration import (
     compute_calibration_curves,
     make_calibration_figure,
 )
+from py_idr.figures.f2_cluster_count import (
+    TClusterCountHistogram,
+    compute_T_histograms,
+    make_cluster_count_figure,
+)
 
 __all__ = [
     "CalibrationCurve",
+    "TClusterCountHistogram",
+    "compute_T_histograms",
     "compute_calibration_curves",
     "make_calibration_figure",
+    "make_cluster_count_figure",
 ]

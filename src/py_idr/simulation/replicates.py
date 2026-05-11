@@ -56,7 +56,13 @@ from py_idr.simulation.scenarios import (
 
 @dataclass(frozen=True)
 class ReplicateRow:
-    """Flat per-replicate record consumed by figure / table reproducers."""
+    """Flat per-replicate record consumed by figure / table reproducers.
+
+    The ``T_posterior_mean`` column is NaN under the T=1 fast path
+    (where there is exactly one cluster by construction) and a finite
+    real number for the multi-cluster path. F2 (cluster-count figure)
+    consumes it directly.
+    """
 
     regime: str
     K: int
@@ -68,6 +74,7 @@ class ReplicateRow:
     pi_posterior_mean: float
     rho_true: float
     rho_posterior_mean: float
+    T_posterior_mean: float
     k_alpha: int
     realized_fdr: float
     power: float
@@ -266,6 +273,7 @@ def _make_row(sim: SimulationResult, fit: FitResult, alpha: float) -> ReplicateR
         pi_posterior_mean=fit.pi_posterior_mean,
         rho_true=sim.true_rho,
         rho_posterior_mean=fit.rho_posterior_mean,
+        T_posterior_mean=fit.T_posterior_mean,
         k_alpha=recovery.k_alpha,
         realized_fdr=recovery.realized_fdr,
         power=recovery.power,

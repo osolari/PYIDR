@@ -54,6 +54,8 @@ def test_run_replicate_S1_produces_valid_row() -> None:
 @pytest.mark.integration
 def test_replicate_row_to_dict_serialisable() -> None:
     """to_dict() returns a plain dict with the right field set for CSV writing."""
+    import math
+
     from py_idr.simulation.scenarios import simulate_S1
 
     # Build a hand-constructed ReplicateRow without running the chain (fast).
@@ -69,6 +71,7 @@ def test_replicate_row_to_dict_serialisable() -> None:
         pi_posterior_mean=0.4,
         rho_true=sim.true_rho,
         rho_posterior_mean=0.7,
+        T_posterior_mean=math.nan,
         k_alpha=5,
         realized_fdr=0.1,
         power=0.8,
@@ -88,6 +91,7 @@ def test_replicate_row_to_dict_serialisable() -> None:
         "pi_posterior_mean",
         "rho_true",
         "rho_posterior_mean",
+        "T_posterior_mean",
         "k_alpha",
         "realized_fdr",
         "power",

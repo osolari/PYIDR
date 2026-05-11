@@ -196,19 +196,33 @@ def figure(
     calibration across regimes). Other labels (``f2``..``f6``) raise
     :class:`NotImplementedError` with a pointer to the relevant plan.
     """
-    if fig.lower() == "f1":
+    label = fig.lower()
+    regimes_tuple = tuple(r.strip() for r in regimes.split(","))
+    if label == "f1":
         from py_idr.figures.f1_calibration import (
             make_calibration_figure,  # type: ignore[attr-defined]
         )
 
-        regimes_tuple = tuple(r.strip() for r in regimes.split(","))
         out_path = make_calibration_figure(results, out, regimes=regimes_tuple)
         typer.echo(f"Wrote {out_path}")
         return
 
+    if label == "f2":
+        from py_idr.figures.f2_cluster_count import (
+            make_cluster_count_figure,  # type: ignore[attr-defined]
+        )
+
+        # For F2 the default regimes are the multi-cluster ones if the
+        # caller left the F1 default of S1/S2/S4/S5 in place.
+        if regimes == "S1,S2,S4,S5":
+            regimes_tuple = ("S5", "S5-sparse")
+        out_path = make_cluster_count_figure(results, out, regimes=regimes_tuple)
+        typer.echo(f"Wrote {out_path}")
+        return
+
     raise NotImplementedError(
-        f"figure --fig={fig} not implemented yet. Today only 'f1' is wired up. "
-        f"See plans/09_figures_and_tables.md for the F2-F6 roadmap."
+        f"figure --fig={fig} not implemented yet. Today 'f1' and 'f2' "
+        f"are wired up. See plans/09_figures_and_tables.md for F3-F6."
     )
 
 
