@@ -33,7 +33,23 @@ SKIP = "SKIP"
 
 @dataclass
 class ProbeResult:
-    """Outcome of one probe."""
+    """Outcome of one doctor probe.
+
+    Attributes
+    ----------
+    name
+        Short slug for the probe (e.g. ``"jax-import"``); rendered as
+        a left-aligned column in the report.
+    status
+        One of :data:`PASS`, :data:`FAIL`, :data:`SKIP`. ``SKIP`` is
+        used for probes that depend on optional dependencies or
+        not-yet-implemented machinery; they do **not** count toward
+        the report verdict.
+    detail
+        Optional free-form detail line shown after the status. For
+        ``PASS`` probes this is "what version / backend was found";
+        for ``FAIL`` probes this is the error message.
+    """
 
     name: str
     status: str
@@ -42,7 +58,20 @@ class ProbeResult:
 
 @dataclass
 class DoctorReport:
-    """Aggregate outcome of all probes."""
+    """Aggregate outcome of every doctor probe.
+
+    Each probe contributes a :class:`ProbeResult`. The report ``passes``
+    iff no probe failed (skipped probes are not failures). Use
+    :meth:`render` to get the column-aligned plaintext rendering shown
+    by ``py-idr doctor``.
+
+    Attributes
+    ----------
+    probes
+        Ordered list of probe outcomes. Order matters — the renderer
+        emits them in registration order, so the most important probes
+        should be registered first.
+    """
 
     probes: list[ProbeResult] = field(default_factory=list)
 

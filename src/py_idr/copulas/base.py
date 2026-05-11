@@ -16,7 +16,34 @@ from jaxtyping import Array, Float
 
 
 class Copula(ABC):
-    """Abstract copula density on $[0, 1]^K$."""
+    r"""Abstract copula density on $[0, 1]^K$.
+
+    A *copula* $C$ is a CDF on the unit hypercube with uniform marginals;
+    equivalently, $C(u_1, \ldots, u_K) = \PP(U_1 \le u_1, \ldots, U_K \le u_K)$
+    where each $U_j \sim \mathrm{Uniform}(0, 1)$. The associated density
+    $c = \partial^K C / \partial u_1 \cdots \partial u_K$ is what we
+    evaluate inside the chain — every Algorithm 1 sweep step that touches
+    the reproducible component routes through :meth:`log_density`.
+
+    Subclasses
+    ----------
+    Concrete families (Gaussian, Clayton, Gumbel, $t_\nu$, independence)
+    live in sibling modules; they register themselves with
+    :mod:`py_idr.copulas.registry` so the type-update step can swap
+    them in and out of clusters.
+
+    Required methods
+    ----------------
+    Subclasses must implement :meth:`log_density` (used by the per-feature
+    likelihood and by NUTS) and :meth:`cdf_diagonal` (used by the
+    :func:`py_idr.algebra.plod.holds` predicate to decide whether the
+    family is PLOD-compatible at the current parameters).
+
+    Attributes
+    ----------
+    K
+        Replicate count. Set by the concrete constructor.
+    """
 
     K: int
 

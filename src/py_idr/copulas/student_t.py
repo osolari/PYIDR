@@ -49,7 +49,34 @@ def _t_ppf(u: jax.Array) -> jax.Array:
 
 
 class StudentTCopula(Copula):
-    """$t_5$ copula in the Cholesky parameterization $R = L L^\\top$."""
+    r"""Student-$t_5$ copula with correlation matrix $R = L L^\top$.
+
+    The $t_\nu$ copula is the *elliptical* copula obtained by applying
+    the univariate $t_\nu$ CDF to each coordinate of a multivariate-$t_\nu$
+    vector. Compared to the Gaussian copula at the same $R$, the
+    $t_\nu$ copula has **non-zero joint-tail dependence** in every
+    direction (Embrechts-Lindskog-McNeil 2003): extreme co-movements
+    are systematically more likely.
+
+    PY-IDR fixes $\nu = 5$ (per §3.3.2 of the report) — a value chosen
+    to be heavy enough to differ meaningfully from the Gaussian copula
+    in the tails but not so heavy that finite-sample identifiability
+    breaks down. The fixed-$\nu$ choice keeps the atom dimension equal
+    to the Gaussian-copula atom dimension, which makes the type-update
+    step's independence-Metropolis ratio cleanly defined.
+
+    PLOD compatibility: the $t_\nu$ copula with strictly positive
+    pairwise correlations is PLOD; mixed-sign correlations may violate
+    the cone constraint. The PLOD predicate in
+    :func:`py_idr.algebra.plod.holds` gates the type-update.
+
+    Parameters
+    ----------
+    L
+        Cholesky factor of the $K \times K$ correlation matrix
+        $R = L L^\top$. Must be lower-triangular with positive diagonal
+        and unit row-norms (so $R$ has unit diagonal).
+    """
 
     def __init__(self, L: Float[Array, "K K"]) -> None:
         """Cache the precision matrix and log-determinant."""

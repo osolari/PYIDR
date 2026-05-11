@@ -43,7 +43,30 @@ MIN_CHAINS_FAIL: int = 2
 
 
 class DiagnosticsReport(BaseModel):
-    """§3.3.1 diagnostics report, serialisable to ``diagnostics.json``."""
+    r"""Bundled chain-quality verdict, serialisable to ``diagnostics.json``.
+
+    Built from an :class:`arviz.InferenceData` via
+    :func:`build_diagnostics_report`. The verdict logic is:
+
+    - **pass**: every per-variable $\hat R \le$ :data:`RHAT_PASS_THRESHOLD`,
+      every per-variable bulk + tail ESS $\ge$ :data:`ESS_PASS_THRESHOLD`,
+      divergence fraction $\le$ :data:`DIVERGENCE_FRACTION_THRESHOLD`,
+      number of chains $\ge$ :data:`MIN_CHAINS_PASS`.
+    - **warn**: thresholds not all met but no catastrophic failure
+      (e.g., only 2-3 chains, some borderline ESS).
+    - **fail**: at least one of $\hat R > 1.05$, ESS $< 100$, or
+      divergence fraction $> 0.05$. In this case the posterior should
+      not be trusted without re-running with more chains / longer warmup.
+
+    Why pydantic?
+    -------------
+    The report is serialised to JSON next to the run manifest as part of
+    plan 13's reproducibility ledger. ``extra = "forbid"`` ensures
+    schema drift is caught at load time.
+
+    See the **diagnostics guide** in the docs site for the operational
+    interpretation of each field.
+    """
 
     model_config = ConfigDict(extra="forbid")
 

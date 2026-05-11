@@ -16,7 +16,24 @@ from py_idr.copulas.base import Copula
 
 
 class IndependenceCopula(Copula):
-    """$c_0$: $u_1, \\ldots, u_K$ are independent uniform on $[0, 1]$."""
+    r"""The independence copula on $[0, 1]^K$.
+
+    The independence copula factors as $C^\bot(u) = \prod_j u_j$. Its
+    density is identically 1; its diagonal section is $u^K$. PY-IDR uses
+    it for the **irreproducible component**: features with $Z_i = 0$
+    have copula-scale data drawn from $\mathrm{Uniform}(0, 1)^K$ in each
+    coordinate, with no across-replicate dependence.
+
+    The class is intentionally parameter-free — there is nothing to fit.
+    The chain only ever evaluates the density (a constant 0 on the log
+    scale) and never proposes parameter updates for it.
+
+    Parameters
+    ----------
+    K
+        Replicate count. Determines the shape of the diagonal section
+        $C^\bot(u, \ldots, u) = u^K$.
+    """
 
     def __init__(self, K: int) -> None:
         """Bind the replicate dimension."""

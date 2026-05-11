@@ -24,7 +24,31 @@ from py_idr.copulas.base import Copula
 
 
 class ClaytonCopula(Copula):
-    """Archimedean Clayton copula; $\\theta > 0$."""
+    r"""Archimedean Clayton copula with **lower-tail dependence**.
+
+    The Clayton copula concentrates mass near $u = (0, \ldots, 0)$ —
+    features that are *jointly low-ranked* across replicates are more
+    likely under Clayton than under the Gaussian copula at the same
+    Kendall's tau. PY-IDR uses Clayton in the reproducible mixture when
+    the experiment-specific notion of "agreement" is "both replicates
+    agree at the bottom of the score distribution" rather than "both
+    agree at the top." (Real-world example: agreement on *background*
+    regions in a ChIP-seq peak call.)
+
+    Tail-dependence coefficient: $\lambda_L = 2^{-1/\theta}$.
+    PLOD compatibility: holds for every $\theta > 0$ (Joe 1997, §4.5).
+
+    Parameters
+    ----------
+    theta
+        Dependence parameter. Must be positive. May be a Python float or
+        a JAX scalar (traced or concrete) — the type-update step samples
+        the prior $\theta \sim \mathrm{Exponential}(1)$ truncated to
+        $\theta > 0$.
+    K
+        Replicate count. The Clayton density is well-defined for every
+        $K \ge 2$; PY-IDR uses the closed-form density below.
+    """
 
     def __init__(self, theta: float | Float[Array, ""], K: int) -> None:
         """Bind dependence parameter and replicate dimension.
