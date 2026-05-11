@@ -140,6 +140,7 @@ ignore = [
 "src/py_idr/marginals/**" = ["F821", "F722"]
 "src/py_idr/model/**" = ["F821", "F722"]
 "src/py_idr/pym/**" = ["F821", "F722"]
+"src/py_idr/simulation/**" = ["F821", "F722"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"
@@ -191,6 +192,7 @@ module = [
     "py_idr.marginals.*",
     "py_idr.model.*",
     "py_idr.pym.*",
+    "py_idr.simulation.*",
 ]
 disable_error_code = ["name-defined"]
 
