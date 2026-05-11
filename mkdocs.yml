@@ -1,0 +1,116 @@
+site_name: PY-IDR
+site_description: Hierarchical nonparametric Bayesian IDR via Pitman-Yor copula mixtures.
+site_url: https://example.com/PY-IDR
+repo_url: https://github.com/osolari/PYIDR
+repo_name: osolari/PYIDR
+
+docs_dir: docs
+site_dir: site
+
+# The LaTeX report and the original CHANGELOG live under docs/ but are not
+# part of the rendered manual; we exclude them explicitly so mkdocs doesn't
+# try to render the .tex files.
+exclude_docs: |
+  report/**
+  *.zip
+  experiments/**
+  coding_agent_handoff_status.md
+
+theme:
+  name: material
+  language: en
+  features:
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - navigation.indexes
+    - toc.follow
+    - content.code.copy
+    - content.code.annotate
+    - search.suggest
+    - search.highlight
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: deep purple
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: deep purple
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+
+plugins:
+  - search
+  - mkdocstrings:
+      default_handler: python
+      handlers:
+        python:
+          paths: [src]
+          options:
+            show_source: true
+            show_root_heading: true
+            show_signature_annotations: true
+            separate_signature: true
+            docstring_style: numpy
+            heading_level: 2
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - toc:
+      permalink: true
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+
+extra_javascript:
+  - javascripts/mathjax-config.js
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+
+nav:
+  - Home: index.md
+  - Getting started:
+      - Installation: getting_started/installation.md
+      - Quickstart: getting_started/quickstart.md
+      - Concepts: getting_started/concepts.md
+  - Math primers:
+      - The IDR problem: math/idr_recap.md
+      - Sklar's theorem & copulas: math/sklar_copulas.md
+      - Pitman-Yor process: math/pitman_yor.md
+      - Pólya urn predictive: math/polya_urn.md
+      - Bernstein-Dirichlet marginals: math/bernstein_dirichlet.md
+      - LKJ + PLOD-constrained correlations: math/lkj_structured.md
+      - Sun-Cai step-up rule: math/sun_cai.md
+  - Guides:
+      - Simulation regimes (S1-S5): guides/simulation_regimes.md
+      - Choosing K (replicate count): guides/choosing_K.md
+      - Ranks vs raw scores: guides/ranks_vs_scores.md
+      - Reading diagnostics: guides/diagnostics.md
+      - Reproducibility & manifests: guides/reproducibility.md
+  - Developer:
+      - Architecture: developer/architecture.md
+      - Contributing: developer/contributing.md
+      - Testing: developer/testing.md
+  - API reference: api/index.md
