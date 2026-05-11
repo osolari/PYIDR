@@ -34,15 +34,23 @@ from py_idr.figures.f3_runtime import (
     compute_runtime_curves,
     make_runtime_figure,
 )
+from py_idr.figures.f4_roc_pr import (
+    ROCPRSummary,
+    compute_roc_pr_curves,
+    make_roc_pr_figure,
+)
 
 __all__ = [
     "CalibrationCurve",
+    "ROCPRSummary",
     "RuntimeCurve",
     "TClusterCountHistogram",
     "compute_T_histograms",
     "compute_calibration_curves",
+    "compute_roc_pr_curves",
     "compute_runtime_curves",
     "make_calibration_figure",
     "make_cluster_count_figure",
+    "make_roc_pr_figure",
     "make_runtime_figure",
 ]
