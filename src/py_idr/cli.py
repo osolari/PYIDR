@@ -1,22 +1,21 @@
 """CLI entrypoint: ``py-idr <command>``.
 
 Installed via the ``[project.scripts]`` block in ``pyproject.toml``.
-Subcommands are:
+Subcommands:
 
 - ``doctor`` — environment sanity probes (JAX backend, devices, version).
 - ``fit`` — fit PY-IDR to a dataset (stub today; W2/W4 in plans/).
-- ``sim`` — run a simulation cell (stub today; W3).
+- ``sim`` — run a simulation sweep and emit a long-format CSV.
 - ``figure`` — reproduce one of the report figures from a result CSV.
 - ``table`` — reproduce one of the report tables from a result CSV.
 - ``evaluate`` — load a finished trace and run the decision pipeline
   (Sun-Cai + Bayes-mFDR) at a user-specified $\\alpha$.
-
-The stubs raise :class:`NotImplementedError` with a pointer to the plan
-that will implement them; this keeps the surface stable while the
-back-end fills in.
 """
 
 from __future__ import annotations
+
+import json
+from pathlib import Path
 
 import typer
 
@@ -69,27 +68,115 @@ def fit(
 
 @app.command()
 def sim(
-    regime: str = typer.Option(..., "--regime", help="S1 | S2 | S3 | S4 | S5"),
+    regime: str = typer.Option(..., "--regime", help="S1 | S2 | S3 | S4 | S5 | S5-sparse"),
     K: int = typer.Option(4, "--K"),  # noqa: N803
     n: int = typer.Option(10_000, "--n"),
     reps: int = typer.Option(100, "--reps"),
+    base_seed: int = typer.Option(0, "--base-seed"),
+    alphas: str = typer.Option(
+        "0.01,0.05,0.10,0.20",
+        "--alphas",
+        help="Comma-separated Sun-Cai operating levels.",
+    ),
+    num_chains: int = typer.Option(2, "--num-chains"),
+    n_warmup: int = typer.Option(50, "--n-warmup"),
+    n_samples: int = typer.Option(100, "--n-samples"),
+    nuts_warmup: int = typer.Option(20, "--nuts-warmup"),
+    M: int = typer.Option(5, "--M"),  # noqa: N803
+    out: str = typer.Option(
+        "runs/sim",
+        "--out",
+        help="Output directory; a per-run subdir is created under it.",
+    ),
 ) -> None:
-    """Run a simulation cell — one regime, many seeds.
+    """Run a simulation sweep and emit a long-format CSV.
 
-    **Stub today.** When implemented (plans/07), this command will:
+    For each regime ``--regime`` runs ``--reps`` independent replicates
+    (seed schedule: ``base_seed + i``), fits the chain once per
+    replicate, and evaluates Sun-Cai at every ``--alpha``. The output
+    is a long-format CSV plus a sibling :class:`RunManifest` JSON.
 
-    1. Generate ``reps`` replicates of regime ``regime`` at
-       ``(K, n)``-shape, using a deterministic seed schedule rooted at
-       the base seed in the run manifest.
-    2. Fit each replicate end-to-end via
-       :func:`py_idr.simulation.replicates.run_replicate`.
-    3. Concatenate the per-replicate ``ReplicateRow`` outputs into a
-       long-format CSV under ``runs/sim/<run_id>/results.csv``.
+    Output layout:
 
-    Today the Python equivalent is to call ``run_replicate_S<N>`` in a
-    loop and ``pd.DataFrame([r.to_dict() for r in rows]).to_csv(...)``.
+    ::
+
+        <out>/<run_id>/
+            results.csv      # one row per (replicate, alpha)
+            run_manifest.json
+
+    Example:
+
+    .. code-block:: bash
+
+        py-idr sim --regime S1 --K 2 --n 200 --reps 20 \\
+                   --alphas 0.01,0.05,0.10 --out runs/sim
     """
-    raise NotImplementedError(f"sim({regime=}, {K=}, {n=}, {reps=}) — implemented by W3.")
+    from py_idr.simulation.sweep import run_sweep, write_sweep_csv  # type: ignore[attr-defined]
+    from py_idr.utils.run import (  # type: ignore[attr-defined]
+        build_run_manifest,
+        detect_git_sha,
+        new_run_id,
+        now_utc,
+    )
+
+    alphas_tuple = tuple(float(a) for a in alphas.split(","))
+
+    run_id = new_run_id()
+    out_dir = Path(out) / run_id
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    typer.echo(
+        f"Running sweep: regime={regime} K={K} n={n} reps={reps} "
+        f"alphas={alphas_tuple} → {out_dir}"
+    )
+    rows = run_sweep(
+        regime,
+        K=K,
+        n=n,
+        num_replicates=reps,
+        base_seed=base_seed,
+        alphas=alphas_tuple,
+        num_chains=num_chains,
+        n_warmup=n_warmup,
+        n_samples=n_samples,
+        nuts_warmup=nuts_warmup,
+        M=M,
+    )
+    csv = write_sweep_csv(rows, out_dir / "results.csv")
+
+    # Manifest sibling: records run_id + git_sha + config so the run is
+    # reproducible from this one directory.
+    config_blob = json.dumps(
+        {
+            "regime": regime,
+            "K": K,
+            "n": n,
+            "reps": reps,
+            "base_seed": base_seed,
+            "alphas": list(alphas_tuple),
+            "num_chains": num_chains,
+            "n_warmup": n_warmup,
+            "n_samples": n_samples,
+            "nuts_warmup": nuts_warmup,
+            "M": M,
+        },
+        sort_keys=True,
+    )
+    config_hash = __import__("hashlib").sha256(config_blob.encode()).hexdigest()
+
+    manifest = build_run_manifest(
+        run_id=run_id,
+        git_sha=detect_git_sha() or "0" * 40,
+        config_hash=config_hash,
+        seed=base_seed,
+        started_at=now_utc(),
+        inference_method="mcmc",
+    )
+    manifest_path = out_dir / "run_manifest.json"
+    manifest_path.write_text(manifest.model_dump_json(indent=2))
+
+    typer.echo(f"Wrote {len(rows)} rows to {csv}")
+    typer.echo(f"Wrote manifest to {manifest_path}")
 
 
 @app.command()
