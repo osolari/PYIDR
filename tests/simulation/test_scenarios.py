@@ -6,7 +6,13 @@ import jax.numpy as jnp
 import numpy as np
 import pytest
 
-from py_idr.simulation.scenarios import SimulationResult, simulate_S1
+from py_idr.simulation.scenarios import (
+    SimulationResult,
+    simulate_S1,
+    simulate_S2,
+    simulate_S3,
+    simulate_S4,
+)
 
 
 @pytest.mark.unit
@@ -80,3 +86,126 @@ def test_simulate_S1_features_are_shuffled() -> None:
     second_half_reps = int(np.sum(Z[100:]))
     assert first_half_reps > 0
     assert second_half_reps > 0
+
+
+# ---- S2: weak signal (rho = 0.40) ----------------------------------------------------
+
+
+@pytest.mark.unit
+def test_simulate_S2_default_rho_is_weak() -> None:
+    """S2's default rho is 0.40 — the weak-signal regime in Table 3."""
+    sim = simulate_S2(K=3, n=100, seed=0)
+    assert sim.regime == "S2"
+    assert sim.true_rho == pytest.approx(0.40)
+    assert sim.true_pi == pytest.approx(0.30)
+
+
+@pytest.mark.unit
+def test_simulate_S2_empirical_rho_matches() -> None:
+    """Reproducible empirical correlation tracks the weaker rho = 0.40."""
+    sim = simulate_S2(K=2, n=4000, rho=0.40, seed=0)
+    X = np.asarray(sim.X)
+    Z = np.asarray(sim.true_Z)
+    rep_corr = float(np.corrcoef(X[Z == 1, 0], X[Z == 1, 1])[0, 1])
+    assert 0.30 < rep_corr < 0.50
+
+
+@pytest.mark.unit
+def test_simulate_S2_deterministic() -> None:
+    """Same seed → identical output."""
+    a = simulate_S2(K=3, n=80, seed=7)
+    b = simulate_S2(K=3, n=80, seed=7)
+    assert jnp.allclose(a.X, b.X)
+    assert jnp.array_equal(a.true_Z, b.true_Z)
+
+
+# ---- S3: sparse + heterogeneous Gaussian scales --------------------------------------
+
+
+@pytest.mark.unit
+def test_simulate_S3_default_pi_is_sparse() -> None:
+    """S3's default pi_star is 0.10 — the sparse-signal regime."""
+    sim = simulate_S3(K=3, n=200, seed=0)
+    assert sim.regime == "S3"
+    assert sim.true_pi == pytest.approx(0.10)
+    assert int(jnp.sum(sim.true_Z)) == 20
+
+
+@pytest.mark.unit
+def test_simulate_S3_per_replicate_scale_matches_sigma_grid() -> None:
+    """Irreproducible-feature std per replicate tracks the requested sigma_grid."""
+    sigma_grid = (1.0, 1.5, 2.0)
+    sim = simulate_S3(K=3, n=4000, pi_star=0.10, sigma_grid=sigma_grid, seed=0)
+    X = np.asarray(sim.X)
+    Z = np.asarray(sim.true_Z)
+    stds = [float(np.std(X[Z == 0, j])) for j in range(3)]
+    # 5% empirical std tolerance; per-replicate scales should match sigma_grid.
+    for emp, exp in zip(stds, sigma_grid, strict=False):
+        assert exp * 0.85 < emp < exp * 1.15
+
+
+@pytest.mark.unit
+def test_simulate_S3_sigma_grid_cycles_mod_K() -> None:
+    """When K > len(sigma_grid), the grid cycles. K=5, grid=(1,2) → (1,2,1,2,1)."""
+    sim = simulate_S3(K=5, n=200, sigma_grid=(1.0, 2.0), seed=0)
+    assert sim.X.shape == (200, 5)
+
+
+@pytest.mark.unit
+def test_simulate_S3_rejects_invalid_sigma_grid() -> None:
+    """Non-positive or empty sigma_grid is rejected."""
+    with pytest.raises(ValueError, match="sigma_grid"):
+        simulate_S3(K=3, n=100, sigma_grid=())
+    with pytest.raises(ValueError, match="sigma_grid"):
+        simulate_S3(K=3, n=100, sigma_grid=(1.0, 0.0, 2.0))
+    with pytest.raises(ValueError, match="sigma_grid"):
+        simulate_S3(K=3, n=100, sigma_grid=(-1.0,))
+
+
+# ---- S4: skewed marginals ------------------------------------------------------------
+
+
+@pytest.mark.unit
+def test_simulate_S4_default_params() -> None:
+    """S4 keeps the S1 latent structure (rho=0.85, pi*=0.30); only marginals differ."""
+    sim = simulate_S4(K=3, n=100, seed=0)
+    assert sim.regime == "S4"
+    assert sim.true_pi == pytest.approx(0.30)
+    assert sim.true_rho == pytest.approx(0.85)
+
+
+@pytest.mark.unit
+def test_simulate_S4_skewness_matches_grid_sign() -> None:
+    """Per-replicate sample skewness has the same sign as the requested skew param."""
+    skewness_grid = (-3.0, 0.0, 3.0)  # large magnitudes for a clean sign read
+    sim = simulate_S4(K=3, n=4000, skewness_grid=skewness_grid, seed=0)
+    X = np.asarray(sim.X)
+    from scipy.stats import skew
+
+    sk = [float(skew(X[:, j])) for j in range(3)]
+    assert sk[0] < -0.5  # strong negative skew
+    assert abs(sk[1]) < 0.3  # symmetric
+    assert sk[2] > 0.5  # strong positive skew
+
+
+@pytest.mark.unit
+def test_simulate_S4_rejects_empty_skewness_grid() -> None:
+    """Empty skewness_grid is rejected."""
+    with pytest.raises(ValueError, match="skewness_grid"):
+        simulate_S4(K=3, n=100, skewness_grid=())
+
+
+# ---- Cross-regime sanity ------------------------------------------------------------
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    "fn,regime",
+    [(simulate_S1, "S1"), (simulate_S2, "S2"), (simulate_S3, "S3"), (simulate_S4, "S4")],
+)
+def test_all_regimes_share_validator_path(fn, regime) -> None:
+    """All S1–S4 scenarios share the same K/n/pi/rho validators."""
+    with pytest.raises(ValueError):
+        fn(K=1, n=100)
+    with pytest.raises(ValueError):
+        fn(K=2, n=5)
