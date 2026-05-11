@@ -87,34 +87,58 @@ _SIMULATORS: dict[str, Callable[..., SimulationResult]] = {
 }
 
 
-def _fit_and_evaluate(
+@dataclass(frozen=True)
+class FitResult:
+    """Output of :func:`_fit_to_idr` — the per-feature posterior plus summaries.
+
+    Carries everything the downstream Sun-Cai / Bayes-mFDR steps need,
+    so a single chain run can be evaluated at many $\\alpha$ levels
+    without re-fitting.
+
+    Attributes
+    ----------
+    idr
+        Posterior local idr vector, shape $(n,)$, values in $[0, 1]$.
+    pi_posterior_mean
+        Posterior mean of the reproducible mass.
+    rho_posterior_mean
+        Posterior mean of the Gaussian-copula correlation (for T = 1 fits).
+    num_chains, num_samples_per_chain
+        Chain configuration — recorded so the eventual row reflects it.
+    """
+
+    idr: jnp.ndarray
+    pi_posterior_mean: float
+    rho_posterior_mean: float
+    num_chains: int
+    num_samples_per_chain: int
+
+
+def _fit_to_idr(
     sim: SimulationResult,
     *,
-    alpha: float,
     num_chains: int,
     n_warmup: int,
     n_samples: int,
     nuts_warmup: int,
     M: int,
-) -> ReplicateRow:
-    """Shared post-simulation pipeline: rank → chain → idr → Sun--Cai → row.
+) -> FitResult:
+    """Rank → chain → posterior local idr; no decision step yet.
 
-    Pulled out of the per-regime drivers so the inference path stays in one
-    place. The regime label, K, n, and seed flow through ``sim`` unchanged.
+    Pulled out so a sweep can fit one chain and evaluate at many
+    $\\alpha$ values without paying the chain cost per $\\alpha$.
     """
     K = sim.K
-    n = sim.n
 
     # Build the pilot CDF from the simulated X via the empirical-rank transform.
-    # The rank pilot is the same regardless of regime — the marginal model in
-    # the chain learns the per-replicate distortion.
     F0 = jnp.stack(
         [empirical_rank_transform(sim.X[:, j]) for j in range(K)],
         axis=1,
     )
 
     # Multi-chain fit (T = 1 sampler — single Gaussian atom is the right model
-    # for S1–S4; only S5 needs the multi-cluster sweep).
+    # for S1–S4; for S5 the T = 1 fit is deliberately misspecified, see
+    # run_replicate_S5 docstring).
     key = jax.random.PRNGKey(sim.seed)
     result = run_multi_chain_simple(
         F0=F0,
@@ -144,25 +168,57 @@ def _fit_and_evaluate(
     z_flat = z_samples.reshape(-1, z_samples.shape[-1])  # (chains * samples, n)
     idr = from_mcmc(jnp.asarray(z_flat))
 
-    recovery = evaluate_recovery(idr, sim.true_Z, alpha=alpha)
+    return FitResult(
+        idr=idr,
+        pi_posterior_mean=pi_mean,
+        rho_posterior_mean=rho_mean,
+        num_chains=num_chains,
+        num_samples_per_chain=n_samples,
+    )
 
+
+def _make_row(sim: SimulationResult, fit: FitResult, alpha: float) -> ReplicateRow:
+    """Apply Sun-Cai at one $\\alpha$ and package the per-replicate row."""
+    recovery = evaluate_recovery(fit.idr, sim.true_Z, alpha=alpha)
     return ReplicateRow(
         regime=sim.regime,
-        K=K,
-        n=n,
+        K=sim.K,
+        n=sim.n,
         replicate_seed=sim.seed,
         method="PY-IDR (MCMC, T=1)",
         alpha=alpha,
         pi_true=sim.true_pi,
-        pi_posterior_mean=pi_mean,
+        pi_posterior_mean=fit.pi_posterior_mean,
         rho_true=sim.true_rho,
-        rho_posterior_mean=rho_mean,
+        rho_posterior_mean=fit.rho_posterior_mean,
         k_alpha=recovery.k_alpha,
         realized_fdr=recovery.realized_fdr,
         power=recovery.power,
-        num_chains=num_chains,
-        num_samples_per_chain=n_samples,
+        num_chains=fit.num_chains,
+        num_samples_per_chain=fit.num_samples_per_chain,
     )
+
+
+def _fit_and_evaluate(
+    sim: SimulationResult,
+    *,
+    alpha: float,
+    num_chains: int,
+    n_warmup: int,
+    n_samples: int,
+    nuts_warmup: int,
+    M: int,
+) -> ReplicateRow:
+    """Single-alpha convenience wrapper around :func:`_fit_to_idr` + :func:`_make_row`."""
+    fit = _fit_to_idr(
+        sim,
+        num_chains=num_chains,
+        n_warmup=n_warmup,
+        n_samples=n_samples,
+        nuts_warmup=nuts_warmup,
+        M=M,
+    )
+    return _make_row(sim, fit, alpha)
 
 
 def run_replicate(
