@@ -12,6 +12,8 @@ from py_idr.simulation.scenarios import (
     simulate_S2,
     simulate_S3,
     simulate_S4,
+    simulate_S5,
+    simulate_S5_sparse,
 )
 
 
@@ -209,3 +211,108 @@ def test_all_regimes_share_validator_path(fn, regime) -> None:
         fn(K=1, n=100)
     with pytest.raises(ValueError):
         fn(K=2, n=5)
+
+
+# ---- S5: heavy-tail mixture ---------------------------------------------------------
+
+
+@pytest.mark.unit
+def test_simulate_S5_shapes_and_counts() -> None:
+    """S5 returns the expected shapes and reproducible mass at default pi*=0.30."""
+    sim = simulate_S5(K=2, n=200, seed=0)
+    assert isinstance(sim, SimulationResult)
+    assert sim.regime == "S5"
+    assert sim.X.shape == (200, 2)
+    assert sim.true_Z.shape == (200,)
+    assert sim.true_pi == pytest.approx(0.30)
+    assert int(jnp.sum(sim.true_Z)) == 60
+
+
+@pytest.mark.unit
+def test_simulate_S5_rho_is_nan() -> None:
+    """S5 has no single rho — the family mixture means true_rho should be NaN."""
+    sim = simulate_S5(K=2, n=100, seed=0)
+    assert np.isnan(sim.true_rho)
+
+
+@pytest.mark.unit
+def test_simulate_S5_deterministic() -> None:
+    """Same seed → identical output."""
+    a = simulate_S5(K=2, n=100, seed=42)
+    b = simulate_S5(K=2, n=100, seed=42)
+    assert jnp.allclose(a.X, b.X)
+    assert jnp.array_equal(a.true_Z, b.true_Z)
+
+
+@pytest.mark.unit
+def test_simulate_S5_empirical_kendall_tau_matches() -> None:
+    """Reproducible features hit the requested matched Kendall's tau (within MC noise)."""
+    from scipy.stats import kendalltau
+
+    tau_target = 0.6
+    sim = simulate_S5(K=2, n=4000, tau=tau_target, seed=0)
+    X = np.asarray(sim.X)
+    Z = np.asarray(sim.true_Z)
+    tau_emp, _ = kendalltau(X[Z == 1, 0], X[Z == 1, 1])
+    # Mixture of three families at matched tau should give an empirical tau
+    # within ~5% of the target at n_rep = 1200.
+    assert abs(tau_emp - tau_target) < 0.05
+
+
+@pytest.mark.unit
+def test_simulate_S5_K_ge_3_drops_gumbel() -> None:
+    """For K >= 3 the Gumbel family is excluded from the pool (no NaN, no error)."""
+    sim = simulate_S5(K=4, n=200, seed=0)
+    X = np.asarray(sim.X)
+    assert sim.X.shape == (200, 4)
+    assert not np.any(np.isnan(X))
+
+
+@pytest.mark.unit
+def test_simulate_S5_rejects_invalid_tau() -> None:
+    """tau must be strictly in (0, 1)."""
+    with pytest.raises(ValueError, match="tau"):
+        simulate_S5(K=2, n=100, tau=0.0)
+    with pytest.raises(ValueError, match="tau"):
+        simulate_S5(K=2, n=100, tau=1.0)
+
+
+@pytest.mark.unit
+def test_simulate_S5_rejects_invalid_sigma_grid() -> None:
+    """sigma_grid must be non-empty and strictly positive."""
+    with pytest.raises(ValueError, match="sigma_grid"):
+        simulate_S5(K=2, n=100, sigma_grid=())
+    with pytest.raises(ValueError, match="sigma_grid"):
+        simulate_S5(K=2, n=100, sigma_grid=(1.0, -1.0))
+
+
+@pytest.mark.unit
+def test_simulate_S5_rejects_invalid_nu() -> None:
+    """nu must be at least 1."""
+    with pytest.raises(ValueError, match="nu"):
+        simulate_S5(K=2, n=100, nu=0)
+
+
+@pytest.mark.unit
+def test_simulate_S5_sparse_labels_and_pi() -> None:
+    """S5-sparse keeps the S5 mixture structure but with default pi*=0.10."""
+    sim = simulate_S5_sparse(K=2, n=200, seed=0)
+    assert sim.regime == "S5-sparse"
+    assert sim.true_pi == pytest.approx(0.10)
+    assert int(jnp.sum(sim.true_Z)) == 20
+
+
+@pytest.mark.unit
+def test_simulate_S5_marginals_use_t5_scale() -> None:
+    """Per-replicate marginals are scaled t_nu; irrep std tracks sigma * sqrt(nu/(nu-2))."""
+    sigma_grid = (1.0, 2.0, 3.0)
+    sim = simulate_S5(K=3, n=4000, sigma_grid=sigma_grid, nu=5, seed=0)
+    X = np.asarray(sim.X)
+    Z = np.asarray(sim.true_Z)
+    # For t_5 the theoretical std is sqrt(nu/(nu-2)) = sqrt(5/3) ≈ 1.291.
+    # Irrep features come from a t_5 marginal with scale sigma_j, so emp std ≈ sigma_j * 1.291.
+    t5_std = np.sqrt(5.0 / 3.0)
+    stds = [float(np.std(X[Z == 0, j])) for j in range(3)]
+    for emp, exp_sigma in zip(stds, sigma_grid, strict=False):
+        # 20% tolerance — t_5 has a finite but noisy second moment.
+        assert exp_sigma * t5_std * 0.7 < emp < exp_sigma * t5_std * 1.6

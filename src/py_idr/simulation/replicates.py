@@ -46,6 +46,8 @@ from py_idr.simulation.scenarios import (
     simulate_S2,
     simulate_S3,
     simulate_S4,
+    simulate_S5,
+    simulate_S5_sparse,
 )
 
 
@@ -80,6 +82,8 @@ _SIMULATORS: dict[str, Callable[..., SimulationResult]] = {
     "S2": simulate_S2,
     "S3": simulate_S3,
     "S4": simulate_S4,
+    "S5": simulate_S5,
+    "S5-sparse": simulate_S5_sparse,
 }
 
 
@@ -363,5 +367,115 @@ def run_replicate_S4(
             "pi_star": pi_star,
             "rho": rho,
             "skewness_grid": skewness_grid,
+        },
+    )
+
+
+def run_replicate_S5(
+    *,
+    K: int,
+    n: int,
+    pi_star: float = 0.30,
+    tau: float = 0.6,
+    seed: int = 0,
+    alpha: float = 0.05,
+    num_chains: int = 2,
+    n_warmup: int = 50,
+    n_samples: int = 100,
+    nuts_warmup: int = 20,
+    M: int = 5,
+    sigma_grid: tuple[float, ...] = (1.0, 1.5, 2.0),
+    nu: int = 5,
+) -> ReplicateRow:
+    """End-to-end S5 replicate — heavy-tail mixture of $t_5$ / Clayton / Gumbel atoms.
+
+    .. note::
+       For S5 the T = 1 fast path is the *wrong* model — the
+       reproducible data come from a three-family mixture and a single
+       Gaussian-copula cluster cannot capture them. Running this driver
+       today gives a *baseline* (deliberately misspecified) fit; the
+       expected behaviour is biased posterior summaries with realised
+       FDR drifting above the nominal $\\alpha$. The multi-cluster chain
+       driver (planned in plan 04 follow-on) is what should consume S5.
+
+    The function is still useful right now for: (a) sweep-CSV plumbing
+    that needs *some* S5 row to wire end-to-end, and (b) ablation
+    studies that explicitly compare T = 1 vs T > 1 on S5.
+
+    The latent copula is parameterised by Kendall's $\\tau$ (default
+    0.6, matching the report's S5 design); marginals are per-replicate
+    scaled $t_\\nu$.
+
+    Parameters
+    ----------
+    K, n, seed, alpha, num_chains, n_warmup, n_samples, nuts_warmup, M
+        Standard sweep parameters; see :func:`run_replicate_S1`.
+    pi_star
+        Reproducible mass. Default 0.30 matches S5 in Table 3.
+    tau
+        Matched Kendall's $\\tau$ for the three families.
+    sigma_grid
+        Per-replicate $t_\\nu$ marginal scale; cycled mod $K$.
+    nu
+        Degrees of freedom for the elliptical copula and the marginals.
+    """
+    return run_replicate(
+        "S5",
+        K=K,
+        n=n,
+        seed=seed,
+        alpha=alpha,
+        num_chains=num_chains,
+        n_warmup=n_warmup,
+        n_samples=n_samples,
+        nuts_warmup=nuts_warmup,
+        M=M,
+        scenario_kwargs={
+            "pi_star": pi_star,
+            "tau": tau,
+            "sigma_grid": sigma_grid,
+            "nu": nu,
+        },
+    )
+
+
+def run_replicate_S5_sparse(
+    *,
+    K: int,
+    n: int,
+    pi_star: float = 0.10,
+    tau: float = 0.6,
+    seed: int = 0,
+    alpha: float = 0.05,
+    num_chains: int = 2,
+    n_warmup: int = 50,
+    n_samples: int = 100,
+    nuts_warmup: int = 20,
+    M: int = 5,
+    sigma_grid: tuple[float, ...] = (1.0, 1.5, 2.0),
+    nu: int = 5,
+) -> ReplicateRow:
+    """End-to-end S5-sparse replicate — S5 mixture with reduced reproducible mass.
+
+    Identical to :func:`run_replicate_S5` except the default
+    ``pi_star`` drops from 0.30 to 0.10. The report's S5-sparse cell
+    is the planned ROC/PR stress test.
+    """
+    return run_replicate(
+        "S5-sparse",
+        K=K,
+        n=n,
+        seed=seed,
+        alpha=alpha,
+        num_chains=num_chains,
+        n_warmup=n_warmup,
+        n_samples=n_samples,
+        nuts_warmup=nuts_warmup,
+        M=M,
+        scenario_kwargs={
+            "pi_star": pi_star,
+            "tau": tau,
+            "sigma_grid": sigma_grid,
+            "nu": nu,
         },
     )
