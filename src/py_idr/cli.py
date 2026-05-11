@@ -181,44 +181,74 @@ def sim(
 
 @app.command()
 def figure(
-    fig: str = typer.Option(..., "--fig", help="f1 | f2 | f3 | f4 | f5 | f6"),
+    fig: str = typer.Option(..., "--fig", help="f1 (today) | f2..f6 (planned)"),
     results: str = typer.Option(..., "--results", help="Path to source CSV."),
     out: str = typer.Option(..., "--out", help="Output PDF path."),
+    regimes: str = typer.Option(
+        "S1,S2,S4,S5",
+        "--regimes",
+        help="Comma-separated regime list (F1 only).",
+    ),
 ) -> None:
     """Reproduce one of the report figures from a results CSV.
 
-    **Stub today.** When implemented (plans/09), this routes to the
-    matching reproducer in :mod:`py_idr.figures`. The recognised figure
-    labels match the ones in ``docs/report/figures/``: ``f1`` =
-    realised-vs-nominal FDR calibration, ``f2`` = PY-vs-DP cluster count,
-    ``f3`` = posterior contraction, ``f4`` = idr calibration, ``f5`` =
-    real-data ROC/PR, ``f6`` = runtime scaling.
-
-    The figure reproducers are pure plotting code — they consume the
-    sweep CSV (column layout matches :class:`ReplicateRow`) and emit a
-    paginated PDF.
+    Implemented today: ``f1`` (realised FDR vs nominal $\\alpha$
+    calibration across regimes). Other labels (``f2``..``f6``) raise
+    :class:`NotImplementedError` with a pointer to the relevant plan.
     """
+    if fig.lower() == "f1":
+        from py_idr.figures.f1_calibration import (
+            make_calibration_figure,  # type: ignore[attr-defined]
+        )
+
+        regimes_tuple = tuple(r.strip() for r in regimes.split(","))
+        out_path = make_calibration_figure(results, out, regimes=regimes_tuple)
+        typer.echo(f"Wrote {out_path}")
+        return
+
     raise NotImplementedError(
-        f"figure({fig=}, {results=}, {out=}) — implemented per plans/09_figures_and_tables.md."
+        f"figure --fig={fig} not implemented yet. Today only 'f1' is wired up. "
+        f"See plans/09_figures_and_tables.md for the F2-F6 roadmap."
     )
 
 
 @app.command()
 def table(
-    table: str = typer.Option(..., "--table", help="t1 | t2 | t3 | t4 | t5 | t6 | t7"),
+    table: str = typer.Option(..., "--table", help="t4-fdr | t4-power (today) | t1..t7 (planned)"),
+    results: str = typer.Option(..., "--results", help="Path to source CSV."),
     out: str = typer.Option(..., "--out"),
+    alpha: float = typer.Option(0.05, "--alpha"),
 ) -> None:
     """Reproduce one of the report tables from a results CSV.
 
-    **Stub today.** When implemented (plans/09), this emits a LaTeX
-    tabular file at ``--out`` matching one of the tables under
-    ``docs/report/tables/``: ``t1`` = notation, ``t2`` = related work,
-    ``t3`` = simulation design, ``t4`` = simulation results, ``t5`` =
-    datasets, ``t6`` = real-data results, ``t7`` = ablations.
+    Implemented today:
+
+    - ``t4-fdr`` — realised FDR at nominal $\\alpha$ (default 0.05) across
+      regimes; matches ``tab:sim-fdr``.
+    - ``t4-power`` — same shape but with the ``power`` column;
+      matches ``tab:sim-power``.
+
+    Other labels raise :class:`NotImplementedError`.
     """
-    raise NotImplementedError(
-        f"table({table=}, {out=}) — implemented per plans/09_figures_and_tables.md."
+    from py_idr.tables.t4_sim_results import (
+        make_simulation_results_table,  # type: ignore[attr-defined]
     )
+
+    label = table.lower()
+    if label == "t4-fdr":
+        out_path = make_simulation_results_table(
+            results, out, metric="realized_fdr", alpha=alpha, label="tab:sim-fdr"
+        )
+    elif label == "t4-power":
+        out_path = make_simulation_results_table(
+            results, out, metric="power", alpha=alpha, label="tab:sim-power"
+        )
+    else:
+        raise NotImplementedError(
+            f"table --table={table} not implemented yet. Today only "
+            "'t4-fdr' and 't4-power' are wired up. See plans/09_figures_and_tables.md."
+        )
+    typer.echo(f"Wrote {out_path}")
 
 
 @app.command()
