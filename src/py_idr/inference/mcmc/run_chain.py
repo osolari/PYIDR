@@ -23,11 +23,18 @@ import jax.numpy as jnp
 import numpy as np
 from jaxtyping import Array, Float
 
+from py_idr.inference.mcmc.sweep_multi import multi_cluster_sweep
 from py_idr.inference.mcmc.sweep_simple import (
     SimpleSweepInputs,
     SimpleSweepState,
     initial_simple_state,
     sweep_simple,
+)
+from py_idr.inference.mcmc.type_update import prior_propose_atom
+from py_idr.model.multi_state import (
+    MultiClusterState,
+    cluster_sizes,
+    initial_multi_cluster_state,
 )
 
 
@@ -262,3 +269,353 @@ def summarise(result: ChainResult, var_names: list[str] | None = None) -> "az.In
     standard arviz outputs — we don't reimplement them.
     """
     return az.summary(result.idata, var_names=var_names)
+
+
+# =========================================================================
+# Multi-cluster drivers
+# =========================================================================
+#
+# Same shape as the simple drivers above but routing each sweep through
+# multi_cluster_sweep (Algorithm 1). The posterior trace adds the PY
+# hyperparameters (alpha, sigma) and the cluster count T. The Z-trace
+# stays for the proper-Monte-Carlo local idr estimator. A second trace
+# array — cluster_assignments — records state.z so cluster-level
+# diagnostics (per-cluster size, atom evolution) can be reconstructed
+# post-hoc.
+
+
+@dataclass(frozen=True)
+class ChainResultMulti:
+    """Output of :func:`run_chain_multi` (single-chain, multi-cluster path).
+
+    Attributes
+    ----------
+    idata
+        :class:`arviz.InferenceData` with the scalar posterior trace.
+        Variables: ``pi``, ``alpha``, ``sigma``, ``T``, ``n_reproducible``.
+    final_state
+        Final :class:`MultiClusterState`. Carries the atom tuple at the
+        last draw — useful for chain restarts and for inspecting which
+        copula families ended up populated.
+    z_samples
+        Class-indicator trace ($Z$ in the state, **not** cluster label);
+        shape ``(n_samples, n)`` int8 with values in $\\{0, 1\\}$.
+        Consumed by :func:`py_idr.decision.local_idr.from_mcmc`.
+    cluster_assignments
+        Cluster-label trace ($z$ in the state); shape
+        ``(n_samples, n)`` int32. Entries are ``-1`` for irreproducible
+        features, ``0..T-1`` for reproducible. Useful for per-cluster
+        size summaries and label-invariant diagnostics.
+    T_trace
+        Per-draw cluster count, shape ``(n_samples,)`` int32. Same data
+        as ``idata.posterior["T"]`` but exposed as a plain array for
+        ergonomic plotting.
+    """
+
+    idata: az.InferenceData
+    final_state: MultiClusterState
+    z_samples: np.ndarray | None = None
+    cluster_assignments: np.ndarray | None = None
+    T_trace: np.ndarray | None = None
+
+
+@dataclass(frozen=True)
+class MultiChainResultMulti:
+    """Output of :func:`run_multi_chain_multi` (multi-chain, multi-cluster path).
+
+    Attributes mirror :class:`ChainResultMulti` but with a leading
+    ``num_chains`` axis on every trace array. ``idata`` has the standard
+    ``(chain, draw)`` posterior layout that ``arviz.summary`` /
+    ``arviz.rhat`` expect.
+    """
+
+    idata: az.InferenceData
+    final_states: tuple[MultiClusterState, ...]
+    z_samples: np.ndarray | None = None
+    cluster_assignments: np.ndarray | None = None
+    T_trace: np.ndarray | None = None
+
+
+def _initial_multi_state(
+    *,
+    n: int,
+    K: int,
+    M: int,
+    T_max: int,
+    key: jax.Array,
+    pi_init: float = 0.5,
+    alpha_init: float = 1.0,
+    sigma_init: float = 0.1,
+    alpha_F: float = 1.0,
+) -> MultiClusterState:
+    """Build a default :class:`MultiClusterState` with one Gaussian-copula atom.
+
+    The initial atom is a Gaussian copula with $\\rho$ drawn from the
+    Beta(2, 2) prior — wide enough to be a sensible warm start for any
+    regime; the chain's atom-NUTS step refines it.
+    """
+    init_atom = prior_propose_atom(key, "gauss", K)
+    return initial_multi_cluster_state(
+        n=n,
+        K=K,
+        M=M,
+        T_max=T_max,
+        initial_atom=init_atom,
+        pi_init=pi_init,
+        alpha_init=alpha_init,
+        sigma_init=sigma_init,
+        alpha_F=alpha_F,
+    )
+
+
+def run_chain_multi(
+    *,
+    F0: Float[Array, "n K"],
+    M: int,
+    key: jax.Array,
+    T_max: int = 10,
+    H: int = 5,
+    n_warmup: int = 200,
+    n_samples: int = 200,
+    initial_state: MultiClusterState | None = None,
+    pi_init: float = 0.5,
+    alpha_init: float = 1.0,
+    sigma_init: float = 0.1,
+    alpha_F: float = 1.0,
+    nuts_warmup: int = 30,
+    py_hyperparam_warmup: int = 50,
+) -> ChainResultMulti:
+    """Run a single chain of the multi-cluster PY-IDR sweep (Algorithm 1).
+
+    Parameters
+    ----------
+    F0
+        Pilot CDF matrix; shape $(n, K)$.
+    M
+        Bernstein degree (held fixed for this commit).
+    key
+        JAX PRNG key.
+    T_max
+        Hard cap on the number of active clusters. The chain raises if a
+        Pólya-urn proposal would exceed it. Default 10 is generous for
+        every regime in the report.
+    H
+        Auxiliary-atom count for the Pólya-urn step. Default 5 matches
+        §3.3.1.
+    n_warmup, n_samples
+        Sample counts. Warmup draws are discarded from the
+        ``InferenceData`` but their compute time is fully spent.
+    initial_state
+        Optional override of the chain start; defaults to a single
+        Gaussian atom at $\\rho \\sim \\mathrm{Beta}(2, 2)$.
+    pi_init, alpha_init, sigma_init, alpha_F
+        Scalar hyperparameters used only when ``initial_state`` is None.
+    nuts_warmup
+        Per-cluster atom-NUTS warmup. Default 30.
+    py_hyperparam_warmup
+        NUTS warmup for the joint $(\\alpha, \\sigma)$ update. Default 50.
+
+    Returns
+    -------
+    A :class:`ChainResultMulti` carrying the arviz InferenceData plus
+    the per-draw cluster-label and class-indicator traces.
+    """
+    if F0.ndim != 2:
+        raise ValueError(f"F0 must be 2-D (n, K); got shape {F0.shape}")
+    if n_warmup < 0 or n_samples <= 0:
+        raise ValueError(f"need n_warmup >= 0 and n_samples > 0; got ({n_warmup}, {n_samples})")
+    if T_max < 1:
+        raise ValueError(f"T_max must be >= 1; got {T_max}")
+    if H < 1:
+        raise ValueError(f"H (aux-atom count) must be >= 1; got {H}")
+
+    n, K = F0.shape
+    init_key, run_key = jax.random.split(key, 2)
+    if initial_state is None:
+        state = _initial_multi_state(
+            n=n,
+            K=K,
+            M=M,
+            T_max=T_max,
+            key=init_key,
+            pi_init=pi_init,
+            alpha_init=alpha_init,
+            sigma_init=sigma_init,
+            alpha_F=alpha_F,
+        )
+    else:
+        state = initial_state
+
+    total_iters = n_warmup + n_samples
+    iter_keys = jax.random.split(run_key, total_iters)
+
+    # Scalar trace accumulators.
+    pi_trace: list[float] = []
+    alpha_trace: list[float] = []
+    sigma_trace: list[float] = []
+    T_trace: list[int] = []
+    n_reproducible_trace: list[int] = []
+    # Z trace (class indicator) and z trace (cluster label).
+    Z_trace: list[np.ndarray] = []
+    z_trace: list[np.ndarray] = []
+
+    for i, k in enumerate(iter_keys):
+        state = multi_cluster_sweep(
+            state,
+            jnp.asarray(F0),
+            k,
+            H=H,
+            nuts_warmup=nuts_warmup,
+            py_hyperparam_warmup=py_hyperparam_warmup,
+        )
+        if i >= n_warmup:
+            pi_trace.append(float(state.pi))
+            alpha_trace.append(float(state.alpha))
+            sigma_trace.append(float(state.sigma))
+            T_trace.append(int(state.T))
+            n_reproducible_trace.append(int(jnp.sum(state.Z)))
+            Z_trace.append(np.asarray(state.Z, dtype=np.int8))
+            z_trace.append(np.asarray(state.z, dtype=np.int32))
+
+    posterior_group = {
+        "pi": np.asarray(pi_trace, dtype=np.float64)[None, :],
+        "alpha": np.asarray(alpha_trace, dtype=np.float64)[None, :],
+        "sigma": np.asarray(sigma_trace, dtype=np.float64)[None, :],
+        "T": np.asarray(T_trace, dtype=np.int32)[None, :],
+        "n_reproducible": np.asarray(n_reproducible_trace, dtype=np.int32)[None, :],
+    }
+    idata = az.from_dict({"posterior": posterior_group})
+    Z_arr = np.stack(Z_trace, axis=0)  # (n_samples, n)
+    z_arr = np.stack(z_trace, axis=0)  # (n_samples, n)
+    T_arr = np.asarray(T_trace, dtype=np.int32)
+
+    return ChainResultMulti(
+        idata=idata,
+        final_state=state,
+        z_samples=Z_arr,
+        cluster_assignments=z_arr,
+        T_trace=T_arr,
+    )
+
+
+def run_multi_chain_multi(
+    *,
+    F0: Float[Array, "n K"],
+    M: int,
+    key: jax.Array,
+    T_max: int = 10,
+    H: int = 5,
+    num_chains: int = 4,
+    n_warmup: int = 200,
+    n_samples: int = 200,
+    pi_init: float = 0.5,
+    alpha_init: float = 1.0,
+    sigma_init: float = 0.1,
+    alpha_F: float = 1.0,
+    nuts_warmup: int = 30,
+    py_hyperparam_warmup: int = 50,
+    overdispersed: bool = True,
+) -> MultiChainResultMulti:
+    """Run ``num_chains`` multi-cluster chains, stacked into a multi-chain idata.
+
+    Parameters
+    ----------
+    F0, M, T_max, H, n_warmup, n_samples, alpha_F, nuts_warmup, py_hyperparam_warmup
+        Same as :func:`run_chain_multi`.
+    num_chains
+        Number of chains. Default 4 — the minimum the diagnostics report
+        accepts as a `pass` verdict for split-$\\widehat R$.
+    key
+        Root PRNG key; split into per-chain subkeys.
+    pi_init, alpha_init, sigma_init
+        Scalar hyperparameter starts. Per-chain inits are dispersed
+        around these defaults when ``overdispersed=True``.
+    overdispersed
+        If True, per-chain initial states scatter $\\pi$, $\\alpha$,
+        $\\sigma$ across a wide range so split-$\\widehat R$ has signal.
+    """
+    if num_chains < 1:
+        raise ValueError(f"num_chains must be >= 1; got {num_chains}")
+    if F0.ndim != 2:
+        raise ValueError(f"F0 must be 2-D (n, K); got shape {F0.shape}")
+
+    n, K = F0.shape
+    chain_keys = jax.random.split(key, num_chains + 1)
+    per_chain_keys = chain_keys[1:]
+
+    if overdispersed:
+        pi_inits = jnp.linspace(0.20, 0.80, num_chains)
+        alpha_inits = jnp.linspace(0.5, 2.0, num_chains)
+        sigma_inits = jnp.linspace(0.05, 0.40, num_chains)
+    else:
+        pi_inits = jnp.full(num_chains, pi_init)
+        alpha_inits = jnp.full(num_chains, alpha_init)
+        sigma_inits = jnp.full(num_chains, sigma_init)
+
+    pi_chains: list[np.ndarray] = []
+    alpha_chains: list[np.ndarray] = []
+    sigma_chains: list[np.ndarray] = []
+    T_chains: list[np.ndarray] = []
+    n_rep_chains: list[np.ndarray] = []
+    Z_chains: list[np.ndarray] = []
+    z_chains: list[np.ndarray] = []
+    final_states: list[MultiClusterState] = []
+
+    for c in range(num_chains):
+        chain_res = run_chain_multi(
+            F0=F0,
+            M=M,
+            key=per_chain_keys[c],
+            T_max=T_max,
+            H=H,
+            n_warmup=n_warmup,
+            n_samples=n_samples,
+            pi_init=float(pi_inits[c]),
+            alpha_init=float(alpha_inits[c]),
+            sigma_init=float(sigma_inits[c]),
+            alpha_F=alpha_F,
+            nuts_warmup=nuts_warmup,
+            py_hyperparam_warmup=py_hyperparam_warmup,
+        )
+        posterior = chain_res.idata.posterior
+        pi_chains.append(np.asarray(posterior["pi"]).reshape(-1))
+        alpha_chains.append(np.asarray(posterior["alpha"]).reshape(-1))
+        sigma_chains.append(np.asarray(posterior["sigma"]).reshape(-1))
+        T_chains.append(np.asarray(posterior["T"]).reshape(-1))
+        n_rep_chains.append(np.asarray(posterior["n_reproducible"]).reshape(-1))
+        Z_chains.append(chain_res.z_samples)
+        z_chains.append(chain_res.cluster_assignments)
+        final_states.append(chain_res.final_state)
+
+    posterior_group = {
+        "pi": np.stack(pi_chains, axis=0),
+        "alpha": np.stack(alpha_chains, axis=0),
+        "sigma": np.stack(sigma_chains, axis=0),
+        "T": np.stack(T_chains, axis=0),
+        "n_reproducible": np.stack(n_rep_chains, axis=0),
+    }
+    idata = az.from_dict({"posterior": posterior_group})
+
+    return MultiChainResultMulti(
+        idata=idata,
+        final_states=tuple(final_states),
+        z_samples=np.stack(Z_chains, axis=0),
+        cluster_assignments=np.stack(z_chains, axis=0),
+        T_trace=np.stack(T_chains, axis=0),
+    )
+
+
+# Re-export for downstream consumers; cluster_sizes is convenient when
+# the caller is summarising a single MultiClusterState.
+__all__ = [
+    "ChainResult",
+    "ChainResultMulti",
+    "MultiChainResult",
+    "MultiChainResultMulti",
+    "cluster_sizes",
+    "run_chain_multi",
+    "run_chain_simple",
+    "run_multi_chain_multi",
+    "run_multi_chain_simple",
+    "summarise",
+]
