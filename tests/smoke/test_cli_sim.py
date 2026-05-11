@@ -92,6 +92,48 @@ def test_py_idr_sim_rejects_unknown_regime() -> None:
 
 @pytest.mark.integration
 @pytest.mark.slow
+def test_py_idr_sim_chain_type_T1_forces_simple_path(tmp_path: Path) -> None:
+    """``--chain-type T=1`` on S5 forces the misspecified single-Gaussian fit."""
+    out_root = tmp_path / "sim_out"
+    result = runner.invoke(
+        app,
+        [
+            "sim",
+            "--regime",
+            "S5",
+            "--K",
+            "2",
+            "--n",
+            "40",
+            "--reps",
+            "1",
+            "--alphas",
+            "0.05",
+            "--chain-type",
+            "T=1",
+            "--num-chains",
+            "2",
+            "--n-warmup",
+            "5",
+            "--n-samples",
+            "8",
+            "--nuts-warmup",
+            "5",
+            "--out",
+            str(out_root),
+        ],
+    )
+    assert result.exit_code == 0, result.output
+
+    run_dir = next(p for p in out_root.iterdir() if p.is_dir())
+    df = pd.read_csv(run_dir / "results.csv")
+    assert set(df["method"]) == {"PY-IDR (MCMC, T=1)"}
+    # T_posterior_mean is NaN under the T=1 path.
+    assert df["T_posterior_mean"].isna().all()
+
+
+@pytest.mark.integration
+@pytest.mark.slow
 def test_py_idr_sim_seed_schedule_is_reproducible(tmp_path: Path) -> None:
     """Two runs with the same base_seed produce identical CSVs (modulo run_id)."""
     out_a = tmp_path / "a"

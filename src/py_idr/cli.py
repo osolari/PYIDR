@@ -83,6 +83,16 @@ def sim(
     n_samples: int = typer.Option(100, "--n-samples"),
     nuts_warmup: int = typer.Option(20, "--nuts-warmup"),
     M: int = typer.Option(5, "--M"),  # noqa: N803
+    chain_type: str = typer.Option(
+        "auto",
+        "--chain-type",
+        help="auto | T=1 | T>1. 'auto' picks T>1 for S5/S5-sparse else T=1.",
+    ),
+    T_max: int = typer.Option(10, "--T-max", help="Cluster truncation (T>1 path)."),  # noqa: N803
+    H: int = typer.Option(5, "--H", help="Aux-atom count per Pólya-urn step (T>1)."),  # noqa: N803
+    py_hyperparam_warmup: int = typer.Option(
+        50, "--py-hyperparam-warmup", help="(alpha, sigma) NUTS warmup (T>1)."
+    ),
     out: str = typer.Option(
         "runs/sim",
         "--out",
@@ -96,6 +106,14 @@ def sim(
     replicate, and evaluates Sun-Cai at every ``--alpha``. The output
     is a long-format CSV plus a sibling :class:`RunManifest` JSON.
 
+    Chain routing follows ``--chain-type``:
+
+    - ``auto`` (default) — multi-cluster path for S5 / S5-sparse,
+      T=1 fast path for S1-S4.
+    - ``T=1`` — force the single-Gaussian fast path everywhere
+      (useful for ablation sweeps that pit T=1 against T>1 on S5).
+    - ``T>1`` — force the multi-cluster path everywhere.
+
     Output layout:
 
     ::
@@ -104,12 +122,14 @@ def sim(
             results.csv      # one row per (replicate, alpha)
             run_manifest.json
 
-    Example:
+    Example (ablation: T=1 vs T>1 on S5):
 
     .. code-block:: bash
 
-        py-idr sim --regime S1 --K 2 --n 200 --reps 20 \\
-                   --alphas 0.01,0.05,0.10 --out runs/sim
+        py-idr sim --regime S5 --K 2 --n 200 --reps 20 \\
+                   --chain-type T=1 --out runs/s5_t1
+        py-idr sim --regime S5 --K 2 --n 200 --reps 20 \\
+                   --chain-type T>1 --out runs/s5_tgt1
     """
     from py_idr.simulation.sweep import run_sweep, write_sweep_csv  # type: ignore[attr-defined]
     from py_idr.utils.run import (  # type: ignore[attr-defined]
@@ -127,7 +147,7 @@ def sim(
 
     typer.echo(
         f"Running sweep: regime={regime} K={K} n={n} reps={reps} "
-        f"alphas={alphas_tuple} → {out_dir}"
+        f"chain_type={chain_type} alphas={alphas_tuple} → {out_dir}"
     )
     rows = run_sweep(
         regime,
@@ -141,6 +161,10 @@ def sim(
         n_samples=n_samples,
         nuts_warmup=nuts_warmup,
         M=M,
+        chain_type=chain_type,
+        T_max=T_max,
+        H=H,
+        py_hyperparam_warmup=py_hyperparam_warmup,
     )
     csv = write_sweep_csv(rows, out_dir / "results.csv")
 
@@ -159,6 +183,10 @@ def sim(
             "n_samples": n_samples,
             "nuts_warmup": nuts_warmup,
             "M": M,
+            "chain_type": chain_type,
+            "T_max": T_max,
+            "H": H,
+            "py_hyperparam_warmup": py_hyperparam_warmup,
         },
         sort_keys=True,
     )
