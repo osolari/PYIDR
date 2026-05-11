@@ -130,7 +130,9 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["D"]
 "experiments/**" = ["D"]
-"notebooks/**" = ["D"]
+# Notebooks legitimately split imports across narrative cells (E402)
+# and use compact one-line statements (E702).
+"notebooks/**" = ["D", "E402", "E702"]
 "docs/**" = ["D"]
 # jaxtyping shape strings like Float[Array, "n K"] register as F821/F722 forward refs.
 "src/py_idr/algebra/**" = ["F821", "F722"]
