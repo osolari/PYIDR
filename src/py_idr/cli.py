@@ -248,9 +248,21 @@ def figure(
         typer.echo(f"Wrote {out_path}")
         return
 
+    if label == "f3":
+        from py_idr.figures.f3_runtime import (
+            make_runtime_figure,  # type: ignore[attr-defined]
+        )
+
+        # For F3 we usually want every (regime, method) cell, not just
+        # the F1 default. Pass None to keep all.
+        regimes_arg = regimes_tuple if regimes != "S1,S2,S4,S5" else None
+        out_path = make_runtime_figure(results, out, regimes=regimes_arg)
+        typer.echo(f"Wrote {out_path}")
+        return
+
     raise NotImplementedError(
-        f"figure --fig={fig} not implemented yet. Today 'f1' and 'f2' "
-        f"are wired up. See plans/09_figures_and_tables.md for F3-F6."
+        f"figure --fig={fig} not implemented yet. Today 'f1', 'f2', 'f3' "
+        f"are wired up. See plans/09_figures_and_tables.md for F4-F6."
     )
 
 

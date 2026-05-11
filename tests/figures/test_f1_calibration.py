@@ -54,6 +54,7 @@ def _toy_df(
                         "power": 0.80,
                         "num_chains": 2,
                         "num_samples_per_chain": 50,
+                        "walltime_s": 1.0,
                     }
                 )
     return pd.DataFrame(rows)

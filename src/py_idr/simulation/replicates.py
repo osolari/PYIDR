@@ -28,6 +28,7 @@ See plans/07_simulation_studies.md.
 
 from __future__ import annotations
 
+import time
 from collections.abc import Callable
 from dataclasses import asdict, dataclass
 from typing import Any
@@ -62,6 +63,12 @@ class ReplicateRow:
     (where there is exactly one cluster by construction) and a finite
     real number for the multi-cluster path. F2 (cluster-count figure)
     consumes it directly.
+
+    The ``walltime_s`` column is the wall-clock time spent in the
+    chain (and only the chain — Sun-Cai is microseconds, so excluding
+    it is a rounding error). F3 (runtime figure) consumes it directly.
+    Every (replicate, alpha) row from the same fit carries the same
+    ``walltime_s`` value.
     """
 
     regime: str
@@ -80,6 +87,7 @@ class ReplicateRow:
     power: float
     num_chains: int
     num_samples_per_chain: int
+    walltime_s: float
 
     def to_dict(self) -> dict[str, object]:
         """Return a plain dict (the long-format CSV layout)."""
@@ -148,6 +156,7 @@ class FitResult:
     method: str
     num_chains: int
     num_samples_per_chain: int
+    walltime_s: float
 
 
 def _fit_to_idr(
@@ -196,6 +205,7 @@ def _fit_to_idr(
     method: str
     z_samples: np.ndarray | None
 
+    chain_start = time.perf_counter()
     if chain_type_resolved == "T=1":
         result_simple = run_multi_chain_simple(
             F0=F0,
@@ -206,6 +216,9 @@ def _fit_to_idr(
             n_samples=n_samples,
             nuts_warmup=nuts_warmup,
         )
+        # Block until JAX traces have materialised so the timing reflects
+        # the full chain cost rather than just dispatch.
+        jax.block_until_ready(result_simple.idata.posterior["pi"].values)
         pi_samples = np.asarray(result_simple.idata.posterior["pi"]).reshape(-1)
         rho_samples = np.asarray(result_simple.idata.posterior["rho"]).reshape(-1)
         pi_mean = float(np.mean(pi_samples))
@@ -226,6 +239,7 @@ def _fit_to_idr(
             nuts_warmup=nuts_warmup,
             py_hyperparam_warmup=py_hyperparam_warmup,
         )
+        jax.block_until_ready(result_multi.idata.posterior["pi"].values)
         pi_samples = np.asarray(result_multi.idata.posterior["pi"]).reshape(-1)
         T_samples = np.asarray(result_multi.idata.posterior["T"]).reshape(-1)
         pi_mean = float(np.mean(pi_samples))
@@ -233,6 +247,7 @@ def _fit_to_idr(
         T_mean = float(np.mean(T_samples))
         method = "PY-IDR (MCMC, T>1)"
         z_samples = result_multi.z_samples
+    walltime_s = float(time.perf_counter() - chain_start)
 
     if z_samples is None:
         raise RuntimeError(
@@ -256,6 +271,7 @@ def _fit_to_idr(
         method=method,
         num_chains=num_chains,
         num_samples_per_chain=n_samples,
+        walltime_s=walltime_s,
     )
 
 
@@ -279,6 +295,7 @@ def _make_row(sim: SimulationResult, fit: FitResult, alpha: float) -> ReplicateR
         power=recovery.power,
         num_chains=fit.num_chains,
         num_samples_per_chain=fit.num_samples_per_chain,
+        walltime_s=fit.walltime_s,
     )
 
 

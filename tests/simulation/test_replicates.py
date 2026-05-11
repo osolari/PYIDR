@@ -77,6 +77,7 @@ def test_replicate_row_to_dict_serialisable() -> None:
         power=0.8,
         num_chains=2,
         num_samples_per_chain=100,
+        walltime_s=1.23,
     )
     d = row.to_dict()
     # The CSV writer needs these specific columns.
@@ -97,6 +98,7 @@ def test_replicate_row_to_dict_serialisable() -> None:
         "power",
         "num_chains",
         "num_samples_per_chain",
+        "walltime_s",
     }
     assert set(d.keys()) == expected_keys
 

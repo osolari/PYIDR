@@ -62,6 +62,7 @@ def _toy_row(regime: str = "S1", seed: int = 0, alpha: float = 0.05) -> Replicat
         power=0.80,
         num_chains=2,
         num_samples_per_chain=100,
+        walltime_s=2.5,
     )
 
 

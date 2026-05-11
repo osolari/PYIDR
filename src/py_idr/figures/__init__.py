@@ -29,12 +29,20 @@ from py_idr.figures.f2_cluster_count import (
     compute_T_histograms,
     make_cluster_count_figure,
 )
+from py_idr.figures.f3_runtime import (
+    RuntimeCurve,
+    compute_runtime_curves,
+    make_runtime_figure,
+)
 
 __all__ = [
     "CalibrationCurve",
+    "RuntimeCurve",
     "TClusterCountHistogram",
     "compute_T_histograms",
     "compute_calibration_curves",
+    "compute_runtime_curves",
     "make_calibration_figure",
     "make_cluster_count_figure",
+    "make_runtime_figure",
 ]
