@@ -27,6 +27,7 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 
+from py_idr.decision.local_idr import from_mcmc
 from py_idr.inference.mcmc.run_chain import run_multi_chain_simple
 from py_idr.marginals.transform import empirical_rank_transform
 from py_idr.simulation.evaluation import evaluate_recovery
@@ -56,24 +57,6 @@ class ReplicateRow:
     def to_dict(self) -> dict[str, object]:
         """Return a plain dict (the long-format CSV layout)."""
         return asdict(self)
-
-
-def _idr_from_idata(idata) -> np.ndarray:  # type: ignore[no-untyped-def]
-    """Compute per-feature local idr from a posterior Z trace stored in idata.
-
-    Our chain driver currently stores scalar posterior summaries (``pi``,
-    ``rho``, ``n_reproducible``) but not the per-feature Z samples. As a
-    first cut we estimate the local idr from the posterior mean of $\\pi$ +
-    the implied class-assignment probabilities at the simulation's $U$. This
-    is the operational analogue used by Sun--Cai-style plug-in rules and is
-    a stand-in until the chain driver propagates the full Z trace.
-
-    The proper :func:`py_idr.decision.local_idr.from_mcmc` implementation
-    consumes ``z_samples`` of shape ``(draws, n)``; once the chain driver
-    threads that through, this helper can be retired.
-    """
-    # Currently unused — replaced by an inline computation in run_replicate_S1.
-    raise NotImplementedError
 
 
 def run_replicate_S1(
@@ -125,28 +108,23 @@ def run_replicate_S1(
         nuts_warmup=nuts_warmup,
     )
 
-    # Posterior mean π, ρ from the chain.
+    # Posterior mean π, ρ from the chain (scalar summaries).
     pi_samples = np.asarray(result.idata.posterior["pi"]).reshape(-1)
     rho_samples = np.asarray(result.idata.posterior["rho"]).reshape(-1)
     pi_mean = float(np.mean(pi_samples))
     rho_mean = float(np.mean(rho_samples))
 
-    # Per-feature local idr. The chain driver currently stores only scalar
-    # posterior summaries; we compute idr from the posterior mean ρ via the
-    # mixture posterior P(Z_i = 0 | data, π_mean, ρ_mean), which is the
-    # operational plug-in estimator. A future commit propagates the full Z
-    # trace through the chain so the proper Monte Carlo estimator
-    # (decision/local_idr.from_mcmc) can be used.
-    R_post = (1.0 - rho_mean) * jnp.eye(K) + rho_mean * jnp.ones((K, K))
-    L_post = jnp.linalg.cholesky(R_post)
-    from py_idr.copulas.gaussian import GaussianCopula
-    from py_idr.inference.mcmc.class_assign import conditional_class_log_odds
-
-    log_c1 = GaussianCopula(L_post).log_density(F0)
-    log_odds = conditional_class_log_odds(pi_mean, log_c1)
-    # Pr(Z = 1 | data) = sigmoid(log_odds); local idr = Pr(Z = 0 | data).
-    pi_hat = jax.nn.sigmoid(log_odds)
-    idr = 1.0 - pi_hat
+    # Proper Monte Carlo posterior local idr from the Z trace. The chain driver
+    # accumulates z_samples of shape (num_chains, n_samples, n); we flatten the
+    # first two dims so decision.local_idr.from_mcmc averages over all chains.
+    z_samples = result.z_samples  # (num_chains, n_samples, n)
+    if z_samples is None:
+        raise RuntimeError(
+            "chain driver did not produce z_samples; this should not happen with the "
+            "current run_multi_chain_simple implementation."
+        )
+    z_flat = z_samples.reshape(-1, z_samples.shape[-1])  # (num_chains * n_samples, n)
+    idr = from_mcmc(jnp.asarray(z_flat))
 
     recovery = evaluate_recovery(idr, sim.true_Z, alpha=alpha)
 

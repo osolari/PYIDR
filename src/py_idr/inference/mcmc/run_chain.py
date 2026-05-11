@@ -43,10 +43,16 @@ class ChainResult:
         original ``F0`` so a downstream replay can reconstruct.
     final_state
         The last sweep's state — useful for continuing the chain.
+    z_samples
+        Per-feature class indicators across post-warmup draws; shape
+        ``(n_samples, n)`` with values in $\\{0, 1\\}$. Consumed by
+        :func:`py_idr.decision.local_idr.from_mcmc` to estimate the local idr
+        from the Monte Carlo average.
     """
 
     idata: az.InferenceData
     final_state: SimpleSweepState
+    z_samples: np.ndarray | None = None
 
 
 @dataclass(frozen=True)
@@ -60,10 +66,15 @@ class MultiChainResult:
         posterior variable — required for split-$\\widehat R$.
     final_states
         Per-chain final states; ``len(final_states) == num_chains``.
+    z_samples
+        Stacked per-chain class-indicator traces; shape
+        ``(num_chains, n_samples, n)``. Consumed by the proper Monte Carlo
+        idr estimator.
     """
 
     idata: az.InferenceData
     final_states: tuple[SimpleSweepState, ...]
+    z_samples: np.ndarray | None = None
 
 
 def run_chain_simple(
@@ -123,6 +134,7 @@ def run_chain_simple(
     pi_trace: list[float] = []
     rho_trace: list[float] = []
     n_reproducible_trace: list[int] = []
+    z_trace: list[np.ndarray] = []
 
     for i, k in enumerate(iter_keys):
         state = sweep_simple(state, inputs, k)
@@ -130,6 +142,7 @@ def run_chain_simple(
             pi_trace.append(float(state.pi))
             rho_trace.append(float(state.rho))
             n_reproducible_trace.append(int(jnp.sum(state.Z)))
+            z_trace.append(np.asarray(state.Z, dtype=np.int8))
 
     # Build the InferenceData. arviz expects shape (chains, draws, ...);
     # the API takes a nested {group_name: {var_name: array}} mapping.
@@ -139,7 +152,8 @@ def run_chain_simple(
         "n_reproducible": np.asarray(n_reproducible_trace, dtype=np.int32)[None, :],
     }
     idata = az.from_dict({"posterior": posterior_group})
-    return ChainResult(idata=idata, final_state=state)
+    z_arr = np.stack(z_trace, axis=0)  # (n_samples, n)
+    return ChainResult(idata=idata, final_state=state, z_samples=z_arr)
 
 
 def run_multi_chain_simple(
@@ -202,6 +216,7 @@ def run_multi_chain_simple(
     pi_chains: list[np.ndarray] = []
     rho_chains: list[np.ndarray] = []
     n_rep_chains: list[np.ndarray] = []
+    z_chains: list[np.ndarray] = []
     final_states: list[SimpleSweepState] = []
 
     for c in range(num_chains):
@@ -226,6 +241,7 @@ def run_multi_chain_simple(
         pi_chains.append(np.asarray(posterior["pi"]).reshape(-1))
         rho_chains.append(np.asarray(posterior["rho"]).reshape(-1))
         n_rep_chains.append(np.asarray(posterior["n_reproducible"]).reshape(-1))
+        z_chains.append(chain_res.z_samples)
         final_states.append(chain_res.final_state)
 
     posterior_group = {
@@ -234,7 +250,8 @@ def run_multi_chain_simple(
         "n_reproducible": np.stack(n_rep_chains, axis=0),
     }
     idata = az.from_dict({"posterior": posterior_group})
-    return MultiChainResult(idata=idata, final_states=tuple(final_states))
+    z_arr = np.stack(z_chains, axis=0)  # (num_chains, n_samples, n)
+    return MultiChainResult(idata=idata, final_states=tuple(final_states), z_samples=z_arr)
 
 
 def summarise(result: ChainResult, var_names: list[str] | None = None) -> "az.InferenceData":
