@@ -4,6 +4,23 @@
 **Depends on:** 02_algebra_and_copulas, 03_marginals
 **Implements:** Algorithm 1 of the revised report; Eqs. (3.5)–(3.6); §3.3.1 ("Pólya-urn auxiliary-atom MCMC")
 
+## Status snapshot (W8.1)
+
+| Step | Module | Status |
+|------|--------|--------|
+| 1. Class assignment | `inference/mcmc/class_assign.py` | DONE |
+| 2. Pólya-urn cluster reassignment | `inference/mcmc/sweep_multi._polya_urn_reassign_all` + `pym/polya_urn.py` | DONE |
+| 3. Atom-parameter NUTS | `inference/mcmc/nuts_atoms.py` + `atom_dispatch.py` | DONE (Gaussian / Clayton / Gumbel-K2 / $t_5$) |
+| 4. Atomic-type IM | `inference/mcmc/type_update.py` | DONE (Gumbel excluded from proposal pool at $K \ge 3$) |
+| 5. Bernstein-weight conjugate | `marginals/dirichlet_weights.py` | DONE |
+| 6. Marginal-degree update | `marginals/degree_prior.py` | PARTIAL (helper present, not currently wired into sweep) |
+| 7. PY $(\alpha, \sigma)$ NUTS | `inference/mcmc/py_hyperparam_update.py` + `pym/eppf.py` | DONE |
+| 8. $\pi$ Beta update | `inference/mcmc/pi_update.py` | DONE |
+
+**Sweep entry points:** `inference/mcmc/sweep_simple.py` ($T = 1$ fast path) and `inference/mcmc/sweep_multi.py` (full Algorithm 1). Top-level drivers `run_chain_simple`, `run_multi_chain_simple`, `run_chain_multi`, `run_multi_chain_multi` in `inference/mcmc/run_chain.py`. Output is an `arviz.InferenceData` plus a Z-trace (and a cluster-label trace for the multi-cluster path).
+
+**Correctness audit findings (W8.1):** two PRNG-key reuse bugs fixed in commit `4e98a63`. (1) Step-8 $\pi$ update was reusing the step-1 class-assignment key. (2) Polya-urn aux loop reused subkeys between adjacent iterations. Regression test in `tests/inference/test_run_chain_multi.py` guards both.
+
 > **Naming.** The revised manuscript names this scheme **Pólya-urn auxiliary-atom MCMC**.
 > Earlier drafts called it "slice-sampled Pólya-urn (Algorithm 8)"; that label has been
 > retired because the sampler does not maintain an explicit infinite stick during

@@ -5,6 +5,18 @@
 **Implements:** §3.3.1 (sampler diagnostics list), Remark A.6 (theory-to-code diagnostics)
 of the revised report.
 
+## Status snapshot (W8.1)
+
+| Deliverable | Module | Status |
+|-------------|--------|--------|
+| `DiagnosticsReport` pydantic schema | `eval/diagnostics_report.DiagnosticsReport` | DONE |
+| split-$\hat R$ + ESS extraction | via `arviz.summary` in `build_diagnostics_report` | DONE |
+| Divergent-transition fraction | input slot; chain driver doesn't yet plumb divergences out | PARTIAL |
+| Cluster-count trace | `ChainResultMulti.T_trace` (multi-cluster path) | DONE |
+| Pass/warn/fail verdict + thresholds | constants `RHAT_PASS_THRESHOLD=1.01`, `ESS_PASS_THRESHOLD=400`, `DIVERGENCE_FRACTION_THRESHOLD=0.005`, `MIN_CHAINS_PASS=4` | DONE |
+| Label-switching postprocessor | Stephens (2000) relabeller | TODO |
+| Hellinger to truth (theoretical contraction probe) | `eval/hellinger.{hellinger_gaussian_copula, hellinger_gaussian_copula_mc}` | DONE (closed form for exchangeable Gaussian copulas; F5 figure consumes it) |
+
 ## Goal
 
 A first-class diagnostics layer that maps each theorem assumption to a measured signal

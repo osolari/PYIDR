@@ -4,6 +4,20 @@
 **Depends on:** 04_inference_mcmc, 05_inference_vi, 06_decision_theory
 **Implements:** §4.7–§4.9 of the revised report; Table 7 (datasets); Figure F5 (real-data summaries); Tables T7 (real-disc, real-clusters, real-runtime).
 
+## Status snapshot (W8.1)
+
+**TODO across the board.** The dataset-manifest schema is wired (`py_idr.data.schema.DatasetManifest` is pydantic-validated and round-trips through YAML), but no actual dataset loaders have landed yet. Specifically:
+
+| Dataset | Loader | Manifest example | Status |
+|---------|--------|------------------|--------|
+| REAL-01: ENCODE 4 CTCF ChIP-seq | — | — | TODO |
+| REAL-02: ENCODE 4 ATAC-seq | — | — | TODO |
+| REAL-03: DREAM5 (K = 35) | — | — | TODO |
+| REAL-04: Tabula Muris pseudobulk | — | — | TODO |
+| REAL-05: Pan-UKBB GWAS | — | — | TODO |
+
+This plan unblocks Figure F6 (`fig:realdata`) and Tables T5–T7. It is the single largest remaining body of work and naturally splits across multiple PRs (one per dataset, plus the shared BED universe + replicate-matching plumbing).
+
 ## Goal
 
 Five reproducible real-data pipelines that take raw consortium releases and produce a posterior local idr per feature, a Sun–Cai threshold, and the figures + tables for §4.8 of the paper.

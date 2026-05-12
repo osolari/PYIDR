@@ -4,6 +4,27 @@
 **Depends on:** 07_simulation_studies, 08_real_data_pipelines
 **Implements:** Figures fig:calibration, fig:roc-pr, fig:contract, fig:py-vs-dp, fig:realdata, fig:runtime; Tables tab:notation, tab:related-work, tab:sim-design, tab:sim-fdr, tab:sim-power, tab:sim-K, tab:datasets, tab:real-disc, tab:real-clusters, tab:real-runtime
 
+## Status snapshot (W8.1)
+
+Internal numbering changed from the original plan: F1–F6 in the code now map to the report's `fig:*` labels as below. The original spec used a different ordering that is no longer in force.
+
+| Code label | LaTeX label | Module | CLI | Status |
+|-----------|-------------|--------|-----|--------|
+| F1 | `fig:calibration` | `figures/f1_calibration.py` | `py-idr figure --fig f1` | DONE |
+| F2 | `fig:py-vs-dp` | `figures/f2_cluster_count.py` | `py-idr figure --fig f2` | DONE |
+| F3 | `fig:runtime` | `figures/f3_runtime.py` | `py-idr figure --fig f3` | DONE |
+| F4 | `fig:roc-pr` | `figures/f4_roc_pr.py` + NPZ sidecar | `py-idr figure --fig f4 --idr-npz <path>` | DONE |
+| F5 | `fig:contract` | `figures/f5_contraction.py` + `eval/hellinger.py` | `py-idr figure --fig f5` | DONE |
+| F6 | `fig:realdata` | not implemented; blocked on plan 08 | — | TODO |
+
+| Table | LaTeX label | Module | CLI | Status |
+|-------|------------|--------|-----|--------|
+| T4 | `tab:sim-fdr` / `tab:sim-power` | `tables/t4_sim_results.py` | `py-idr table --table {t4-fdr,t4-power}` | DONE |
+| T1, T2, T3 | static reference tables | already in `docs/report/tables/*.tex` | — | DONE (manuscript-managed) |
+| T5 / T6 / T7 | datasets / real-data / K-effect | not implemented; T5 + T6 blocked on plan 08; T7 (K-effect on S5) is wired-up-ready but no reproducer yet | — | TODO |
+
+Each implemented module follows the same two-tier shape: `compute_*` for pure-data summaries (testable without matplotlib) and `make_*` for the PDF / .tex emit. The sweep CSV produced by `py-idr sim` is the single contract every figure consumes (plus the NPZ sidecar for F4).
+
 ## Goal
 
 Replace the synthetic figures and placeholder tables in `docs/report/figures/` and

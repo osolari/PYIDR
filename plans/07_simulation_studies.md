@@ -4,6 +4,22 @@
 **Depends on:** 02_algebra_and_copulas, 03_marginals, 06_decision_theory (and 04_inference_mcmc for fitting)
 **Implements:** §4.1–§4.6 of the revised report; Table 3 (sim design); Figures F1, F2, F3, F4; Tables T4 (sim FDR), T5 (sim power), T6 (sim K-effect).
 
+## Status snapshot (W8.1)
+
+| Deliverable | Where | Status |
+|-------------|-------|--------|
+| S1–S4 generators | `simulation/scenarios.simulate_S1..S4` | DONE |
+| S5 / S5-sparse generators | `simulation/scenarios.simulate_S5{,_sparse}` (equal mixture of $t_5$ / Clayton / Gumbel-K2; closed-form matched Kendall's $\tau$) | DONE |
+| End-to-end replicate driver | `simulation/replicates.run_replicate{,_S1..S5_sparse}` | DONE |
+| Sweep driver | `simulation/sweep.run_sweep` + `run_sweep_with_traces` (per-replicate (idr, Z) sidecar) | DONE |
+| CSV writer | `simulation/sweep.write_sweep_csv` | DONE |
+| NPZ idr-trace sidecar | `simulation/sweep.write_idr_sidecar` / `load_idr_sidecar` | DONE |
+| Chain-type ablation knob | `--chain-type {auto, T=1, T>1}` on the CLI; routes S5 / S5-sparse through `run_multi_chain_multi` by default | DONE |
+| `py-idr sim` CLI | `cli.sim` | DONE (`--save-idr` flag opt-in for the NPZ sidecar) |
+| Per-replication Zarr bundle | The Zarr-bundle scheme below is **not** implemented today; the row-and-NPZ format above replaced it for the v0 path. Zarr remains the plan for big runs. | TODO |
+
+The `simulation.replicates.ReplicateRow` columns (CSV layout): `regime`, `K`, `n`, `replicate_seed`, `method`, `alpha`, `pi_true`, `pi_posterior_mean`, `rho_true`, `rho_posterior_mean`, `T_posterior_mean`, `k_alpha`, `realized_fdr`, `power`, `num_chains`, `num_samples_per_chain`, `walltime_s`.
+
 ## Goal
 
 A reproducible simulation harness that can run the full S1–S5 × $K \in \{2,5,10,50\}$ ×

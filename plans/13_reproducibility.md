@@ -4,6 +4,21 @@
 **Depends on:** all implementation workstreams (W1–W5).
 **Implements:** §4.9 of the revised report; handoff IMPL-10.
 
+## Status snapshot (W8.1)
+
+| Deliverable | Module | Status |
+|-------------|--------|--------|
+| `DatasetManifest` pydantic schema | `data/schema.DatasetManifest` (extra="forbid", round-trips JSON+YAML) | DONE |
+| `RunManifest` pydantic schema | `data/schema.RunManifest` (run_id, git_sha, config_hash, seed, started_at, inference_method) | DONE |
+| `SeedLedger` schema | `data/schema.SeedLedger` | DONE |
+| run_id constructor | `utils/run.new_run_id` (`<unix_ms>-<8hex>`; 32-bit suffix to avoid birthday-paradox at sweep scale) | DONE |
+| git SHA detection | `utils/run.detect_git_sha` | DONE |
+| Per-run manifest writer | `py-idr sim` writes `<run_id>/run_manifest.json` with `config_hash = SHA-256(canonical_config_json)` | DONE |
+| NPZ idr-trace sidecar | `simulation/sweep.{write,load}_idr_sidecar` | DONE (W7.3) |
+| Dockerfile | — | TODO (plan 14) |
+| Snakemake / replay script | — | TODO |
+| Verdict ledger | — | TODO |
+
 ## Goal
 
 Make every run a complete, frozen, replayable experiment. From a clean checkout +

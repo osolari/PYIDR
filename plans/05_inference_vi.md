@@ -4,6 +4,10 @@
 **Depends on:** 04_inference_mcmc (uses the same `SamplerState` shape)
 **Implements:** §3.3.2 of the revised report; Theorem 3.5 (**finite-truncation** variational consistency).
 
+## Status snapshot (W8.1)
+
+**TODO.** `py_idr.inference.vi` is still a stub package. The MCMC back-end is the only working inference path. This is the largest remaining piece of methodology work; everything else in the §3–§4 stack is operational.
+
 ## Goal
 
 A structured mean-field variational family with **finite truncation** $T$ at the PY stick,

@@ -4,6 +4,22 @@
 **Depends on:** 04_inference_mcmc (consumes traces), 05_inference_vi (optional)
 **Implements:** §3.3.3 of the revised report; Eqs. (3.9)–(3.11) (revised numbering); Sun–Cai step-up rule.
 
+## Status snapshot (W8.1)
+
+| Deliverable | Module | Status |
+|-------------|--------|--------|
+| Posterior local idr (Eq. 3.9) | `decision/local_idr.from_mcmc` (and `from_vi`) | DONE |
+| Bayes-mFDR curve (Eq. 3.10 with `max(1, E[R])` denominator) | `decision/bayes_mfdr.bayes_mfdr_curve` | DONE |
+| Sun-Cai step-up (Eq. 3.11) | `decision/sun_cai.step_up_threshold` | DONE |
+| Realised-FDR + power evaluator | `simulation/evaluation.evaluate_recovery` | DONE |
+| ROC / PR curves + AUC / AP scalars | `decision/roc_pr` (W7.2) | DONE |
+
+**Cross-checks (W8.1):**
+
+- Sun-Cai hand-computed 8-point example reproduces $k_\alpha = 4$, $\gamma_\alpha = 0.10$, selected = [0, 1, 2, 3] at $\alpha = 0.05$.
+- Permutation invariance verified.
+- Empty-rejection edge case ($\alpha < \min(\mathrm{idr})$) returns $k_\alpha = 0$, $\gamma = \mathrm{NaN}$.
+
 ## Goal
 
 Given a posterior trace (MCMC) or a variational posterior (VI), produce:
