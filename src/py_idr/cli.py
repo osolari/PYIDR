@@ -452,27 +452,83 @@ def table(
 
 @app.command()
 def evaluate(
-    trace: str = typer.Option(..., "--trace", help="Path to a Zarr trace."),
-    alpha: float = typer.Option(0.05, "--alpha"),
+    idr_npz: str = typer.Option(
+        ...,
+        "--idr-npz",
+        help="Path to an idr_traces.npz sidecar produced by `py-idr sim --save-idr`.",
+    ),
+    alpha: float = typer.Option(0.05, "--alpha", help="Sun-Cai operating level."),
+    regimes: str = typer.Option(
+        "",
+        "--regimes",
+        help="Comma-separated regimes to include (default: all present).",
+    ),
+    out: str = typer.Option(
+        "",
+        "--out",
+        help="Optional output CSV path; if omitted, prints to stdout.",
+    ),
 ) -> None:
-    """Evaluate a finished run: local idr, Sun-Cai threshold, Bayes-mFDR.
+    """Re-evaluate an idr sidecar at a user-specified Sun-Cai $\\alpha$.
 
-    **Stub today.** When implemented (plans/06), this will:
+    Reads the per-replicate ``(idr, true_Z)`` arrays from the NPZ
+    sidecar, applies Sun-Cai at ``--alpha`` to each replicate, and
+    prints per-regime mean realised FDR / power / $k_\\alpha$.
 
-    1. Load the Zarr trace at ``--trace`` (an ``arviz.InferenceData``
-       plus the Z-trace).
-    2. Compute the posterior local idr via
-       :func:`py_idr.decision.local_idr.from_mcmc`.
-    3. Apply the Sun-Cai step-up rule at level ``--alpha`` and report
-       $k_\\alpha$, $\\gamma_\\alpha$, realised mFDR.
-    4. Emit the Bayes-mFDR curve as a side artifact.
+    The sweep CSV already carries these metrics for the alphas the
+    sweep itself was run at. This command is for **after-the-fact
+    re-evaluation at a different $\\alpha$**, without re-running the
+    chain.
 
-    For interactive / scripted use, call
-    :func:`py_idr.decision.sun_cai.step_up_threshold` directly.
+    Example:
+
+    .. code-block:: bash
+
+        py-idr sim --regime S5 --reps 20 --save-idr --out runs/sim
+        py-idr evaluate --idr-npz runs/sim/<run_id>/idr_traces.npz \\
+                        --alpha 0.10
     """
-    raise NotImplementedError(
-        f"evaluate({trace=}, {alpha=}) — implemented per plans/06_decision_theory.md."
-    )
+    import jax.numpy as jnp
+    import pandas as pd
+
+    from py_idr.simulation.evaluation import evaluate_recovery  # type: ignore[attr-defined]
+    from py_idr.simulation.sweep import load_idr_sidecar  # type: ignore[attr-defined]
+
+    if not (0.0 < alpha < 1.0):
+        raise typer.BadParameter(f"--alpha must be in (0, 1); got {alpha}")
+
+    traces_by_regime = load_idr_sidecar(idr_npz)
+    if regimes:
+        allow = {r.strip() for r in regimes.split(",")}
+        traces_by_regime = {k: v for k, v in traces_by_regime.items() if k in allow}
+    if not traces_by_regime:
+        raise typer.BadParameter(f"No matching regimes in {idr_npz}; try --regimes ''.")
+
+    rows: list[dict[str, object]] = []
+    for regime, replicates in traces_by_regime.items():
+        for seed_i, (idr_arr, Z_arr) in enumerate(replicates):
+            rec = evaluate_recovery(jnp.asarray(idr_arr), jnp.asarray(Z_arr), alpha=alpha)
+            rows.append(
+                {
+                    "regime": regime,
+                    "alpha": alpha,
+                    "replicate_idx": seed_i,
+                    "k_alpha": rec.k_alpha,
+                    "realized_fdr": rec.realized_fdr,
+                    "power": rec.power,
+                }
+            )
+
+    df = pd.DataFrame(rows)
+    summary = df.groupby("regime")[["realized_fdr", "power", "k_alpha"]].agg(["mean", "std"])
+    typer.echo(f"Sun-Cai @ alpha = {alpha} — per-regime mean (std) across {len(rows)} rows:")
+    typer.echo(summary.to_string())
+
+    if out:
+        out_path = Path(out)
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        df.to_csv(out_path, index=False)
+        typer.echo(f"Wrote {out_path}")
 
 
 if __name__ == "__main__":
