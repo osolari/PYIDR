@@ -353,7 +353,9 @@ def figure(
 
 @app.command()
 def table(
-    table: str = typer.Option(..., "--table", help="t4-fdr | t4-power (today) | t1..t7 (planned)"),
+    table: str = typer.Option(
+        ..., "--table", help="t4-fdr | t4-power | t7 (today) | t1..t6 (planned)"
+    ),
     results: str = typer.Option(..., "--results", help="Path to source CSV."),
     out: str = typer.Option(..., "--out"),
     alpha: float = typer.Option(0.05, "--alpha"),
@@ -382,10 +384,16 @@ def table(
         out_path = make_simulation_results_table(
             results, out, metric="power", alpha=alpha, label="tab:sim-power"
         )
+    elif label == "t7":
+        from py_idr.tables.t7_K_effect import (
+            make_K_effect_table,  # type: ignore[attr-defined]
+        )
+
+        out_path = make_K_effect_table(results, out, regime="S5", alpha=alpha, label="tab:sim-K")
     else:
         raise NotImplementedError(
             f"table --table={table} not implemented yet. Today only "
-            "'t4-fdr' and 't4-power' are wired up. See plans/09_figures_and_tables.md."
+            "'t4-fdr', 't4-power', and 't7' are wired up. See plans/09_figures_and_tables.md."
         )
     typer.echo(f"Wrote {out_path}")
 

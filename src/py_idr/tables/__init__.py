@@ -26,9 +26,17 @@ from py_idr.tables.t4_sim_results import (
     format_latex_table,
     make_simulation_results_table,
 )
+from py_idr.tables.t7_K_effect import (
+    compute_K_effect_table,
+    make_K_effect_table,
+)
+from py_idr.tables.t7_K_effect import format_latex_table as format_K_effect_latex_table
 
 __all__ = [
+    "compute_K_effect_table",
     "compute_summary_table",
+    "format_K_effect_latex_table",
     "format_latex_table",
+    "make_K_effect_table",
     "make_simulation_results_table",
 ]
