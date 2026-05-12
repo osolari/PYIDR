@@ -160,14 +160,18 @@ def _polya_urn_reassign_all(
         occupied_compact = occupied_log_dens[surviving]
 
         # Draw H aux atoms from P_0 (uniform over admissible types).
+        # Each aux atom needs two independent subkeys: one to pick the
+        # type uniformly, one to draw the type-specific parameters.
+        # Earlier versions of this loop accidentally re-used a single
+        # subkey across (param_draw of atom h, type_pick of atom h+1).
         aux_atoms: list[AtomDraw] = []
-        type_keys = jax.random.split(aux_key, H + 1)
+        aux_subkeys = jax.random.split(aux_key, 2 * H)
         for h in range(H):
-            # Uniformly choose a type from the supported set.
-            type_pick = type_keys[h]
-            type_idx = int(jax.random.randint(type_pick, (), 0, len(types_supported)))
+            type_pick_key = aux_subkeys[2 * h]
+            params_key = aux_subkeys[2 * h + 1]
+            type_idx = int(jax.random.randint(type_pick_key, (), 0, len(types_supported)))
             type_name = types_supported[type_idx]
-            aux_atoms.append(prior_propose_atom(type_keys[h + 1], type_name, K))
+            aux_atoms.append(prior_propose_atom(params_key, type_name, K))
         aux_log_dens = jnp.array([float(atom.copula.log_density(U_i)[0]) for atom in aux_atoms])
 
         # Build the (T_-i + H) log-weight vector per Eqs. (3.5)–(3.6).
@@ -244,8 +248,18 @@ def multi_cluster_sweep(
     The new :class:`MultiClusterState`.
     """
     n, K = F0.shape
-    keys = jax.random.split(key, 6)
-    k_class, k_polya, k_atoms, k_types, k_marginals, k_hyperparam = keys
+    # One subkey per random step in Algorithm 1. Re-using the same key
+    # across steps would make samples spuriously correlated.
+    keys = jax.random.split(key, 7)
+    (
+        k_class,
+        k_polya,
+        k_atoms,
+        k_types,
+        k_marginals,
+        k_hyperparam,
+        k_pi,
+    ) = keys
 
     # ---- compute U from the current Bernstein marginals --------------------
     U = _bernstein_U(F0, state.bernstein_weights, state.M)
@@ -334,7 +348,7 @@ def multi_cluster_sweep(
         state = replace(state, alpha=alpha_new, sigma=sigma_new)
 
     # ---- Step 8: π update --------------------------------------------------
-    pi_new = float(update_pi(k_class, state.Z))
+    pi_new = float(update_pi(k_pi, state.Z))
     state = replace(state, pi=pi_new)
 
     return state

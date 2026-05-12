@@ -259,6 +259,40 @@ def test_run_multi_chain_multi_stacks_chains() -> None:
     assert len(result.final_states) == num_chains
 
 
+@pytest.mark.unit
+def test_multi_cluster_sweep_uses_distinct_keys_per_step() -> None:
+    """Regression: every random step in Algorithm 1 must get its own subkey.
+
+    Earlier versions of `multi_cluster_sweep` accidentally re-used the
+    class-assignment key for the pi update at step 8 (and a related
+    overlap inside the Polya-urn auxiliary loop). Such key re-use makes
+    the chain produce correlated draws — silent but wrong. This test
+    inspects the source as a structural guard.
+    """
+    import inspect
+
+    from py_idr.inference.mcmc import sweep_multi
+
+    src = inspect.getsource(sweep_multi.multi_cluster_sweep)
+    # Step 8 must use its own subkey (`k_pi`), not the class-assignment key.
+    assert "update_pi(k_pi" in src, (
+        "Step 8 (pi update) should consume k_pi; if it consumes k_class "
+        "the chain produces correlated samples."
+    )
+    assert "split(key, 7)" in src, (
+        "multi_cluster_sweep should split the input key into 7 subkeys "
+        "(one per random step in Algorithm 1)."
+    )
+
+    polya_src = inspect.getsource(sweep_multi._polya_urn_reassign_all)
+    # The aux loop must allocate 2*H subkeys, not H+1.
+    assert "split(aux_key, 2 * H)" in polya_src, (
+        "Each auxiliary atom needs two independent subkeys (type pick + "
+        "param draw). Earlier code split into H+1 keys, causing adjacent "
+        "iterations to share a subkey."
+    )
+
+
 @pytest.mark.integration
 def test_run_multi_chain_multi_overdispersed_inits_differ() -> None:
     """Chains start from different (pi, alpha, sigma) — first-draw posteriors must differ."""
