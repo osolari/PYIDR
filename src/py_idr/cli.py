@@ -246,7 +246,7 @@ def sim(
 
 @app.command()
 def figure(
-    fig: str = typer.Option(..., "--fig", help="f1 | f2 | f3 | f4"),
+    fig: str = typer.Option(..., "--fig", help="f1 | f2 | f3 | f4 | f5"),
     results: str = typer.Option(..., "--results", help="Path to source CSV."),
     out: str = typer.Option(..., "--out", help="Output PDF path."),
     regimes: str = typer.Option(
@@ -333,9 +333,21 @@ def figure(
         typer.echo(f"Wrote {out_path}")
         return
 
+    if label == "f5":
+        from py_idr.figures.f5_contraction import (
+            make_contraction_figure,  # type: ignore[attr-defined]
+        )
+
+        # F5 is meaningful only for regimes with finite rho_true; the
+        # default narrows to S1 unless the user overrode --regimes.
+        regimes_arg_f5 = ("S1",) if regimes == "S1,S2,S4,S5" else regimes_tuple
+        out_path = make_contraction_figure(results, out, regimes=regimes_arg_f5)
+        typer.echo(f"Wrote {out_path}")
+        return
+
     raise NotImplementedError(
-        f"figure --fig={fig} not implemented yet. Today 'f1', 'f2', 'f3', 'f4' "
-        f"are wired up. See plans/09_figures_and_tables.md for F5-F6."
+        f"figure --fig={fig} not implemented yet. Today 'f1'..'f5' "
+        f"are wired up. See plans/09_figures_and_tables.md for F6."
     )
 
 

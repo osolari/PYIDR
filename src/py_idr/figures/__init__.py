@@ -39,18 +39,26 @@ from py_idr.figures.f4_roc_pr import (
     compute_roc_pr_curves,
     make_roc_pr_figure,
 )
+from py_idr.figures.f5_contraction import (
+    ContractionCurve,
+    compute_contraction_curves,
+    make_contraction_figure,
+)
 
 __all__ = [
     "CalibrationCurve",
+    "ContractionCurve",
     "ROCPRSummary",
     "RuntimeCurve",
     "TClusterCountHistogram",
     "compute_T_histograms",
     "compute_calibration_curves",
+    "compute_contraction_curves",
     "compute_roc_pr_curves",
     "compute_runtime_curves",
     "make_calibration_figure",
     "make_cluster_count_figure",
+    "make_contraction_figure",
     "make_roc_pr_figure",
     "make_runtime_figure",
 ]
