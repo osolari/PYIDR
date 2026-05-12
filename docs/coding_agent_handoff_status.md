@@ -7,8 +7,8 @@ This page mirrors the IMPL / SIM / REAL task list from the handoff and tracks st
 in this repo. Update on every PR that closes a task. The `Plan` column points at the
 sub-plan that owns the task; the `Status` column uses `TODO / PARTIAL / DONE`.
 
-> Last refreshed: W7.4 (F5 contraction figure). The `git log` is authoritative for
-> the latest state — this page is a courtesy index.
+> Last refreshed: W8.9 (replay script + run_config persistence). The `git log` is
+> authoritative for the latest state — this page is a courtesy index.
 
 ## Implementation tasks
 
@@ -22,15 +22,15 @@ sub-plan that owns the task; the `Status` column uses `TODO / PARTIAL / DONE`.
 | IMPL-06 | NUTS / Metropolis atom updates | [04](../plans/04_inference_mcmc.md) | DONE | `py_idr.inference.mcmc.nuts_atoms` uses NumPyro NUTS on the Cholesky parameterisation for Gaussian / $t_5$ / Clayton / Gumbel-K2 atoms; `type_update.py` is the atomic-type IM step. `run_chain_simple` + `run_chain_multi` (plus their `run_multi_chain_*` siblings) are the top-level drivers. |
 | IMPL-07 | Local idr + Bayes-mFDR + Sun–Cai | [06](../plans/06_decision_theory.md) | DONE | `decision.local_idr.from_mcmc`, `decision.sun_cai.step_up_threshold` (with `max(1, E[R])` denominator), and `decision.bayes_mfdr.bayes_mfdr_curve` are implemented and tested. ROC/PR helpers added in W7.2 (`decision.roc_pr`). |
 | IMPL-08 | Structured finite-truncation VI | [05](../plans/05_inference_vi.md) | TODO | `py_idr.inference.vi` is the only inference back-end still on stubs. Plan 09 covers the design (mean-field normalising flow over the partition + atoms). |
-| IMPL-09 | Diagnostics + logging | [12](../plans/12_diagnostics.md) | DONE | `py_idr.eval.diagnostics_report` packages arviz split-$\hat R$, ESS, divergence-fraction into a pass/warn/fail verdict with documented thresholds. |
-| IMPL-10 | Reproducibility infrastructure | [13](../plans/13_reproducibility.md), [14](../plans/14_docker_a10dev.md) | PARTIAL | Pydantic manifests + per-run `run_manifest.json` from `py-idr sim` are landed. NPZ idr sidecar (`idr_traces.npz`) added in W7.3. Dockerfile + Snakemake + verdict-ledger are still planned (plan 14). |
+| IMPL-09 | Diagnostics + logging | [12](../plans/12_diagnostics.md) | DONE | `py_idr.eval.diagnostics_report` packages arviz split-$\hat R$, ESS, divergence-fraction into a pass/warn/fail verdict with documented thresholds. Open: divergence-fraction is still fed in by the caller; the chain driver doesn't yet aggregate NUTS divergences out of the per-sweep atom / py-hyperparam updates. |
+| IMPL-10 | Reproducibility infrastructure | [13](../plans/13_reproducibility.md), [14](../plans/14_docker_a10dev.md) | PARTIAL | Pydantic manifests + per-run `run_manifest.json`, NPZ idr sidecar, verdict ledger (`py-idr verdict`, W8.8), `run_config.json` + `scripts/replay_run.sh` (W8.9) all landed. Dockerfile + `.dockerignore` checked in for plan 14; Snakemake workflow target + GHCR-image GitHub Actions are still TODO. |
 
 ## Simulation tasks
 
 | ID | Task | Plan | Status | Notes |
 |----|------|------|--------|-------|
 | SIM-01 | Factorial S1–S5 + S5-sparse | [07](../plans/07_simulation_studies.md) | DONE | `py_idr.simulation.scenarios.simulate_S{1..5}` + `simulate_S5_sparse` all implemented. `run_replicate` dispatcher + `run_sweep` / `run_sweep_with_traces` + the `py-idr sim` CLI complete the loop. S5 routes through the multi-cluster chain by default; T=1 ablation available via `--chain-type T=1`. |
-| SIM-02 | Component ablations | [07](../plans/07_simulation_studies.md) | PARTIAL | The `--chain-type` flag enables T=1 vs T>1 ablation on S5; per-component (PY vs DP, Gaussian-only vs heavy-tail, etc.) ablation sweeps are still on paper. |
+| SIM-02 | Component ablations | [07](../plans/07_simulation_studies.md) | PARTIAL | `--chain-type T=1 / T>1` ablation lives; comparator ablations land via `--method {py-idr, vanilla-idr, maxrank}` (W8.4 / W8.6) and the multi-method demo in `scripts/multi_method_demo.sh` (W8.7). EM warm-start (W8.5) is opt-in via `em_init=True` in the chain drivers. Per-component (PY vs DP, Gaussian-only vs heavy-tail) sweeps are still on paper. |
 | SIM-03 | Robustness / stress tests | [07](../plans/07_simulation_studies.md), [add-stress-test](../.claude/skills/add-stress-test/SKILL.md) | TODO | Catalogue per §4.6; one config per stressor planned. |
 
 ## Real-data tasks
@@ -90,6 +90,19 @@ PRNG-key reuse bugs and several cross-checks. Findings:
   (very small posterior $\pi$, $T$ saturating $T_\max$) when started
   from the Gaussian-only initial atom and run with tiny warmup.
   The fix is the same: longer warmup, or wire up the EM init.
+
+## Follow-on workstreams (W8.2 – W8.9)
+
+| Tag | Workstream | Closes | Commit / file |
+|-----|------------|--------|---------------|
+| W8.2 | jaxtyping shape strings cleared for comparator modules | ruff F722 noise blocking comparator merges | `pyproject.toml` per-file ignore |
+| W8.3 | numpy 2.0 `trapezoid` shim | ROC/PR AUC computation on the post-2.0 numpy stack | `decision/roc_pr.py` |
+| W8.4 | Vanilla IDR (LBHB 2011) comparator | benchmarks against the foundational IDR baseline | `comparators/vanilla_idr.py`, `run_replicate_vanilla_idr` |
+| W8.5 | EM warm start | chain-mixing limitation noted in the audit; pairwise Vanilla IDR seeds $(\pi, \rho, Z)$ | `inference/mcmc/em_init.py`, `em_init=True` knob on all chain drivers |
+| W8.6 | MaxRank (Philtron–Lyu–Li–Ghosh 2018) comparator | non-parametric rank baseline | `comparators/maxrank.py`, `run_replicate_maxrank` |
+| W8.7 | Multi-method demo | end-to-end "real T4 row with three methods" pipeline | `scripts/multi_method_demo.sh` |
+| W8.8 | Verdict ledger | plan 13 acceptance-criteria machinery (H1 FDR control, H2/H3 power dominance) | `repro/verdict.py`, `py-idr verdict`, `tests/repro/test_verdict.py` |
+| W8.9 | Replay script + `run_config.json` | plan 13 replayability — `<run_dir>` is self-contained for replay on CPU | `scripts/replay_run.sh`, `run_config.json`, `tests/repro/test_replay.py` |
 
 ## Report figures & tables
 
