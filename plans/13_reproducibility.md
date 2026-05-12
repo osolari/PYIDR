@@ -4,7 +4,7 @@
 **Depends on:** all implementation workstreams (W1–W5).
 **Implements:** §4.9 of the revised report; handoff IMPL-10.
 
-## Status snapshot (W8.1)
+## Status snapshot (W8.9)
 
 | Deliverable | Module | Status |
 |-------------|--------|--------|
@@ -14,10 +14,12 @@
 | run_id constructor | `utils/run.new_run_id` (`<unix_ms>-<8hex>`; 32-bit suffix to avoid birthday-paradox at sweep scale) | DONE |
 | git SHA detection | `utils/run.detect_git_sha` | DONE |
 | Per-run manifest writer | `py-idr sim` writes `<run_id>/run_manifest.json` with `config_hash = SHA-256(canonical_config_json)` | DONE |
+| Per-run config persistence | `py-idr sim` writes `<run_id>/run_config.json` (full resolved CLI config) | DONE (W8.9) |
 | NPZ idr-trace sidecar | `simulation/sweep.{write,load}_idr_sidecar` | DONE (W7.3) |
+| Verdict ledger | `repro/verdict.{VerdictRecord,VerdictLedger,build_verdict_ledger}` + `py-idr verdict` CLI | DONE (W8.8) |
+| Replay script | `scripts/replay_run.sh <run_dir>` — reads `run_config.json`, re-execs `py-idr sim`, posterior summary matches to <1e-6 | DONE (W8.9) |
 | Dockerfile | — | TODO (plan 14) |
-| Snakemake / replay script | — | TODO |
-| Verdict ledger | — | TODO |
+| Snakemake workflow target | — | TODO |
 
 ## Goal
 

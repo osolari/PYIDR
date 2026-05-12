@@ -256,30 +256,33 @@ def sim(
     csv = write_sweep_csv(rows, out_dir / "results.csv")
 
     # Manifest sibling: records run_id + git_sha + config so the run is
-    # reproducible from this one directory.
-    config_blob = json.dumps(
-        {
-            "regime": regime,
-            "K": K,
-            "n": n,
-            "reps": reps,
-            "base_seed": base_seed,
-            "alphas": list(alphas_tuple),
-            "num_chains": num_chains,
-            "n_warmup": n_warmup,
-            "n_samples": n_samples,
-            "nuts_warmup": nuts_warmup,
-            "M": M,
-            "chain_type": chain_type,
-            "T_max": T_max,
-            "H": H,
-            "py_hyperparam_warmup": py_hyperparam_warmup,
-            "save_idr": save_idr,
-            "method": method_key,
-        },
-        sort_keys=True,
-    )
+    # reproducible from this one directory. The full resolved config is
+    # persisted to ``run_config.json`` so ``scripts/replay_run.sh`` can
+    # reconstruct the original ``py-idr sim`` command.
+    config_dict = {
+        "regime": regime,
+        "K": K,
+        "n": n,
+        "reps": reps,
+        "base_seed": base_seed,
+        "alphas": list(alphas_tuple),
+        "num_chains": num_chains,
+        "n_warmup": n_warmup,
+        "n_samples": n_samples,
+        "nuts_warmup": nuts_warmup,
+        "M": M,
+        "chain_type": chain_type,
+        "T_max": T_max,
+        "H": H,
+        "py_hyperparam_warmup": py_hyperparam_warmup,
+        "save_idr": save_idr,
+        "method": method_key,
+    }
+    config_blob = json.dumps(config_dict, sort_keys=True)
     config_hash = __import__("hashlib").sha256(config_blob.encode()).hexdigest()
+
+    config_path = out_dir / "run_config.json"
+    config_path.write_text(json.dumps(config_dict, indent=2, sort_keys=True))
 
     manifest = build_run_manifest(
         run_id=run_id,
@@ -294,6 +297,7 @@ def sim(
 
     typer.echo(f"Wrote {len(rows)} rows to {csv}")
     typer.echo(f"Wrote manifest to {manifest_path}")
+    typer.echo(f"Wrote config to {config_path}")
 
 
 @app.command()
