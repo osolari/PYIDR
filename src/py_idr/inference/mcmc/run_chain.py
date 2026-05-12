@@ -94,6 +94,7 @@ def run_chain_simple(
     initial_state: SimpleSweepState | None = None,
     alpha_F: float = 1.0,
     nuts_warmup: int = 50,
+    em_init: bool = False,
 ) -> ChainResult:
     """Run a single chain of the $T=1$ PY-IDR sweep.
 
@@ -117,6 +118,12 @@ def run_chain_simple(
     nuts_warmup
         Per-sweep NUTS warmup for the atom step. Default 50 — short, so each
         sweep is cheap. Increase for tighter atom posteriors.
+    em_init
+        If True (and ``initial_state`` is None), seed the chain via
+        :func:`py_idr.inference.mcmc.em_init.compute_em_init` — pairwise
+        Vanilla IDR EM on $F_0$ recovers an informed
+        $(\\pi, \\rho, Z)$ start. Reduces warmup-budget waste; see the
+        report's §3.3.1 and the W8.1 audit notes in the status doc.
 
     Returns
     -------
@@ -130,7 +137,25 @@ def run_chain_simple(
 
     n, K = F0.shape
     inputs = SimpleSweepInputs(F0=F0, M=M, alpha_F=alpha_F, nuts_warmup=nuts_warmup)
-    state = initial_state if initial_state is not None else initial_simple_state(n=n, K=K, M=M)
+    if initial_state is not None:
+        state = initial_state
+    elif em_init:
+        from py_idr.inference.mcmc.em_init import compute_em_init  # local import to avoid cycle
+
+        em = compute_em_init(np.asarray(F0))
+        # Clamp rho into (0, 1) since the simple sweep's atom NUTS uses
+        # Beta(2, 2) on rho.
+        rho_clamped = float(np.clip(em.rho, 0.05, 0.95))
+        state = initial_simple_state(n=n, K=K, M=M, pi_init=em.pi, rho_init=rho_clamped)
+        # Inject the EM Z to skip the first sweep's bootstrap mis-classification.
+        state = SimpleSweepState(
+            pi=state.pi,
+            rho=state.rho,
+            bernstein_weights=state.bernstein_weights,
+            Z=jnp.asarray(em.Z, dtype=jnp.int32),
+        )
+    else:
+        state = initial_simple_state(n=n, K=K, M=M)
 
     total_iters = n_warmup + n_samples
     iter_keys = jax.random.split(key, total_iters)
@@ -174,6 +199,7 @@ def run_multi_chain_simple(
     alpha_F: float = 1.0,
     nuts_warmup: int = 50,
     overdispersed: bool = True,
+    em_init: bool = False,
 ) -> MultiChainResult:
     """Run ``num_chains`` independent chains and stack into a multi-chain idata.
 
@@ -212,12 +238,30 @@ def run_multi_chain_simple(
     per_chain_keys = chain_keys[1:]
 
     # Overdispersed inits: scatter pi in (0.2, 0.8), rho in (0.1, 0.9).
-    if overdispersed:
+    # When em_init=True, the per-chain inits scatter around the
+    # EM-recovered (pi, rho) so split-Rhat still has signal.
+    if em_init:
+        from py_idr.inference.mcmc.em_init import compute_em_init  # local import to avoid cycle
+
+        em = compute_em_init(np.asarray(F0))
+        pi_center = float(np.clip(em.pi, 0.10, 0.90))
+        rho_center = float(np.clip(em.rho, 0.10, 0.90))
+        spread = 0.10
+        pi_inits = jnp.linspace(
+            max(0.02, pi_center - spread), min(0.98, pi_center + spread), num_chains
+        )
+        rho_inits = jnp.linspace(
+            max(0.02, rho_center - spread), min(0.98, rho_center + spread), num_chains
+        )
+        em_Z = jnp.asarray(em.Z, dtype=jnp.int32)
+    elif overdispersed:
         pi_inits = jnp.linspace(0.2, 0.8, num_chains)
         rho_inits = jnp.linspace(0.15, 0.85, num_chains)
+        em_Z = None
     else:
         pi_inits = jnp.full(num_chains, 0.5)
         rho_inits = jnp.full(num_chains, 0.3)
+        em_Z = None
     del init_keys  # not used — but reserved for future stochastic perturbations
 
     pi_chains: list[np.ndarray] = []
@@ -234,6 +278,13 @@ def run_multi_chain_simple(
             pi_init=float(pi_inits[c]),
             rho_init=float(rho_inits[c]),
         )
+        if em_Z is not None:
+            init_state = SimpleSweepState(
+                pi=init_state.pi,
+                rho=init_state.rho,
+                bernstein_weights=init_state.bernstein_weights,
+                Z=em_Z,
+            )
         chain_res = run_chain_simple(
             F0=F0,
             M=M,
@@ -384,6 +435,7 @@ def run_chain_multi(
     alpha_F: float = 1.0,
     nuts_warmup: int = 30,
     py_hyperparam_warmup: int = 50,
+    em_init: bool = False,
 ) -> ChainResultMulti:
     """Run a single chain of the multi-cluster PY-IDR sweep (Algorithm 1).
 
@@ -432,17 +484,55 @@ def run_chain_multi(
     n, K = F0.shape
     init_key, run_key = jax.random.split(key, 2)
     if initial_state is None:
-        state = _initial_multi_state(
-            n=n,
-            K=K,
-            M=M,
-            T_max=T_max,
-            key=init_key,
-            pi_init=pi_init,
-            alpha_init=alpha_init,
-            sigma_init=sigma_init,
-            alpha_F=alpha_F,
-        )
+        # Optional EM warm start: overrides pi_init and seeds the initial
+        # atom's rho with the pairwise EM estimate.
+        if em_init:
+            from py_idr.inference.mcmc.em_init import compute_em_init
+
+            em = compute_em_init(np.asarray(F0))
+            pi_init = float(em.pi)
+            # Build the initial state, then override its Gaussian atom
+            # with one whose rho matches the EM estimate.
+            rho_seed = float(np.clip(em.rho, 0.05, 0.95))
+            seed_atom = prior_propose_atom(init_key, "gauss", K)
+            # Rebuild the atom with the EM rho (the prior_propose_atom call
+            # gave us the right structure; we just swap its parameter).
+            from py_idr.copulas.gaussian import GaussianCopula
+            from py_idr.inference.mcmc.type_update import TYPE_TO_INDEX, AtomDraw
+
+            R = (1.0 - rho_seed) * jnp.eye(K) + rho_seed * jnp.ones((K, K))
+            L = jnp.linalg.cholesky(R)
+            seed_atom = AtomDraw(
+                "gauss", TYPE_TO_INDEX["gauss"], GaussianCopula(L), {"rho": rho_seed}
+            )
+            state = initial_multi_cluster_state(
+                n=n,
+                K=K,
+                M=M,
+                T_max=T_max,
+                initial_atom=seed_atom,
+                pi_init=pi_init,
+                alpha_init=alpha_init,
+                sigma_init=sigma_init,
+                alpha_F=alpha_F,
+            )
+            # Inject the EM Z so the first sweep doesn't start with
+            # all-features-reproducible.
+            from dataclasses import replace as _dc_replace
+
+            state = _dc_replace(state, Z=jnp.asarray(em.Z, dtype=jnp.int32))
+        else:
+            state = _initial_multi_state(
+                n=n,
+                K=K,
+                M=M,
+                T_max=T_max,
+                key=init_key,
+                pi_init=pi_init,
+                alpha_init=alpha_init,
+                sigma_init=sigma_init,
+                alpha_F=alpha_F,
+            )
     else:
         state = initial_state
 
@@ -515,6 +605,7 @@ def run_multi_chain_multi(
     nuts_warmup: int = 30,
     py_hyperparam_warmup: int = 50,
     overdispersed: bool = True,
+    em_init: bool = False,
 ) -> MultiChainResultMulti:
     """Run ``num_chains`` multi-cluster chains, stacked into a multi-chain idata.
 
@@ -576,6 +667,7 @@ def run_multi_chain_multi(
             alpha_F=alpha_F,
             nuts_warmup=nuts_warmup,
             py_hyperparam_warmup=py_hyperparam_warmup,
+            em_init=em_init,
         )
         posterior = chain_res.idata.posterior
         pi_chains.append(np.asarray(posterior["pi"]).reshape(-1))
