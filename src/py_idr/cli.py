@@ -93,6 +93,14 @@ def sim(
     py_hyperparam_warmup: int = typer.Option(
         50, "--py-hyperparam-warmup", help="(alpha, sigma) NUTS warmup (T>1)."
     ),
+    save_idr: bool = typer.Option(
+        False,
+        "--save-idr/--no-save-idr",
+        help=(
+            "Also write a per-replicate idr / true_Z NPZ sidecar "
+            "alongside results.csv. Required input for F4 (ROC/PR)."
+        ),
+    ),
     out: str = typer.Option(
         "runs/sim",
         "--out",
@@ -131,7 +139,12 @@ def sim(
         py-idr sim --regime S5 --K 2 --n 200 --reps 20 \\
                    --chain-type T>1 --out runs/s5_tgt1
     """
-    from py_idr.simulation.sweep import run_sweep, write_sweep_csv  # type: ignore[attr-defined]
+    from py_idr.simulation.sweep import (  # type: ignore[attr-defined]
+        run_sweep,
+        run_sweep_with_traces,
+        write_idr_sidecar,
+        write_sweep_csv,
+    )
     from py_idr.utils.run import (  # type: ignore[attr-defined]
         build_run_manifest,
         detect_git_sha,
@@ -147,25 +160,48 @@ def sim(
 
     typer.echo(
         f"Running sweep: regime={regime} K={K} n={n} reps={reps} "
-        f"chain_type={chain_type} alphas={alphas_tuple} → {out_dir}"
+        f"chain_type={chain_type} alphas={alphas_tuple} "
+        f"save_idr={save_idr} → {out_dir}"
     )
-    rows = run_sweep(
-        regime,
-        K=K,
-        n=n,
-        num_replicates=reps,
-        base_seed=base_seed,
-        alphas=alphas_tuple,
-        num_chains=num_chains,
-        n_warmup=n_warmup,
-        n_samples=n_samples,
-        nuts_warmup=nuts_warmup,
-        M=M,
-        chain_type=chain_type,
-        T_max=T_max,
-        H=H,
-        py_hyperparam_warmup=py_hyperparam_warmup,
-    )
+    if save_idr:
+        sweep_result = run_sweep_with_traces(
+            regime,
+            K=K,
+            n=n,
+            num_replicates=reps,
+            base_seed=base_seed,
+            alphas=alphas_tuple,
+            num_chains=num_chains,
+            n_warmup=n_warmup,
+            n_samples=n_samples,
+            nuts_warmup=nuts_warmup,
+            M=M,
+            chain_type=chain_type,
+            T_max=T_max,
+            H=H,
+            py_hyperparam_warmup=py_hyperparam_warmup,
+        )
+        rows = sweep_result.rows
+        npz = write_idr_sidecar(sweep_result.idr_traces, out_dir / "idr_traces.npz")
+        typer.echo(f"Wrote idr sidecar to {npz}")
+    else:
+        rows = run_sweep(
+            regime,
+            K=K,
+            n=n,
+            num_replicates=reps,
+            base_seed=base_seed,
+            alphas=alphas_tuple,
+            num_chains=num_chains,
+            n_warmup=n_warmup,
+            n_samples=n_samples,
+            nuts_warmup=nuts_warmup,
+            M=M,
+            chain_type=chain_type,
+            T_max=T_max,
+            H=H,
+            py_hyperparam_warmup=py_hyperparam_warmup,
+        )
     csv = write_sweep_csv(rows, out_dir / "results.csv")
 
     # Manifest sibling: records run_id + git_sha + config so the run is
@@ -187,6 +223,7 @@ def sim(
             "T_max": T_max,
             "H": H,
             "py_hyperparam_warmup": py_hyperparam_warmup,
+            "save_idr": save_idr,
         },
         sort_keys=True,
     )
@@ -209,13 +246,21 @@ def sim(
 
 @app.command()
 def figure(
-    fig: str = typer.Option(..., "--fig", help="f1 (today) | f2..f6 (planned)"),
+    fig: str = typer.Option(..., "--fig", help="f1 | f2 | f3 | f4"),
     results: str = typer.Option(..., "--results", help="Path to source CSV."),
     out: str = typer.Option(..., "--out", help="Output PDF path."),
     regimes: str = typer.Option(
         "S1,S2,S4,S5",
         "--regimes",
-        help="Comma-separated regime list (F1 only).",
+        help="Comma-separated regime list.",
+    ),
+    idr_npz: str = typer.Option(
+        "",
+        "--idr-npz",
+        help=(
+            "Path to the idr_traces.npz sidecar produced by "
+            "`py-idr sim --save-idr`. Required for f4."
+        ),
     ),
 ) -> None:
     """Reproduce one of the report figures from a results CSV.
@@ -260,9 +305,37 @@ def figure(
         typer.echo(f"Wrote {out_path}")
         return
 
+    if label == "f4":
+        from py_idr.figures.f4_roc_pr import (
+            make_roc_pr_figure,  # type: ignore[attr-defined]
+        )
+        from py_idr.simulation.sweep import (
+            load_idr_sidecar,  # type: ignore[attr-defined]
+        )
+
+        if not idr_npz:
+            raise typer.BadParameter(
+                "f4 requires --idr-npz pointing at the idr_traces.npz "
+                "sidecar produced by `py-idr sim --save-idr`."
+            )
+        idr_z_by_regime = load_idr_sidecar(idr_npz)
+        # Match the F2 default fall-through: if the user kept the F1
+        # default --regimes string, the natural F4 default is the
+        # multi-cluster regimes only.
+        if regimes == "S1,S2,S4,S5":
+            present = ("S5", "S5-sparse")
+            regimes_arg_f4: tuple[str, ...] | None = (
+                tuple(r for r in present if r in idr_z_by_regime) or None
+            )
+        else:
+            regimes_arg_f4 = regimes_tuple
+        out_path = make_roc_pr_figure(idr_z_by_regime, out, regimes=regimes_arg_f4)
+        typer.echo(f"Wrote {out_path}")
+        return
+
     raise NotImplementedError(
-        f"figure --fig={fig} not implemented yet. Today 'f1', 'f2', 'f3' "
-        f"are wired up. See plans/09_figures_and_tables.md for F4-F6."
+        f"figure --fig={fig} not implemented yet. Today 'f1', 'f2', 'f3', 'f4' "
+        f"are wired up. See plans/09_figures_and_tables.md for F5-F6."
     )
 
 

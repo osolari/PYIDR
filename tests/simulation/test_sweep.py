@@ -1,16 +1,22 @@
-"""Sweep driver + CSV writer tests."""
+"""Sweep driver + CSV writer + NPZ sidecar tests."""
 
 from __future__ import annotations
 
+import math
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import pytest
 
 from py_idr.simulation.replicates import ReplicateRow
 from py_idr.simulation.sweep import (
+    IdrTrace,
+    load_idr_sidecar,
     run_sweep,
+    run_sweep_with_traces,
     to_dataframe,
+    write_idr_sidecar,
     write_sweep_csv,
 )
 
@@ -157,3 +163,112 @@ def test_run_sweep_reuses_chain_across_alphas() -> None:
     rhos = {r.rho_posterior_mean for r in rows}
     assert len(pis) == 1
     assert len(rhos) == 1
+
+
+# ---- NPZ sidecar (write_idr_sidecar / load_idr_sidecar) -----------------------------
+
+
+def _toy_trace(regime: str, seed: int, n: int = 40, rng_seed: int = 0) -> IdrTrace:
+    rng = np.random.default_rng(rng_seed)
+    return IdrTrace(
+        regime=regime,
+        replicate_seed=seed,
+        idr=rng.uniform(size=n).astype(float),
+        true_Z=rng.integers(0, 2, size=n).astype(np.int8),
+    )
+
+
+@pytest.mark.unit
+def test_write_idr_sidecar_rejects_empty(tmp_path: Path) -> None:
+    """Writing an empty trace list raises with a clear message."""
+    with pytest.raises(ValueError, match="empty"):
+        write_idr_sidecar([], tmp_path / "idr.npz")
+
+
+@pytest.mark.unit
+def test_write_idr_sidecar_creates_parent_dir(tmp_path: Path) -> None:
+    """Parent directory is created if missing."""
+    out = write_idr_sidecar([_toy_trace("S5", 0)], tmp_path / "a" / "b" / "idr.npz")
+    assert out.exists()
+
+
+@pytest.mark.unit
+def test_idr_sidecar_round_trip(tmp_path: Path) -> None:
+    """write -> load yields the same arrays grouped by regime."""
+    traces = [
+        _toy_trace("S5", 0, rng_seed=0),
+        _toy_trace("S5", 1, rng_seed=1),
+        _toy_trace("S5-sparse", 0, rng_seed=2),
+    ]
+    npz = write_idr_sidecar(traces, tmp_path / "idr.npz")
+    loaded = load_idr_sidecar(npz)
+    assert set(loaded.keys()) == {"S5", "S5-sparse"}
+    assert len(loaded["S5"]) == 2
+    assert len(loaded["S5-sparse"]) == 1
+    # Seeds should be sorted ascending within each regime; check by comparing
+    # the first idr array against the seed=0 trace.
+    np.testing.assert_array_equal(loaded["S5"][0][0], traces[0].idr)
+    np.testing.assert_array_equal(loaded["S5"][1][0], traces[1].idr)
+
+
+@pytest.mark.unit
+def test_load_idr_sidecar_raises_on_missing_path(tmp_path: Path) -> None:
+    """Reading a non-existent NPZ raises FileNotFoundError."""
+    with pytest.raises(FileNotFoundError):
+        load_idr_sidecar(tmp_path / "absent.npz")
+
+
+@pytest.mark.unit
+def test_load_idr_sidecar_raises_on_corrupted_file(tmp_path: Path) -> None:
+    """An NPZ with an idr key but no matching Z key is rejected."""
+    # Hand-craft a corrupted NPZ.
+    np.savez(
+        tmp_path / "broken.npz",
+        **{"idr__S5__0": np.array([0.1, 0.2, 0.3])},
+    )
+    with pytest.raises(ValueError, match="corrupted"):
+        load_idr_sidecar(tmp_path / "broken.npz")
+
+
+# ---- run_sweep_with_traces (slow, runs a chain) --------------------------------------
+
+
+@pytest.mark.integration
+@pytest.mark.slow
+def test_run_sweep_with_traces_returns_rows_and_traces() -> None:
+    """The dual-output sweep produces matching rows + one trace per replicate."""
+    result = run_sweep_with_traces(
+        "S1",
+        K=2,
+        n=40,
+        num_replicates=2,
+        base_seed=0,
+        alphas=(0.05, 0.10),
+        num_chains=2,
+        n_warmup=10,
+        n_samples=15,
+        nuts_warmup=10,
+        M=5,
+    )
+    # 2 replicates × 2 alphas = 4 rows.
+    assert len(result.rows) == 4
+    # 2 replicates → 2 idr traces (one per (regime, seed), shared across alphas).
+    assert len(result.idr_traces) == 2
+    for tr in result.idr_traces:
+        assert isinstance(tr, IdrTrace)
+        assert tr.regime == "S1"
+        assert tr.idr.shape == (40,)
+        assert tr.true_Z.shape == (40,)
+        assert np.all((tr.idr >= 0.0) & (tr.idr <= 1.0))
+        assert set(np.unique(tr.true_Z)).issubset({0, 1})
+
+
+@pytest.mark.unit
+def test_run_sweep_with_traces_rejects_unknown_regime() -> None:
+    """Same validation as run_sweep."""
+    with pytest.raises(ValueError, match="unknown regime"):
+        run_sweep_with_traces("S99", K=2, n=20, num_replicates=1)
+
+
+def _unused() -> None:  # keep import-only usage from being flagged
+    _ = math.nan

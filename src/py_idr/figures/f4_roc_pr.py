@@ -28,7 +28,7 @@ See plans/09_figures_and_tables.md.
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -102,7 +102,7 @@ def _interp_precision(pr, recall_grid: np.ndarray) -> np.ndarray:  # type: ignor
 
 
 def compute_roc_pr_curves(
-    idr_z_by_regime: dict[str, Sequence[tuple[np.ndarray, np.ndarray]]],
+    idr_z_by_regime: Mapping[str, Sequence[tuple[np.ndarray, np.ndarray]]],
     *,
     regimes: tuple[str, ...] | None = None,
     grid_size: int = 101,
@@ -214,7 +214,7 @@ def compute_roc_pr_curves(
 
 
 def make_roc_pr_figure(
-    idr_z_by_regime: dict[str, Sequence[tuple[np.ndarray, np.ndarray]]],
+    idr_z_by_regime: Mapping[str, Sequence[tuple[np.ndarray, np.ndarray]]],
     out_pdf: str | Path,
     *,
     regimes: tuple[str, ...] | None = None,
