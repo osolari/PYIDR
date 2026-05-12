@@ -16,13 +16,18 @@ Available comparators
   mixture fit by EM. For $K \\ge 3$ we apply it pairwise across all
   $\\binom{K}{2}$ replicate pairs and aggregate by a configurable rule
   (default: average pairwise local idr).
+- :mod:`py_idr.comparators.maxrank` — non-parametric rank-based
+  baseline (Philtron-Lyu-Li-Ghosh 2018 MaRR-style). Per-feature
+  scaled max rank across replicates; deterministic, no EM.
 
 Planned (TODO)
 --------------
 
 - eCV (Iakovidis et al. 2024)
 - nestedIDR (Ranalli et al. 2026)
-- MaRR (Philtron, Lyu, Li, Ghosh 2018)
+- Full MaRR (Philtron, Lyu, Li, Ghosh 2018) with NPMLE mixture fit on
+  the max-rank statistic (the version in :mod:`maxrank` skips that
+  step and uses the raw scaled statistic).
 - ChIP-R (Newell et al. 2021)
 - GMCM-AD (Kasa & Rajan 2020)
 - BNP-Archimedean (Pan, Nieto-Barajas & Craiu 2024)
@@ -30,6 +35,7 @@ Planned (TODO)
 See plan 09 (figures and tables) §"Comparators" and §4.2 of the report.
 """
 
+from py_idr.comparators.maxrank import fit_maxrank
 from py_idr.comparators.vanilla_idr import (
     VanillaIDRResult,
     fit_vanilla_idr,
@@ -38,6 +44,7 @@ from py_idr.comparators.vanilla_idr import (
 
 __all__ = [
     "VanillaIDRResult",
+    "fit_maxrank",
     "fit_vanilla_idr",
     "fit_vanilla_idr_pairwise",
 ]

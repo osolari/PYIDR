@@ -474,3 +474,77 @@ def run_sweep_vanilla_idr(
             )
 
     return rows
+
+
+def run_sweep_maxrank(
+    regime: str,
+    *,
+    K: int,
+    n: int,
+    num_replicates: int,
+    base_seed: int = 0,
+    alphas: Sequence[float] = (0.01, 0.05, 0.10, 0.20),
+    tie_method: str = "average",
+    scenario_kwargs: dict[str, Any] | None = None,
+) -> list[ReplicateRow]:
+    """MaxRank sweep — comparator companion to :func:`run_sweep`.
+
+    Same `(regime, K, n, num_replicates, base_seed)` shape as
+    :func:`run_sweep`; rows carry ``method = "MaxRank"`` so they drop
+    into the same CSV alongside PY-IDR and Vanilla IDR rows.
+
+    The MaxRank statistic has no random component, so all replicates
+    sharing a seed produce identical idr arrays — the per-alpha rows
+    differ only in the Sun-Cai cutoff and the resulting decision
+    metadata.
+    """
+    import time as _time
+
+    from py_idr.comparators.maxrank import fit_maxrank
+
+    if regime not in _SIMULATORS:
+        raise ValueError(f"unknown regime {regime!r}; expected one of {sorted(_SIMULATORS)}")
+    if num_replicates <= 0:
+        raise ValueError(f"num_replicates must be > 0; got {num_replicates}")
+    if not alphas:
+        raise ValueError("alphas must be a non-empty sequence")
+
+    simulator = _SIMULATORS[regime]
+    extra = dict(scenario_kwargs or {})
+    rows: list[ReplicateRow] = []
+    import jax.numpy as _jnp
+
+    from py_idr.simulation.evaluation import evaluate_recovery as _evaluate_recovery
+
+    for i in range(num_replicates):
+        seed = base_seed + i
+        sim = simulator(K=K, n=n, seed=seed, **extra)
+        t0 = _time.perf_counter()
+        idr = fit_maxrank(np.asarray(sim.X), tie_method=tie_method)
+        walltime = float(_time.perf_counter() - t0)
+        idr_jax = _jnp.asarray(idr)
+        for alpha in alphas:
+            recovery = _evaluate_recovery(idr_jax, sim.true_Z, alpha=float(alpha))
+            rows.append(
+                ReplicateRow(
+                    regime=sim.regime,
+                    K=K,
+                    n=n,
+                    replicate_seed=sim.seed,
+                    method="MaxRank",
+                    alpha=float(alpha),
+                    pi_true=sim.true_pi,
+                    pi_posterior_mean=float("nan"),
+                    rho_true=sim.true_rho,
+                    rho_posterior_mean=float("nan"),
+                    T_posterior_mean=float("nan"),
+                    k_alpha=recovery.k_alpha,
+                    realized_fdr=recovery.realized_fdr,
+                    power=recovery.power,
+                    num_chains=1,
+                    num_samples_per_chain=1,
+                    walltime_s=walltime,
+                )
+            )
+
+    return rows

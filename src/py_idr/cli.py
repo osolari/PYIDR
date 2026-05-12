@@ -105,8 +105,9 @@ def sim(
         "py-idr",
         "--method",
         help=(
-            "Fit method: 'py-idr' (default, PY-IDR MCMC) or 'vanilla-idr' "
-            "(Li-Brown-Huang-Bickel 2011 pairwise EM)."
+            "Fit method: 'py-idr' (default, PY-IDR MCMC), 'vanilla-idr' "
+            "(Li-Brown-Huang-Bickel 2011 pairwise EM), or 'maxrank' "
+            "(rank-based baseline, Philtron et al. 2018 style)."
         ),
     ),
     out: str = typer.Option(
@@ -167,8 +168,10 @@ def sim(
     out_dir.mkdir(parents=True, exist_ok=True)
 
     method_key = method.lower()
-    if method_key not in ("py-idr", "vanilla-idr"):
-        raise typer.BadParameter(f"--method must be 'py-idr' or 'vanilla-idr'; got {method!r}")
+    if method_key not in ("py-idr", "vanilla-idr", "maxrank"):
+        raise typer.BadParameter(
+            f"--method must be 'py-idr', 'vanilla-idr', or 'maxrank'; got {method!r}"
+        )
 
     typer.echo(
         f"Running sweep: method={method_key} regime={regime} K={K} n={n} reps={reps} "
@@ -187,6 +190,23 @@ def sim(
                 "(no NPZ sidecar produced)."
             )
         rows = run_sweep_vanilla_idr(
+            regime,
+            K=K,
+            n=n,
+            num_replicates=reps,
+            base_seed=base_seed,
+            alphas=alphas_tuple,
+        )
+    elif method_key == "maxrank":
+        from py_idr.simulation.sweep import (  # type: ignore[attr-defined]
+            run_sweep_maxrank,
+        )
+
+        if save_idr:
+            typer.echo(
+                "WARNING: --save-idr is a no-op for --method maxrank " "(no NPZ sidecar produced)."
+            )
+        rows = run_sweep_maxrank(
             regime,
             K=K,
             n=n,

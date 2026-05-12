@@ -778,3 +778,79 @@ def run_replicate_vanilla_idr(
         num_samples_per_chain=max_iter,
         walltime_s=walltime,
     )
+
+
+# ---- comparator: MaxRank (rank-based baseline) ---------------------------------------
+
+
+_MAXRANK_METHOD_LABEL = "MaxRank"
+
+
+def run_replicate_maxrank(
+    *,
+    regime: str,
+    K: int,
+    n: int,
+    seed: int = 0,
+    alpha: float = 0.05,
+    tie_method: str = "average",
+    scenario_kwargs: dict[str, Any] | None = None,
+) -> ReplicateRow:
+    """End-to-end MaxRank replicate for any of the S1-S5 regimes.
+
+    Same long-format ReplicateRow shape as PY-IDR / Vanilla IDR, with
+    ``method = "MaxRank"`` and the parametric posterior summaries
+    (``pi_posterior_mean``, ``rho_posterior_mean``, ``T_posterior_mean``)
+    populated as NaN.
+
+    Parameters
+    ----------
+    regime
+        Simulation regime label ("S1" .. "S5-sparse").
+    K, n, seed
+        Forwarded to the regime's simulator.
+    alpha
+        Sun-Cai operating level.
+    tie_method
+        Tie-breaking rule for the per-replicate ranks. Forwarded to
+        :func:`py_idr.comparators.maxrank.fit_maxrank`.
+    scenario_kwargs
+        Regime-specific kwargs forwarded to the simulator.
+
+    Returns
+    -------
+    A :class:`ReplicateRow` with ``method = "MaxRank"``.
+    """
+    from py_idr.comparators.maxrank import fit_maxrank
+
+    if regime not in _SIMULATORS:
+        raise ValueError(f"unknown regime {regime!r}; expected one of {sorted(_SIMULATORS)}")
+    simulator = _SIMULATORS[regime]
+    extra = dict(scenario_kwargs or {})
+    sim = simulator(K=K, n=n, seed=seed, **extra)
+
+    t0 = time.perf_counter()
+    idr = fit_maxrank(np.asarray(sim.X), tie_method=tie_method)
+    walltime = float(time.perf_counter() - t0)
+
+    recovery = evaluate_recovery(jnp.asarray(idr), sim.true_Z, alpha=alpha)
+
+    return ReplicateRow(
+        regime=sim.regime,
+        K=K,
+        n=n,
+        replicate_seed=sim.seed,
+        method=_MAXRANK_METHOD_LABEL,
+        alpha=alpha,
+        pi_true=sim.true_pi,
+        pi_posterior_mean=float("nan"),
+        rho_true=sim.true_rho,
+        rho_posterior_mean=float("nan"),
+        T_posterior_mean=float("nan"),
+        k_alpha=recovery.k_alpha,
+        realized_fdr=recovery.realized_fdr,
+        power=recovery.power,
+        num_chains=1,
+        num_samples_per_chain=1,
+        walltime_s=walltime,
+    )
