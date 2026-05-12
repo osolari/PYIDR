@@ -11,7 +11,7 @@ of the revised report.
 |-------------|--------|--------|
 | `DiagnosticsReport` pydantic schema | `eval/diagnostics_report.DiagnosticsReport` | DONE |
 | split-$\hat R$ + ESS extraction | via `arviz.summary` in `build_diagnostics_report` | DONE |
-| Divergent-transition fraction | input slot; chain driver doesn't yet plumb divergences out | PARTIAL |
+| Divergent-transition fraction | `sweep_simple` / `multi_cluster_sweep` return `(state, {"num_divergences": int})`; `run_chain_*` aggregate the count across post-warmup sweeps and surface it on `ChainResult*.num_divergent_transitions`. | DONE (W8.11) |
 | Cluster-count trace | `ChainResultMulti.T_trace` (multi-cluster path) | DONE |
 | Pass/warn/fail verdict + thresholds | constants `RHAT_PASS_THRESHOLD=1.01`, `ESS_PASS_THRESHOLD=400`, `DIVERGENCE_FRACTION_THRESHOLD=0.005`, `MIN_CHAINS_PASS=4` | DONE |
 | Label-switching postprocessor | Stephens (2000) relabeller | TODO |

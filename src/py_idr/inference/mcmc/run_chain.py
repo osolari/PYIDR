@@ -55,11 +55,17 @@ class ChainResult:
         ``(n_samples, n)`` with values in $\\{0, 1\\}$. Consumed by
         :func:`py_idr.decision.local_idr.from_mcmc` to estimate the local idr
         from the Monte Carlo average.
+    num_divergent_transitions
+        Total NUTS divergent transitions, summed across the per-sweep atom
+        updates over the **post-warmup** portion of the chain. Plumbed into
+        :func:`py_idr.eval.diagnostics_report.build_diagnostics_report` so
+        the §3.3.1 divergence-fraction threshold has a real signal.
     """
 
     idata: az.InferenceData
     final_state: SimpleSweepState
     z_samples: np.ndarray | None = None
+    num_divergent_transitions: int = 0
 
 
 @dataclass(frozen=True)
@@ -77,11 +83,17 @@ class MultiChainResult:
         Stacked per-chain class-indicator traces; shape
         ``(num_chains, n_samples, n)``. Consumed by the proper Monte Carlo
         idr estimator.
+    num_divergent_transitions
+        Total NUTS divergent transitions summed across **all chains** and
+        across the post-warmup portion of each chain. The diagnostics report
+        divides this by ``num_chains * num_draws_per_chain`` for the §3.3.1
+        divergence-fraction threshold.
     """
 
     idata: az.InferenceData
     final_states: tuple[SimpleSweepState, ...]
     z_samples: np.ndarray | None = None
+    num_divergent_transitions: int = 0
 
 
 def run_chain_simple(
@@ -167,14 +179,19 @@ def run_chain_simple(
     rho_trace: list[float] = []
     n_reproducible_trace: list[int] = []
     z_trace: list[np.ndarray] = []
+    # Aggregated over post-warmup sweeps only; warmup divergences don't count
+    # toward the §3.3.1 divergence-fraction threshold (per Stan / NumPyro
+    # convention).
+    num_divergent_transitions = 0
 
     for i, k in enumerate(iter_keys):
-        state = sweep_simple(state, inputs, k)
+        state, sweep_diag = sweep_simple(state, inputs, k)
         if i >= n_warmup:
             pi_trace.append(float(state.pi))
             rho_trace.append(float(state.rho))
             n_reproducible_trace.append(int(jnp.sum(state.Z)))
             z_trace.append(np.asarray(state.Z, dtype=np.int8))
+            num_divergent_transitions += int(sweep_diag.get("num_divergences", 0))
 
     # Build the InferenceData. arviz expects shape (chains, draws, ...);
     # the API takes a nested {group_name: {var_name: array}} mapping.
@@ -185,7 +202,12 @@ def run_chain_simple(
     }
     idata = az.from_dict({"posterior": posterior_group})
     z_arr = np.stack(z_trace, axis=0)  # (n_samples, n)
-    return ChainResult(idata=idata, final_state=state, z_samples=z_arr)
+    return ChainResult(
+        idata=idata,
+        final_state=state,
+        z_samples=z_arr,
+        num_divergent_transitions=num_divergent_transitions,
+    )
 
 
 def run_multi_chain_simple(
@@ -269,6 +291,7 @@ def run_multi_chain_simple(
     n_rep_chains: list[np.ndarray] = []
     z_chains: list[np.ndarray] = []
     final_states: list[SimpleSweepState] = []
+    num_divergent_transitions = 0
 
     for c in range(num_chains):
         init_state = initial_simple_state(
@@ -301,6 +324,7 @@ def run_multi_chain_simple(
         n_rep_chains.append(np.asarray(posterior["n_reproducible"]).reshape(-1))
         z_chains.append(chain_res.z_samples)
         final_states.append(chain_res.final_state)
+        num_divergent_transitions += chain_res.num_divergent_transitions
 
     posterior_group = {
         "pi": np.stack(pi_chains, axis=0),  # (num_chains, draws)
@@ -309,7 +333,12 @@ def run_multi_chain_simple(
     }
     idata = az.from_dict({"posterior": posterior_group})
     z_arr = np.stack(z_chains, axis=0)  # (num_chains, n_samples, n)
-    return MultiChainResult(idata=idata, final_states=tuple(final_states), z_samples=z_arr)
+    return MultiChainResult(
+        idata=idata,
+        final_states=tuple(final_states),
+        z_samples=z_arr,
+        num_divergent_transitions=num_divergent_transitions,
+    )
 
 
 def summarise(result: ChainResult, var_names: list[str] | None = None) -> "az.InferenceData":
@@ -368,6 +397,7 @@ class ChainResultMulti:
     z_samples: np.ndarray | None = None
     cluster_assignments: np.ndarray | None = None
     T_trace: np.ndarray | None = None
+    num_divergent_transitions: int = 0
 
 
 @dataclass(frozen=True)
@@ -385,6 +415,7 @@ class MultiChainResultMulti:
     z_samples: np.ndarray | None = None
     cluster_assignments: np.ndarray | None = None
     T_trace: np.ndarray | None = None
+    num_divergent_transitions: int = 0
 
 
 def _initial_multi_state(
@@ -548,9 +579,10 @@ def run_chain_multi(
     # Z trace (class indicator) and z trace (cluster label).
     Z_trace: list[np.ndarray] = []
     z_trace: list[np.ndarray] = []
+    num_divergent_transitions = 0
 
     for i, k in enumerate(iter_keys):
-        state = multi_cluster_sweep(
+        state, sweep_diag = multi_cluster_sweep(
             state,
             jnp.asarray(F0),
             k,
@@ -566,6 +598,7 @@ def run_chain_multi(
             n_reproducible_trace.append(int(jnp.sum(state.Z)))
             Z_trace.append(np.asarray(state.Z, dtype=np.int8))
             z_trace.append(np.asarray(state.z, dtype=np.int32))
+            num_divergent_transitions += int(sweep_diag.get("num_divergences", 0))
 
     posterior_group = {
         "pi": np.asarray(pi_trace, dtype=np.float64)[None, :],
@@ -585,6 +618,7 @@ def run_chain_multi(
         z_samples=Z_arr,
         cluster_assignments=z_arr,
         T_trace=T_arr,
+        num_divergent_transitions=num_divergent_transitions,
     )
 
 
@@ -651,6 +685,7 @@ def run_multi_chain_multi(
     Z_chains: list[np.ndarray] = []
     z_chains: list[np.ndarray] = []
     final_states: list[MultiClusterState] = []
+    num_divergent_transitions = 0
 
     for c in range(num_chains):
         chain_res = run_chain_multi(
@@ -678,6 +713,7 @@ def run_multi_chain_multi(
         Z_chains.append(chain_res.z_samples)
         z_chains.append(chain_res.cluster_assignments)
         final_states.append(chain_res.final_state)
+        num_divergent_transitions += chain_res.num_divergent_transitions
 
     posterior_group = {
         "pi": np.stack(pi_chains, axis=0),
@@ -694,6 +730,7 @@ def run_multi_chain_multi(
         z_samples=np.stack(Z_chains, axis=0),
         cluster_assignments=np.stack(z_chains, axis=0),
         T_trace=np.stack(T_chains, axis=0),
+        num_divergent_transitions=num_divergent_transitions,
     )
 
 

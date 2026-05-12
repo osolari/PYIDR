@@ -87,7 +87,7 @@ def test_multi_cluster_sweep_returns_valid_state() -> None:
     F0 = _build_F0(n, K, seed=0)
     atom0 = prior_propose_atom(jax.random.PRNGKey(0), "gauss", K)
     state = initial_multi_cluster_state(n=n, K=K, M=M, T_max=6, initial_atom=atom0)
-    new_state = multi_cluster_sweep(
+    new_state, diag = multi_cluster_sweep(
         state,
         F0,
         jax.random.PRNGKey(1),
@@ -100,6 +100,9 @@ def test_multi_cluster_sweep_returns_valid_state() -> None:
     assert 0.0 < new_state.pi < 1.0
     assert new_state.alpha > 0.0
     assert 0.0 <= new_state.sigma < 1.0
+    # Sweep returns a divergences dict alongside the new state.
+    assert "num_divergences" in diag
+    assert diag["num_divergences"] >= 0
     # Cluster bookkeeping invariants:
     assert len(new_state.atoms) == new_state.T
     assert new_state.T_max >= new_state.T
@@ -120,7 +123,7 @@ def test_multi_cluster_sweep_can_spawn_and_drop_clusters() -> None:
     Ts: list[int] = []
     for _ in range(5):
         key, subkey = jax.random.split(key)
-        state = multi_cluster_sweep(
+        state, _ = multi_cluster_sweep(
             state,
             F0,
             subkey,
@@ -144,7 +147,7 @@ def test_multi_cluster_sweep_atom_count_matches_T() -> None:
     key = jax.random.PRNGKey(3)
     for _ in range(3):
         key, subkey = jax.random.split(key)
-        state = multi_cluster_sweep(
+        state, _ = multi_cluster_sweep(
             state,
             F0,
             subkey,
@@ -195,7 +198,7 @@ def test_multi_cluster_sweep_produces_valid_trace_on_K2_mixture() -> None:
     T_trace: list[int] = []
     for _ in range(30):
         key, subkey = jax.random.split(key)
-        state = multi_cluster_sweep(
+        state, _ = multi_cluster_sweep(
             state,
             F0,
             subkey,

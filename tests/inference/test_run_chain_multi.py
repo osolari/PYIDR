@@ -100,6 +100,9 @@ def test_run_chain_multi_returns_full_shape_contract() -> None:
     # dtype contract.
     assert result.z_samples.dtype == np.int8
     assert result.cluster_assignments.dtype == np.int32
+    # Plumbed-through divergence counter is a non-negative int.
+    assert isinstance(result.num_divergent_transitions, int)
+    assert result.num_divergent_transitions >= 0
 
 
 @pytest.mark.integration
@@ -257,6 +260,54 @@ def test_run_multi_chain_multi_stacks_chains() -> None:
     assert result.cluster_assignments.shape == (num_chains, 5, 20)
     assert result.T_trace.shape == (num_chains, 5)
     assert len(result.final_states) == num_chains
+    # The multi-chain wrapper sums divergences across chains. The count is
+    # non-negative and can in principle be 0 (it usually is on tiny problems).
+    assert isinstance(result.num_divergent_transitions, int)
+    assert result.num_divergent_transitions >= 0
+
+
+@pytest.mark.integration
+def test_run_chain_multi_aggregates_divergences_from_sweep_diag() -> None:
+    """The chain driver must add up the per-sweep `num_divergences` outputs.
+
+    Regression for W8.11. Before this commit the per-sweep diagnostics dict
+    was discarded with ``_`` and the diagnostics report had no real signal —
+    ``build_diagnostics_report`` accepted the count as an argument that
+    nothing in the orchestrator could supply.
+
+    Strategy: monkeypatch ``multi_cluster_sweep`` so it returns a known
+    divergence count per sweep, then assert the driver sums to
+    ``n_samples * known_count`` (warmup divergences are dropped on purpose).
+    """
+    from py_idr.inference.mcmc import run_chain as run_chain_mod
+
+    F0 = _build_F0(K=2, n=20, seed=0)
+    n_warmup, n_samples = 2, 4
+    per_sweep_divergences = 3
+    original_sweep = run_chain_mod.multi_cluster_sweep
+
+    def fake_sweep(*args, **kwargs):
+        state, _diag = original_sweep(*args, **kwargs)
+        return state, {"num_divergences": per_sweep_divergences}
+
+    run_chain_mod.multi_cluster_sweep = fake_sweep  # type: ignore[assignment]
+    try:
+        result = run_chain_multi(
+            F0=F0,
+            M=5,
+            key=jax.random.PRNGKey(0),
+            T_max=3,
+            H=3,
+            n_warmup=n_warmup,
+            n_samples=n_samples,
+            nuts_warmup=5,
+            py_hyperparam_warmup=5,
+        )
+    finally:
+        run_chain_mod.multi_cluster_sweep = original_sweep  # type: ignore[assignment]
+
+    # Only post-warmup sweeps count toward the diagnostics-report fraction.
+    assert result.num_divergent_transitions == n_samples * per_sweep_divergences
 
 
 @pytest.mark.unit

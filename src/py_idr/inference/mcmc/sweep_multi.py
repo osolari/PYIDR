@@ -222,7 +222,7 @@ def multi_cluster_sweep(
     H: int = 5,
     nuts_warmup: int = 30,
     py_hyperparam_warmup: int = 50,
-) -> MultiClusterState:
+) -> tuple[MultiClusterState, dict[str, int]]:
     """One full multi-cluster Algorithm 1 sweep.
 
     Parameters
@@ -245,7 +245,11 @@ def multi_cluster_sweep(
 
     Returns
     -------
-    The new :class:`MultiClusterState`.
+    Tuple ``(new_state, diagnostics)``. ``diagnostics`` carries
+    ``num_divergences`` — the count of NUTS divergent transitions summed
+    across the per-cluster atom NUTS (Step 3) and the (α, σ) NUTS (Step 7).
+    The chain driver aggregates this across sweeps for the diagnostics report
+    (plan 12, §3.3.1).
     """
     n, K = F0.shape
     # One subkey per random step in Algorithm 1. Re-using the same key
@@ -286,6 +290,7 @@ def multi_cluster_sweep(
     # ---- Step 3: per-cluster NUTS atom update -----------------------------
     new_atoms: list[AtomDraw] = []
     atom_keys = jax.random.split(k_atoms, max(state.T, 1))
+    num_divergences = 0
     for m, atom in enumerate(state.atoms):
         mask = jnp.asarray(np.asarray(state.z == m) & np.asarray(state.Z == 1))
         n_m = int(jnp.sum(mask))
@@ -295,9 +300,10 @@ def multi_cluster_sweep(
         # Compact the cluster's U via numpy indexing (small data).
         idx = np.asarray(np.where(np.asarray(mask))[0])
         cluster_U = U[jnp.asarray(idx)]
-        atom_new, _ = update_atom_via_nuts(
+        atom_new, atom_diag = update_atom_via_nuts(
             atom_keys[m], atom, cluster_U, n_warmup=nuts_warmup, n_samples=1
         )
+        num_divergences += int(atom_diag.get("num_divergences", 0))
         new_atoms.append(atom_new)
     state = replace(state, atoms=tuple(new_atoms))
 
@@ -336,7 +342,7 @@ def multi_cluster_sweep(
     sizes = sizes_active[sizes_active > 0]
     n_reproducible = int(jnp.sum(state.Z))
     if int(sizes.shape[0]) >= 2 and n_reproducible >= 2:
-        (alpha_new, sigma_new), _ = update_py_hyperparams(
+        (alpha_new, sigma_new), hp_diag = update_py_hyperparams(
             k_hyperparam,
             sizes,
             n_reproducible,
@@ -345,10 +351,11 @@ def multi_cluster_sweep(
             n_warmup=py_hyperparam_warmup,
             n_samples=1,
         )
+        num_divergences += int(hp_diag.get("num_divergences", 0))
         state = replace(state, alpha=alpha_new, sigma=sigma_new)
 
     # ---- Step 8: π update --------------------------------------------------
     pi_new = float(update_pi(k_pi, state.Z))
     state = replace(state, pi=pi_new)
 
-    return state
+    return state, {"num_divergences": num_divergences}

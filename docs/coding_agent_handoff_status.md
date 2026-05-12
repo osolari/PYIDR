@@ -22,7 +22,7 @@ sub-plan that owns the task; the `Status` column uses `TODO / PARTIAL / DONE`.
 | IMPL-06 | NUTS / Metropolis atom updates | [04](../plans/04_inference_mcmc.md) | DONE | `py_idr.inference.mcmc.nuts_atoms` uses NumPyro NUTS on the Cholesky parameterisation for Gaussian / $t_5$ / Clayton / Gumbel-K2 atoms; `type_update.py` is the atomic-type IM step. `run_chain_simple` + `run_chain_multi` (plus their `run_multi_chain_*` siblings) are the top-level drivers. |
 | IMPL-07 | Local idr + Bayes-mFDR + Sun–Cai | [06](../plans/06_decision_theory.md) | DONE | `decision.local_idr.from_mcmc`, `decision.sun_cai.step_up_threshold` (with `max(1, E[R])` denominator), and `decision.bayes_mfdr.bayes_mfdr_curve` are implemented and tested. ROC/PR helpers added in W7.2 (`decision.roc_pr`). |
 | IMPL-08 | Structured finite-truncation VI | [05](../plans/05_inference_vi.md) | TODO | `py_idr.inference.vi` is the only inference back-end still on stubs. Plan 09 covers the design (mean-field normalising flow over the partition + atoms). |
-| IMPL-09 | Diagnostics + logging | [12](../plans/12_diagnostics.md) | DONE | `py_idr.eval.diagnostics_report` packages arviz split-$\hat R$, ESS, divergence-fraction into a pass/warn/fail verdict with documented thresholds. Open: divergence-fraction is still fed in by the caller; the chain driver doesn't yet aggregate NUTS divergences out of the per-sweep atom / py-hyperparam updates. |
+| IMPL-09 | Diagnostics + logging | [12](../plans/12_diagnostics.md) | DONE | `py_idr.eval.diagnostics_report` packages arviz split-$\hat R$, ESS, divergence-fraction into a pass/warn/fail verdict with documented thresholds. Divergent-transition plumbing landed in W8.11: `sweep_simple` / `multi_cluster_sweep` now return a per-sweep `num_divergences` count, `run_chain_*` aggregate across post-warmup sweeps, and the count rides on `ChainResult*.num_divergent_transitions`. |
 | IMPL-10 | Reproducibility infrastructure | [13](../plans/13_reproducibility.md), [14](../plans/14_docker_a10dev.md) | PARTIAL | Pydantic manifests + per-run `run_manifest.json`, NPZ idr sidecar, verdict ledger (`py-idr verdict`, W8.8), `run_config.json` + `scripts/replay_run.sh` (W8.9) all landed. Dockerfile + `.dockerignore` checked in for plan 14; Snakemake workflow target + GHCR-image GitHub Actions are still TODO. |
 
 ## Simulation tasks
@@ -103,6 +103,7 @@ PRNG-key reuse bugs and several cross-checks. Findings:
 | W8.7 | Multi-method demo | end-to-end "real T4 row with three methods" pipeline | `scripts/multi_method_demo.sh` |
 | W8.8 | Verdict ledger | plan 13 acceptance-criteria machinery (H1 FDR control, H2/H3 power dominance) | `repro/verdict.py`, `py-idr verdict`, `tests/repro/test_verdict.py` |
 | W8.9 | Replay script + `run_config.json` | plan 13 replayability — `<run_dir>` is self-contained for replay on CPU | `scripts/replay_run.sh`, `run_config.json`, `tests/repro/test_replay.py` |
+| W8.11 | NUTS divergence plumbing | plan 12's divergence-fraction status moves from PARTIAL → DONE; the diagnostics report now sees a real signal instead of `0` | `sweep_simple`, `multi_cluster_sweep`, `run_chain.py`, `tests/inference/test_run_chain_multi.py::test_run_chain_multi_aggregates_divergences_from_sweep_diag` |
 
 ## Report figures & tables
 

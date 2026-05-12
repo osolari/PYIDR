@@ -43,7 +43,7 @@ def test_sweep_returns_valid_state_shapes() -> None:
     F0 = _build_synthetic_F0(n, K, seed=0)
     state = initial_simple_state(n=n, K=K, M=M)
     inputs = SimpleSweepInputs(F0=F0, M=M, nuts_warmup=10)
-    new_state = sweep_simple(state, inputs, jax.random.PRNGKey(0))
+    new_state, diag = sweep_simple(state, inputs, jax.random.PRNGKey(0))
     assert isinstance(new_state, SimpleSweepState)
     assert 0.0 < new_state.pi < 1.0
     assert 0.0 < new_state.rho < 1.0
@@ -52,6 +52,9 @@ def test_sweep_returns_valid_state_shapes() -> None:
     # Bernstein rows sum to 1 (Dirichlet draws).
     row_sums = jnp.sum(new_state.bernstein_weights, axis=1)
     assert jnp.allclose(row_sums, 1.0, atol=1e-5)
+    # Diagnostics dict carries a non-negative divergence count.
+    assert "num_divergences" in diag
+    assert diag["num_divergences"] >= 0
 
 
 @pytest.mark.integration
@@ -72,7 +75,7 @@ def test_sweep_handles_all_z_zero_iteration() -> None:
         Z=jnp.zeros(n, dtype=jnp.int32),
     )
     inputs = SimpleSweepInputs(F0=F0, M=M, nuts_warmup=10)
-    new_state = sweep_simple(state, inputs, jax.random.PRNGKey(0))
+    new_state, _ = sweep_simple(state, inputs, jax.random.PRNGKey(0))
     # The new Z should still be near all-zero; rho is held (or close to held).
     assert new_state.rho > 0.0
 

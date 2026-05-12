@@ -107,7 +107,7 @@ def sweep_simple(
     state: SimpleSweepState,
     inputs: SimpleSweepInputs,
     key: jax.Array,
-) -> SimpleSweepState:
+) -> tuple[SimpleSweepState, dict[str, int]]:
     """One full $T=1$ sweep over class assignment, atom NUTS, Bernstein, $\\pi$.
 
     Parameters
@@ -121,7 +121,10 @@ def sweep_simple(
 
     Returns
     -------
-    The new state after one sweep.
+    Tuple ``(new_state, diagnostics)``. ``diagnostics`` carries
+    ``num_divergences`` — the count of NUTS divergent transitions emitted
+    by the per-sweep atom update (Step 3). The chain driver aggregates
+    this across sweeps for the diagnostics report (plan 12, §3.3.1).
     """
     K = inputs.F0.shape[1]
     n = inputs.F0.shape[0]
@@ -146,15 +149,17 @@ def sweep_simple(
     # (the NUTS step is undefined on an empty data set).
     reproducible_idx = jnp.where(Z_new == 1, size=n, fill_value=-1)[0]
     n_reproducible = int(jnp.sum(Z_new))
+    num_divergences = 0
     if n_reproducible > 0:
         U_rep = U[reproducible_idx[:n_reproducible]]
-        rho_new, _ = update_exchangeable_gaussian(
+        rho_new, atom_diag = update_exchangeable_gaussian(
             k_atom,
             U_rep,
             rho_init=state.rho,
             n_warmup=inputs.nuts_warmup,
             n_samples=1,
         )
+        num_divergences += int(atom_diag.get("num_divergences", 0))
     else:
         rho_new = state.rho
 
@@ -174,12 +179,13 @@ def sweep_simple(
     # ---- Step 8: π update -----------------------------------------------------
     pi_new = float(update_pi(k_pi, Z_new))
 
-    return SimpleSweepState(
+    new_state = SimpleSweepState(
         pi=pi_new,
         rho=rho_new,
         bernstein_weights=bernstein_weights_new,
         Z=Z_new,
     )
+    return new_state, {"num_divergences": num_divergences}
 
 
 def initial_simple_state(
