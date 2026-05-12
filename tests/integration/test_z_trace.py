@@ -120,3 +120,26 @@ def test_z_trace_consistent_with_n_reproducible_counts() -> None:
     per_draw_sum = np.sum(result.z_samples, axis=1)  # (draws,)
     posterior_n_rep = np.asarray(result.idata.posterior["n_reproducible"]).reshape(-1)
     assert np.array_equal(per_draw_sum, posterior_n_rep)
+
+
+@pytest.mark.integration
+def test_run_chain_simple_is_deterministic_in_key() -> None:
+    """Same PRNG key produces bit-identical chains.
+
+    Correctness guard: any subkey reuse or non-deterministic step
+    would break this. After the W8.1 audit fixes (commit 4e98a63),
+    determinism holds across pi / rho / Z trace and all derived
+    quantities.
+    """
+    n, K = 12, 2
+    F0 = _build_F0(n, K, seed=5)
+    kwargs = dict(F0=F0, M=5, key=jax.random.PRNGKey(7), n_warmup=3, n_samples=8, nuts_warmup=10)
+    r1 = run_chain_simple(**kwargs)  # type: ignore[arg-type]
+    r2 = run_chain_simple(**kwargs)  # type: ignore[arg-type]
+    pi_1 = np.asarray(r1.idata.posterior["pi"]).reshape(-1)
+    pi_2 = np.asarray(r2.idata.posterior["pi"]).reshape(-1)
+    rho_1 = np.asarray(r1.idata.posterior["rho"]).reshape(-1)
+    rho_2 = np.asarray(r2.idata.posterior["rho"]).reshape(-1)
+    assert np.array_equal(pi_1, pi_2)
+    assert np.array_equal(rho_1, rho_2)
+    assert np.array_equal(r1.z_samples, r2.z_samples)

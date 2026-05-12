@@ -43,6 +43,54 @@ sub-plan that owns the task; the `Status` column uses `TODO / PARTIAL / DONE`.
 | REAL-04 | Tabula Muris pseudobulk | [08](../plans/08_real_data_pipelines.md) | TODO | Pseudobulk aggregation pipeline + technology-stratified marginals. |
 | REAL-05 | Pan-UKBB GWAS | [08](../plans/08_real_data_pipelines.md) | TODO | DAC compliance check needed before download; subset of variants TBD per handoff §8. |
 
+## Method-correctness audit (W8.1)
+
+A focused review of Algorithm 1 against the report turned up two
+PRNG-key reuse bugs and several cross-checks. Findings:
+
+**Fixed bugs (commit `4e98a63`).**
+
+- *Step 8 π update.* `multi_cluster_sweep` was splitting the per-sweep
+  key into 6 subkeys and re-using `k_class` (Step 1) as the input to
+  `update_pi` at Step 8. Independent draws share a subkey → silently
+  correlated samples. Now splits into 7.
+- *Pólya-urn auxiliary loop.* `_polya_urn_reassign_all` split the
+  auxiliary key into `H + 1` subkeys with the indexing scheme
+  `type_pick=keys[h]`, `params=keys[h+1]` — so the params key for atom
+  `h` equalled the type-pick key for atom `h+1`. Now splits into
+  `2H` independent subkeys.
+- Regression test added: `tests/inference/test_run_chain_multi.py::test_multi_cluster_sweep_uses_distinct_keys_per_step`
+  inspects the source for both `split(key, 7)` and `split(aux_key, 2 * H)`.
+
+**Cross-checks (all pass).**
+
+- Gaussian copula log-density vs `scipy.stats.multivariate_normal`:
+  max abs diff $\sim 10^{-6}$ on four test points.
+- Clayton density vs closed form at $K = 2, 3$: max abs diff
+  $\sim 10^{-7}$.
+- Log-EPPF vs direct rising-factorial sum at three partitions: max abs
+  diff $\sim 10^{-5}$.
+- Sun-Cai step-up: hand-computed 8-point example reproduces
+  $\hat k_\alpha = 4$, $\hat\gamma_\alpha = 0.10$. Permutation-invariance
+  verified. Empty-rejection corner case correctly returns
+  $\hat k_\alpha = 0$.
+- Hellinger between two exchangeable Gaussian copulas: closed form
+  vs $10^5$-sample MC agrees to within MC noise.
+
+**Known limitations (not bugs).**
+
+- The current default chain lengths in integration tests are short
+  (50–150 warmup, 100–300 samples) and the random initialisation
+  `(pi_init=0.5, rho_init=0.3)` is far from the S1 truth
+  `(0.30, 0.85)`. Recovery on real-scale problems needs longer warmup
+  (the report's §3.3.1 recommends $\ge 500$ warmup + $\ge 500$ samples
+  on 4 over-dispersed chains). The EM-initialised start documented in
+  plan 04 is still TODO.
+- The multi-cluster chain on S5 can drift to a pathological mode
+  (very small posterior $\pi$, $T$ saturating $T_\max$) when started
+  from the Gaussian-only initial atom and run with tiny warmup.
+  The fix is the same: longer warmup, or wire up the EM init.
+
 ## Report figures & tables
 
 | Artifact | Reference | CLI | Status | Notes |
