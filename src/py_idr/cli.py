@@ -101,6 +101,14 @@ def sim(
             "alongside results.csv. Required input for F4 (ROC/PR)."
         ),
     ),
+    method: str = typer.Option(
+        "py-idr",
+        "--method",
+        help=(
+            "Fit method: 'py-idr' (default, PY-IDR MCMC) or 'vanilla-idr' "
+            "(Li-Brown-Huang-Bickel 2011 pairwise EM)."
+        ),
+    ),
     out: str = typer.Option(
         "runs/sim",
         "--out",
@@ -158,12 +166,35 @@ def sim(
     out_dir = Path(out) / run_id
     out_dir.mkdir(parents=True, exist_ok=True)
 
+    method_key = method.lower()
+    if method_key not in ("py-idr", "vanilla-idr"):
+        raise typer.BadParameter(f"--method must be 'py-idr' or 'vanilla-idr'; got {method!r}")
+
     typer.echo(
-        f"Running sweep: regime={regime} K={K} n={n} reps={reps} "
-        f"chain_type={chain_type} alphas={alphas_tuple} "
-        f"save_idr={save_idr} → {out_dir}"
+        f"Running sweep: method={method_key} regime={regime} K={K} n={n} reps={reps} "
+        f"alphas={alphas_tuple} → {out_dir}"
+        + (f" chain_type={chain_type} save_idr={save_idr}" if method_key == "py-idr" else "")
     )
-    if save_idr:
+
+    if method_key == "vanilla-idr":
+        from py_idr.simulation.sweep import (  # type: ignore[attr-defined]
+            run_sweep_vanilla_idr,
+        )
+
+        if save_idr:
+            typer.echo(
+                "WARNING: --save-idr is a no-op for --method vanilla-idr "
+                "(no NPZ sidecar produced)."
+            )
+        rows = run_sweep_vanilla_idr(
+            regime,
+            K=K,
+            n=n,
+            num_replicates=reps,
+            base_seed=base_seed,
+            alphas=alphas_tuple,
+        )
+    elif save_idr:
         sweep_result = run_sweep_with_traces(
             regime,
             K=K,
@@ -224,6 +255,7 @@ def sim(
             "H": H,
             "py_hyperparam_warmup": py_hyperparam_warmup,
             "save_idr": save_idr,
+            "method": method_key,
         },
         sort_keys=True,
     )

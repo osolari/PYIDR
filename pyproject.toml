@@ -136,6 +136,7 @@ ignore = [
 "docs/**" = ["D"]
 # jaxtyping shape strings like Float[Array, "n K"] register as F821/F722 forward refs.
 "src/py_idr/algebra/**" = ["F821", "F722"]
+"src/py_idr/comparators/**" = ["F821", "F722"]
 "src/py_idr/copulas/**" = ["F821", "F722"]
 "src/py_idr/decision/**" = ["F821", "F722"]
 "src/py_idr/inference/**" = ["F821", "F722"]

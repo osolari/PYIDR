@@ -385,3 +385,92 @@ def load_idr_sidecar(
         items.sort(key=lambda t: t[0])  # ascending seed
         out[regime] = [(idr, Z) for _, idr, Z in items]
     return out
+
+
+# ---- comparator sweep: Vanilla IDR (pairwise) ----------------------------------------
+
+
+def run_sweep_vanilla_idr(
+    regime: str,
+    *,
+    K: int,
+    n: int,
+    num_replicates: int,
+    base_seed: int = 0,
+    alphas: Sequence[float] = (0.01, 0.05, 0.10, 0.20),
+    aggregation: str = "mean",
+    pi_init: float = 0.5,
+    rho_init: float = 0.5,
+    max_iter: int = 200,
+    tol: float = 1e-5,
+    scenario_kwargs: dict[str, Any] | None = None,
+) -> list[ReplicateRow]:
+    """Vanilla IDR (Li et al. 2011) sweep — comparator companion to :func:`run_sweep`.
+
+    Same `(regime, K, n, num_replicates, base_seed)` shape as
+    :func:`run_sweep` so a sweep CSV can hold both PY-IDR rows and
+    Vanilla IDR rows side by side. The EM is deterministic given the
+    data, so each replicate produces a single fit; we still evaluate at
+    every $\\alpha$ in ``alphas`` for table compatibility.
+
+    Returns a flat list of :class:`ReplicateRow` with
+    ``method = "Vanilla IDR (pairwise)"`` and
+    ``len(rows) == num_replicates * len(alphas)``.
+    """
+    import time as _time
+
+    from py_idr.comparators.vanilla_idr import fit_vanilla_idr_pairwise
+
+    if regime not in _SIMULATORS:
+        raise ValueError(f"unknown regime {regime!r}; expected one of {sorted(_SIMULATORS)}")
+    if num_replicates <= 0:
+        raise ValueError(f"num_replicates must be > 0; got {num_replicates}")
+    if not alphas:
+        raise ValueError("alphas must be a non-empty sequence")
+
+    simulator = _SIMULATORS[regime]
+    extra = dict(scenario_kwargs or {})
+    rows: list[ReplicateRow] = []
+    import jax.numpy as _jnp
+
+    from py_idr.simulation.evaluation import evaluate_recovery as _evaluate_recovery
+
+    for i in range(num_replicates):
+        seed = base_seed + i
+        sim = simulator(K=K, n=n, seed=seed, **extra)
+        t0 = _time.perf_counter()
+        idr = fit_vanilla_idr_pairwise(
+            np.asarray(sim.X),
+            aggregation=aggregation,  # type: ignore[arg-type]
+            pi_init=pi_init,
+            rho_init=rho_init,
+            max_iter=max_iter,
+            tol=tol,
+        )
+        walltime = float(_time.perf_counter() - t0)
+        idr_jax = _jnp.asarray(idr)
+        for alpha in alphas:
+            recovery = _evaluate_recovery(idr_jax, sim.true_Z, alpha=float(alpha))
+            rows.append(
+                ReplicateRow(
+                    regime=sim.regime,
+                    K=K,
+                    n=n,
+                    replicate_seed=sim.seed,
+                    method="Vanilla IDR (pairwise)",
+                    alpha=float(alpha),
+                    pi_true=sim.true_pi,
+                    pi_posterior_mean=float("nan"),
+                    rho_true=sim.true_rho,
+                    rho_posterior_mean=float("nan"),
+                    T_posterior_mean=float("nan"),
+                    k_alpha=recovery.k_alpha,
+                    realized_fdr=recovery.realized_fdr,
+                    power=recovery.power,
+                    num_chains=1,
+                    num_samples_per_chain=max_iter,
+                    walltime_s=walltime,
+                )
+            )
+
+    return rows

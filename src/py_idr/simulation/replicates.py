@@ -679,3 +679,102 @@ def run_replicate_S5_sparse(
             "nu": nu,
         },
     )
+
+
+# ---- comparator: Vanilla IDR (Li-Brown-Huang-Bickel 2011) ----------------------------
+
+
+_VANILLA_IDR_METHOD_LABEL = "Vanilla IDR (pairwise)"
+
+
+def run_replicate_vanilla_idr(
+    *,
+    regime: str,
+    K: int,
+    n: int,
+    seed: int = 0,
+    alpha: float = 0.05,
+    aggregation: str = "mean",
+    pi_init: float = 0.5,
+    rho_init: float = 0.5,
+    max_iter: int = 200,
+    tol: float = 1e-5,
+    scenario_kwargs: dict[str, Any] | None = None,
+) -> ReplicateRow:
+    """End-to-end Vanilla IDR (Li et al. 2011) replicate for any of the S1-S5 regimes.
+
+    Drops into the same long-format CSV as PY-IDR rows with
+    ``method = "Vanilla IDR (pairwise)"``. PY-IDR-specific columns
+    (``T_posterior_mean``, ``rho_posterior_mean`` when the regime has
+    no single rho, etc.) follow the same NaN-where-undefined convention.
+
+    Parameters
+    ----------
+    regime
+        Simulation regime label ("S1" .. "S5-sparse").
+    K, n, seed
+        Forwarded to the regime's simulator. ``seed`` also drives
+        determinism — Vanilla IDR's EM is deterministic given the data.
+    alpha
+        Sun-Cai operating level.
+    aggregation
+        Pairwise aggregation rule for $K \\ge 3$: ``"mean"`` (default)
+        or ``"max"``. See :func:`py_idr.comparators.vanilla_idr.fit_vanilla_idr_pairwise`.
+    pi_init, rho_init, max_iter, tol
+        EM hyperparameters.
+    scenario_kwargs
+        Regime-specific kwargs forwarded to the simulator.
+
+    Returns
+    -------
+    A :class:`ReplicateRow` with ``method = "Vanilla IDR (pairwise)"``.
+
+    Raises
+    ------
+    ValueError
+        If ``regime`` is not a known simulation regime.
+    """
+    # Late import keeps the heavy comparators dep out of the simulation
+    # top-level surface.
+    from py_idr.comparators.vanilla_idr import fit_vanilla_idr_pairwise
+
+    if regime not in _SIMULATORS:
+        raise ValueError(f"unknown regime {regime!r}; expected one of {sorted(_SIMULATORS)}")
+    simulator = _SIMULATORS[regime]
+    extra = dict(scenario_kwargs or {})
+    sim = simulator(K=K, n=n, seed=seed, **extra)
+
+    t0 = time.perf_counter()
+    idr = fit_vanilla_idr_pairwise(
+        np.asarray(sim.X),
+        aggregation=aggregation,  # type: ignore[arg-type]
+        pi_init=pi_init,
+        rho_init=rho_init,
+        max_iter=max_iter,
+        tol=tol,
+    )
+    walltime = float(time.perf_counter() - t0)
+
+    recovery = evaluate_recovery(jnp.asarray(idr), sim.true_Z, alpha=alpha)
+
+    # Vanilla IDR has no "chains" — fill the chain-config columns with 1 /
+    # max_iter as a stand-in so the CSV schema stays consistent.
+    return ReplicateRow(
+        regime=sim.regime,
+        K=K,
+        n=n,
+        replicate_seed=sim.seed,
+        method=_VANILLA_IDR_METHOD_LABEL,
+        alpha=alpha,
+        pi_true=sim.true_pi,
+        pi_posterior_mean=float("nan"),  # Vanilla IDR fits per pair; not a single pi.
+        rho_true=sim.true_rho,
+        rho_posterior_mean=float("nan"),
+        T_posterior_mean=float("nan"),
+        k_alpha=recovery.k_alpha,
+        realized_fdr=recovery.realized_fdr,
+        power=recovery.power,
+        num_chains=1,
+        num_samples_per_chain=max_iter,
+        walltime_s=walltime,
+    )
