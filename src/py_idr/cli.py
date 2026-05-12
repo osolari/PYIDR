@@ -531,5 +531,49 @@ def evaluate(
         typer.echo(f"Wrote {out_path}")
 
 
+@app.command()
+def verdict(
+    results: str = typer.Option(..., "--results", help="Path to a sweep CSV."),
+    out: str = typer.Option(..., "--out", help="Output verdict JSON path."),
+    fdr_slack: float = typer.Option(
+        0.02,
+        "--fdr-slack",
+        help="Tolerance on the H1 FDR-control check (absolute, default 0.02).",
+    ),
+) -> None:
+    """Build a verdict ledger from a sweep CSV.
+
+    Runs the three pre-registered canonical hypotheses (H1 FDR
+    control, H2 PY-IDR beats Vanilla IDR on S5, H3 PY-IDR beats
+    MaxRank on S1) against the sweep DataFrame and writes a
+    :class:`py_idr.repro.verdict.VerdictLedger` JSON to ``--out``.
+
+    Per §4.10 of the report, every companion-paper analysis ships
+    with such a ledger so a reader can audit which acceptance
+    criteria the run met. Each verdict records the pre-registered
+    statement, the {pass / warn / fail / insufficient_data} outcome,
+    the underlying evidence dict, and a one-line rationale.
+
+    Insufficient-data outcomes are returned (not failures) when the
+    sweep CSV lacks rows for the methods the hypothesis compares —
+    e.g., H2 needs both PY-IDR (T>1) and Vanilla IDR rows.
+    """
+    import pandas as pd
+
+    from py_idr.repro.verdict import build_verdict_ledger  # type: ignore[attr-defined]
+
+    df = pd.read_csv(results)
+    ledger = build_verdict_ledger(df, sweep_csv=results, fdr_slack=fdr_slack)
+
+    out_path = Path(out)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text(ledger.model_dump_json(indent=2))
+
+    typer.echo(f"Wrote {out_path}")
+    typer.echo(f"Verdict summary: {ledger.summary()}")
+    for rec in ledger.records:
+        typer.echo(f"  [{rec.hypothesis_id}] {rec.outcome:>18} — {rec.rationale}")
+
+
 if __name__ == "__main__":
     app()
