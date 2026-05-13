@@ -25,7 +25,7 @@ the W9 submission push.
 ## What ships in this session
 
 1. **Real sweep.** `scripts/produce_report_figures.sh` extended for the
-   submission-scale CPU run (K=2, n=400, reps=20 across S1–S5 + S5-sparse, three
+   submission-scale CPU run (K=2, n=100, reps=10 across S1–S5 + S5-sparse, three
    methods). Numbers will be honestly described as "below the §4.1 production
    spec" and reproduced from the script. The longer K∈{2,5,10,50} ×
    n∈{2k,10k,50k} sweep stays as a documented production target for the GPU job.
@@ -79,7 +79,7 @@ the W9 submission push.
 - [ ] Drop the trailing sentence ("its figures and result tables are
       illustrative or placeholder material..."). Replace with one sentence
       summarising the actual experimental scope shipped (5 simulation
-      regimes, 3 implemented methods, K=2, n=400, 20 MC reps).
+      regimes, 3 implemented methods, K=2, n=100, 10 MC reps).
 - [ ] Keep the planned-protocol framing for the real-data section.
 
 ### §3 Method
@@ -92,8 +92,8 @@ the W9 submission push.
 
 ### §4 Experiments
 - [ ] §4.4 caption for `fig:calibration`: rewrite to describe what's actually
-      shown (S1/S2/S4/S5, K=2, n=400, 20 reps, methods present).
-- [ ] §4.4 caption for `fig:roc-pr`: same; describe the S5 cell, n=400, K=2.
+      shown (S1/S2/S4/S5, K=2, n=100, 10 reps, methods present).
+- [ ] §4.4 caption for `fig:roc-pr`: same; describe the S5 cell, n=100, K=2.
 - [ ] §4.5 `tab:sim-fdr`, `tab:sim-power`: replace placeholder XX.X rows with
       real numbers for {Vanilla IDR, MaxRank, PY-IDR}; mark other methods as
       not-yet-integrated.
@@ -110,7 +110,7 @@ the W9 submission push.
 ### §5 Conclusion
 - [ ] Update first paragraph: "we developed... and we report..." instead of
       "and we stated theoretical results with placeholder figures and tables".
-- [ ] Limitations §: add (i) sweep scale is K=2, n=400 (below the §4.1 spec
+- [ ] Limitations §: add (i) sweep scale is K=2, n=100 (below the §4.1 spec
       while a GPU run is pending); (ii) only three comparators integrated;
       (iii) real-data section is protocol-only.
 

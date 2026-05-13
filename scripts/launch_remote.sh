@@ -45,7 +45,9 @@ if [ -z "$GPU_HOST" ]; then
 fi
 
 SSH=("ssh")
-RSYNC=("rsync" "-avz" "--info=progress2")
+# macOS rsync 2.6 doesn't have --info=progress2; -P (= --partial --progress)
+# works on both old and new rsync.
+RSYNC=("rsync" "-avzP")
 if [ -n "$SSH_KEY" ]; then
     SSH+=("-i" "$SSH_KEY")
     RSYNC+=("-e" "ssh -i $SSH_KEY $SSH_OPTS")

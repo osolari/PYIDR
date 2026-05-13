@@ -17,9 +17,10 @@
 #   $OUT_ROOT/figures/fig_f{1..5}.pdf
 #   $OUT_ROOT/tables/tab_sim_{fdr,power}.tex
 #
-# Default scale: K=2, n=400, reps=20, 5 regimes + S5-sparse, 3 methods.
-# Wall-clock estimate on CPU: ~70 min for the main sweep + ~20 min for the
-# scaling sweep + ~1 min for figures/tables.
+# Default scale: K=2, n=100, reps=10, 5 regimes, 3 methods.
+# Wall-clock estimate on a single M-series CPU: ~70 min for the main sweep
+# + ~20 min for the scaling sweep + ~1 min for figures/tables. Larger
+# (n>=400, reps>=20) cells are intended for the GPU production run.
 
 set -euo pipefail
 
@@ -33,18 +34,20 @@ export JAX_PLATFORMS
 
 PYIDR="${PYIDR:-.venv/bin/py-idr}"
 
-# Submission-scale defaults (override via env).
-REPS="${REPS:-20}"
-N="${N:-400}"
+# Submission-scale defaults (override via env). Tuned so the full pipeline
+# completes in ~90 min on a single M-series CPU; bigger cells go to the
+# GPU production run via scripts/launch_remote.sh.
+REPS="${REPS:-10}"
+N="${N:-100}"
 K="${K:-2}"
 ALPHAS="${ALPHAS:-0.01,0.05,0.10,0.20}"
 NUM_CHAINS="${NUM_CHAINS:-2}"
-N_WARMUP="${N_WARMUP:-50}"
-N_SAMPLES="${N_SAMPLES:-100}"
-NUTS_WARMUP="${NUTS_WARMUP:-20}"
+N_WARMUP="${N_WARMUP:-20}"
+N_SAMPLES="${N_SAMPLES:-40}"
+NUTS_WARMUP="${NUTS_WARMUP:-10}"
 REGIMES="${REGIMES:-S1 S2 S3 S4 S5}"
-SCALING_N_LIST="${SCALING_N_LIST:-100 200 400 800}"
-SCALING_REPS="${SCALING_REPS:-10}"
+SCALING_N_LIST="${SCALING_N_LIST:-50 100 200}"
+SCALING_REPS="${SCALING_REPS:-5}"
 
 concat_csvs() {
     local out="$1"

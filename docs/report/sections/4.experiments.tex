@@ -15,8 +15,8 @@ The submission-scale sweep evaluates PY-IDR (MCMC) against two implemented
 comparators (Vanilla IDR via the pairwise EM of \citet{LiBrownHuangBickel2011}
 aggregated by mean idr; MaxRank in the spirit of \citet{Philtron2018MaRR})
 across the five simulation regimes S1--S5 plus the S5-sparse stress test.
-The cells use $K=2$ replicates, $n=400$ features per replicate, and
-$R=20$ Monte Carlo replications per cell. The original protocol specifies
+The cells use $K=2$ replicates, $n=100$ features per replicate, and
+$R=10$ Monte Carlo replications per cell. The original protocol specifies
 $K\in\{2,5,10,50\}\times n\in\{2{,}000,10{,}000,50{,}000\}\times R=100$;
 the GPU run that fills the larger cells is queued for the production
 follow-on and the scale-down is documented per cell so submission readers
@@ -32,7 +32,7 @@ placeholders.
 
 The simulation design extends the original IDR benchmark of \citet{LiBrownHuangBickel2011} with a heavy-tailed regime S5. Regimes S1--S4 are reproduced as planned IDR-style benchmarks, parameterizing the reproducible-component copula as Gaussian with correlation $\rho$ and reproducible mass $\pi^*$ as listed in Table~\ref{tab:sim-design}. Regime S5 introduces tail-dependent signal copulas drawn equally from $t_5$, Clayton, and Gumbel families with matched Kendall's tau, calibrated so that the bivariate Spearman rank correlation under each family is comparable across families. The S5-sparse stress-test variant uses $\pi^*=0.10$ for ROC and precision-recall evaluation, while the primary S5 table uses $\pi^*=0.30$.
 
-The full protocol evaluates each regime at $K \in \{2,5,10,50\}$ and $n \in \{2{,}000,10{,}000,50{,}000\}$, giving a $5\times4\times3$ factorial design with $R=100$ Monte Carlo replications per cell. The submission-scale run reported here covers the $K=2$, $n=400$, $R=20$ slice of this design with a recorded seed ledger; the remaining cells are queued for the GPU production run. For every replication, the simulation output stores the true class labels, true cluster assignments, true copula family and parameters, marginal transformations, rank-tie information, and all posterior decision summaries needed to reproduce tables and figures. Marginal distributions are shared Gaussian for S1--S2, heterogeneous Gaussian for S3--S4, skewed or heavy-tailed heterogeneous marginals for S5, and transformed to observed scores before marginal modeling.
+The full protocol evaluates each regime at $K \in \{2,5,10,50\}$ and $n \in \{2{,}000,10{,}000,50{,}000\}$, giving a $5\times4\times3$ factorial design with $R=100$ Monte Carlo replications per cell. The submission-scale run reported here covers the $K=2$, $n=100$, $R=10$ slice of this design with a recorded seed ledger; the remaining cells are queued for the GPU production run. For every replication, the simulation output stores the true class labels, true cluster assignments, true copula family and parameters, marginal transformations, rank-tie information, and all posterior decision summaries needed to reproduce tables and figures. Marginal distributions are shared Gaussian for S1--S2, heterogeneous Gaussian for S3--S4, skewed or heavy-tailed heterogeneous marginals for S5, and transformed to observed scores before marginal modeling.
 
 \subsection{Comparators}
 \label{sec:sim-comparators}
@@ -77,7 +77,7 @@ effective sample size per second, posterior split-$\widehat R$, number of
 active clusters, posterior mass on the correct cluster count, local-idr
 credible-band calibration, and decision stability across seeds. Monte Carlo
 tables report means with Monte Carlo standard errors (computed across the
-$R=20$ replicates per cell); calibration plots include 95\% bootstrap bands.
+$R=10$ replicates per cell); calibration plots include 95\% bootstrap bands.
 Posterior predictive checks planned for the production-scale run include
 marginal rank calibration, pairwise Kendall/Spearman diagnostics, posterior
 predictive cluster-size distributions, and failure-case summaries for empty
@@ -109,20 +109,20 @@ verdicts on H1 (FDR control) live in the verdict ledger summarised in
 \begin{figure}[H]
 \centering
 \includegraphics[width=\textwidth]{figures/fig_idr_calibration.pdf}
-\caption{idr-vs-realized-FDR calibration across simulation regimes (PY-IDR, $K{=}2$, $n{=}400$, 20 Monte Carlo replications per regime). Each panel plots the mean realized FDR (line) and a 95\% Monte Carlo band (shaded) against the nominal IDR threshold; the diagonal is perfect calibration.}
+\caption{idr-vs-realized-FDR calibration across simulation regimes (PY-IDR, $K{=}2$, $n{=}100$, 10 Monte Carlo replications per regime). Each panel plots the mean realized FDR (line) and a 95\% Monte Carlo band (shaded) against the nominal IDR threshold; the diagonal is perfect calibration.}
 \label{fig:calibration}
 \end{figure}
 
 Figure~\ref{fig:roc-pr} reports ROC and precision-recall curves on the
 heavy-tail regime S5 with $\pi^*=0.30$. The two panels read the per-replicate
 $({\widehat{\mathrm{idr}}}_i, Z_i)$ traces from the NPZ sidecar written by
-\texttt{py-idr sim --save-idr}; bootstrap bands are computed over the $R=20$
+\texttt{py-idr sim --save-idr}; bootstrap bands are computed over the $R=10$
 recorded replicates.
 
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.9\textwidth]{figures/fig_roc_pr.pdf}
-\caption{ROC (left) and precision-recall (right) curves on regime S5 (PY-IDR with the multi-cluster Pólya-urn chain, $K{=}2$, $n{=}400$, 20 replicates). Bands are 95\% bootstrap intervals over replicate seeds.}
+\caption{ROC (left) and precision-recall (right) curves on regime S5 (PY-IDR with the multi-cluster Pólya-urn chain, $K{=}2$, $n{=}100$, 10 replicates). Bands are 95\% bootstrap intervals over replicate seeds.}
 \label{fig:roc-pr}
 \end{figure}
 
@@ -160,7 +160,7 @@ the rate constant is not extracted from the displayed curve.
 Figure~\ref{fig:py-vs-dp} reports the posterior-mean cluster count under the
 multi-cluster Pólya-urn chain on regimes S5 and S5-sparse. Each replicate
 contributes one $\E[T \mid \mathrm{data}]$ value (the posterior mean of the
-active-cluster trace); the histogram across the 20 replicates per regime is
+active-cluster trace); the histogram across the 10 replicates per regime is
 the empirical cluster-count distribution under PY with discount
 $\sigma \sim \mathrm{Uniform}[0,1)$ and $H{=}5$ auxiliary atoms per Pólya-urn
 step (\S\ref{sec:hyperpriors}). A focused DP-versus-PY ablation (toggling
@@ -170,7 +170,7 @@ the prior-driven cluster-tail behaviour we will compare against.
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.9\textwidth]{figures/fig_py_vs_dp.pdf}
-\caption{Posterior cluster-count histogram on the heavy-tail regimes S5 and S5-sparse (PY-IDR with the multi-cluster Pólya-urn chain, $K{=}2$, $n{=}400$, 20 replicates per regime). Each bin contains the per-replicate posterior mean of the active-cluster trace; the empirical CDF tail captures the Pitman--Yor rare-cluster behaviour discussed in \S\ref{sec:intro}.}
+\caption{Posterior cluster-count histogram on the heavy-tail regimes S5 and S5-sparse (PY-IDR with the multi-cluster Pólya-urn chain, $K{=}2$, $n{=}100$, 10 replicates per regime). Each bin contains the per-replicate posterior mean of the active-cluster trace; the empirical CDF tail captures the Pitman--Yor rare-cluster behaviour discussed in \S\ref{sec:intro}.}
 \label{fig:py-vs-dp}
 \end{figure}
 
