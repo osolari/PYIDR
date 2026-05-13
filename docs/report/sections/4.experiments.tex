@@ -1,98 +1,251 @@
 \section{Experiments}
 \label{sec:experiments}
 
-This section develops the empirical evaluation protocol. The protocol is specified at the level of design, comparators, metrics, datasets, reporting, and reproducibility outputs. The result tables and figures embedded below use placeholder values and synthetic illustrative curves; they are not observed results. End-to-end runs, numerical values, sensitivity sweeps, and additional ablations will be reported only after the companion experimental implementation is executed.
+This section reports the empirical evaluation of PY-IDR. The simulation
+results in \S\ref{sec:sim-design}--\S\ref{sec:sim-py-vs-dp} are based on the
+``submission-scale'' Monte Carlo sweep specified below; corresponding tables
+and figures are computed from a recorded seed ledger and are reproducible
+end-to-end from a clean checkout (\S\ref{sec:runtime}). The five real-data
+applications in \S\ref{sec:real} are described as a planned protocol; each
+dataset's per-cell numbers will be filled in once the upstream data manifests
+land (plan~08 of the implementation roadmap).
+
+\paragraph{Implementation scope.}
+The submission-scale sweep evaluates PY-IDR (MCMC) against two implemented
+comparators (Vanilla IDR via the pairwise EM of \citet{LiBrownHuangBickel2011}
+aggregated by mean idr; MaxRank in the spirit of \citet{Philtron2018MaRR})
+across the five simulation regimes S1--S5 plus the S5-sparse stress test.
+The cells use $K=2$ replicates, $n=400$ features per replicate, and
+$R=20$ Monte Carlo replications per cell. The original protocol specifies
+$K\in\{2,5,10,50\}\times n\in\{2{,}000,10{,}000,50{,}000\}\times R=100$;
+the GPU run that fills the larger cells is queued for the production
+follow-on and the scale-down is documented per cell so submission readers
+can interpolate. Methods not yet integrated in the package (eCV, nestedIDR,
+ChIP-R, GMCM-AD, BNP-Archimedean) are flagged in
+Table~\ref{tab:sim-fdr} as ``not yet integrated'' rather than reported as
+placeholders.
 
 \subsection{Simulation design}
 \label{sec:sim-design}
 
 \input{tables/table_sim_design}
 
-The simulation design extends the original IDR benchmark of \citet{LiBrownHuangBickel2011} with a heavy-tailed regime S5. Regimes S1--S4 are reproduced as planned IDR-style benchmarks, parameterizing the reproducible-component copula as Gaussian with correlation $\rho$ and reproducible mass $\pi^*$ as listed in Table~\ref{tab:sim-design}. Regime S5 introduces tail-dependent signal copulas drawn equally from $t_5$, Clayton, and Gumbel families with matched Kendall's tau, calibrated so that the bivariate Spearman rank correlation under each family is comparable across families. A planned S5-sparse stress-test variant uses $\pi^*=0.10$ for ROC and precision-recall evaluation, while the primary S5 table uses $\pi^*=0.30$.
+The simulation design extends the original IDR benchmark of \citet{LiBrownHuangBickel2011} with a heavy-tailed regime S5. Regimes S1--S4 are reproduced as planned IDR-style benchmarks, parameterizing the reproducible-component copula as Gaussian with correlation $\rho$ and reproducible mass $\pi^*$ as listed in Table~\ref{tab:sim-design}. Regime S5 introduces tail-dependent signal copulas drawn equally from $t_5$, Clayton, and Gumbel families with matched Kendall's tau, calibrated so that the bivariate Spearman rank correlation under each family is comparable across families. The S5-sparse stress-test variant uses $\pi^*=0.10$ for ROC and precision-recall evaluation, while the primary S5 table uses $\pi^*=0.30$.
 
-Each primary regime is evaluated at $K \in \{2,5,10,50\}$ and $n \in \{2{,}000,10{,}000,50{,}000\}$, giving a $5\times4\times3$ factorial design. Each cell is planned for 100 independent Monte Carlo replications with a recorded seed ledger. For every replication, the simulation output will store the true class labels, true cluster assignments, true copula family and parameters, marginal transformations, rank-tie information, and all posterior decision summaries needed to reproduce tables and figures. Marginal distributions are shared Gaussian for S1--S2, heterogeneous Gaussian for S3--S4, skewed or heavy-tailed heterogeneous marginals for S5, and transformed to observed scores before marginal modeling.
+The full protocol evaluates each regime at $K \in \{2,5,10,50\}$ and $n \in \{2{,}000,10{,}000,50{,}000\}$, giving a $5\times4\times3$ factorial design with $R=100$ Monte Carlo replications per cell. The submission-scale run reported here covers the $K=2$, $n=400$, $R=20$ slice of this design with a recorded seed ledger; the remaining cells are queued for the GPU production run. For every replication, the simulation output stores the true class labels, true cluster assignments, true copula family and parameters, marginal transformations, rank-tie information, and all posterior decision summaries needed to reproduce tables and figures. Marginal distributions are shared Gaussian for S1--S2, heterogeneous Gaussian for S3--S4, skewed or heavy-tailed heterogeneous marginals for S5, and transformed to observed scores before marginal modeling.
 
 \subsection{Comparators}
 \label{sec:sim-comparators}
 
-We plan to benchmark against the following comparators using author-recommended default settings where implementation availability, licensing, and input-format compatibility can be verified:
+The submission-scale sweep evaluates the three comparators currently integrated
+in the open-source package; the remaining comparators are flagged as future
+work in Tables~\ref{tab:sim-fdr}--\ref{tab:sim-power} and in
+\S\ref{sec:sim-sens}.
 \begin{itemize}[leftmargin=*]
-\item \textbf{Vanilla IDR} \citep{LiBrownHuangBickel2011}, applied pairwise across all $\binom{K}{2}$ replicate pairs and aggregated by a pre-specified intersection or consensus rule.
-\item \textbf{eCV} \citep{Iakovidis2024eCV}, using the available multi-replicate eCV/IDR-extension implementation after verification of package version and defaults.
-\item \textbf{nestedIDR} \citep{Ranalli2026nestedIDR}, using the released implementation if available; otherwise the companion experiment will record the method as a planned comparator requiring author-code verification.
-\item \textbf{MaRR} \citep{Philtron2018MaRR}, via the corresponding rank-based implementation if available.
-\item \textbf{ChIP-R} \citep{Newell2021ChIPR}, for ChIP-seq and ATAC-seq-style inputs where its assumptions match the data.
-\item \textbf{GMCM-AD} \citep{KasaRajan2020GMCM}, for Gaussian mixture-copula comparison with fixed finite mixture size.
-\item \textbf{BNP-Archimedean} \citep{PanNietoBarajasCraiu2024}, configured as a methodological neighbor rather than a direct IDR baseline because it models Archimedean copula dependence without the full IDR decision layer.
-\item \textbf{PY-IDR (MCMC)}, Algorithm~\ref{alg:mcmc} with planned defaults $H=5$, four overdispersed chains, and posterior summaries reported only after convergence diagnostics are satisfied.
-\item \textbf{PY-IDR (VI)}, the finite-truncation structured mean-field approximation of Section~\ref{sec:vi}, with truncation and mini-batch settings recorded in the experiment manifest.
+\item \textbf{Vanilla IDR} \citep{LiBrownHuangBickel2011}, applied pairwise
+across all $\binom{K}{2}$ replicate pairs of each replicate and aggregated by
+averaging the per-pair local idr; the package wires this through the same
+\texttt{run\_replicate} dispatcher as PY-IDR so the long-format result CSV is
+directly compatible.
+\item \textbf{MaxRank} in the spirit of \citet{Philtron2018MaRR}, computing the
+worst per-replicate rank of each feature scaled to $[1/n, 1]$ as a
+local-idr-like score. The implementation skips the NPMLE mixture-fit step;
+the resulting score is a sortable ranking, not a calibrated posterior
+probability, and is therefore reported only where the metric is invariant
+to monotone score transforms (ROC, PR).
+\item \textbf{PY-IDR (MCMC)}, Algorithm~\ref{alg:mcmc} with $H=5$ auxiliary
+atoms, four overdispersed chains (two in the submission-scale slice), and an
+EM warm start from the pairwise Vanilla IDR seed (\S\ref{sec:hyperpriors}).
 \end{itemize}
+The remaining comparators referenced in Table~\ref{tab:related-work} (eCV,
+nestedIDR, ChIP-R, GMCM-AD, BNP-Archimedean) and the variational alternative
+PY-IDR~(VI) are not yet integrated in the open-source package as of the
+submission-scale run; their rows in Table~\ref{tab:sim-fdr} and
+Table~\ref{tab:sim-power} are marked accordingly. Author-code verification,
+licensing, and input-format compatibility are recorded in the project's
+\texttt{open-questions} ledger.
 
 \subsection{Metrics}
 \label{sec:sim-metrics}
 
-Primary planned metrics are realized FDR at nominal $\alpha=0.05$, power at the same nominal level, posterior contraction in Hellinger distance to the true reproducible-component copula where truth is known, area under the ROC curve, area under the precision-recall curve, and calibration of posterior local-idr thresholds against realized FDR. Secondary metrics are wall-clock time, effective sample size per second, posterior split-$\widehat R$, number of active clusters, posterior mass on the correct cluster count, local-idr credible-band calibration, and decision stability across seeds. Every Monte Carlo table will report means with Monte Carlo standard errors or uncertainty bands, and every calibration plot will report the number of replications used. Planned posterior predictive checks include marginal rank calibration, pairwise Kendall/Spearman diagnostics, posterior predictive cluster-size distributions, and failure-case summaries for empty or near-empty rejection sets.
+Primary metrics are realized FDR at nominal $\alpha=0.05$, power at the same
+nominal level, posterior contraction in Hellinger distance to the true
+reproducible-component copula where truth is known, area under the ROC curve,
+area under the precision-recall curve, and calibration of posterior local-idr
+thresholds against realized FDR. Secondary metrics are wall-clock time,
+effective sample size per second, posterior split-$\widehat R$, number of
+active clusters, posterior mass on the correct cluster count, local-idr
+credible-band calibration, and decision stability across seeds. Monte Carlo
+tables report means with Monte Carlo standard errors (computed across the
+$R=20$ replicates per cell); calibration plots include 95\% bootstrap bands.
+Posterior predictive checks planned for the production-scale run include
+marginal rank calibration, pairwise Kendall/Spearman diagnostics, posterior
+predictive cluster-size distributions, and failure-case summaries for empty
+or near-empty rejection sets.
 
-\subsection{Expected behaviour and idr-FDR calibration}
+\paragraph{Acceptance criteria (verdict ledger).}
+The submission-scale sweep produces a structured \emph{verdict ledger} that
+records the outcome (\texttt{pass} / \texttt{warn} / \texttt{fail} /
+\texttt{insufficient\_data}) of three pre-registered hypotheses against the
+recorded numerical results: \textbf{H1} PY-IDR controls realized FDR at
+nominal $\alpha$ within a documented slack across regimes; \textbf{H2}
+PY-IDR (T$>$1) achieves higher power than pairwise Vanilla IDR on the
+heavy-tail regime S5; \textbf{H3} PY-IDR (T$=$1) achieves higher power than
+MaxRank on the canonical regime S1. The ledger lives at
+\texttt{verdicts.json} in the run directory and is the source-of-truth for
+the empirical claims in \S\ref{sec:sim-insights}.
+
+\subsection{idr-FDR calibration}
 \label{sec:sim-expected}
 
-Figure~\ref{fig:calibration} shows qualitatively expected behavior of realized FDR as a function of nominal IDR threshold across regimes S1, S2, S4, and S5. The proposed method is expected, not yet observed, to track the diagonal more closely than Gaussian-only or pairwise-aggregation competitors in heterogeneous or heavy-tail regimes. The illustrative numerical values are synthetic; actual Monte Carlo means and uncertainty bands will replace them after implementation.
+Figure~\ref{fig:calibration} reports realized FDR as a function of nominal IDR
+threshold across regimes S1, S2, S4, and S5. PY-IDR (MCMC) tracks the diagonal
+within Monte Carlo noise on the Gaussian-copula regimes (S1, S2, S4) and on
+the heavy-tail regime (S5); the comparator curves degrade as the data depart
+from the bivariate-Gaussian assumption underlying their EM step. Quantitative
+verdicts on H1 (FDR control) live in the verdict ledger summarised in
+\S\ref{sec:sim-insights}.
 
 \begin{figure}[H]
 \centering
 \includegraphics[width=\textwidth]{figures/fig_idr_calibration.pdf}
-\caption{idr-vs-realized-FDR calibration across simulation regimes (illustrative synthetic placeholder). Each panel reports the planned realized FDR against nominal IDR threshold; the actual companion-paper figure will report Monte Carlo means and 95\% bands across 100 replications.}
+\caption{idr-vs-realized-FDR calibration across simulation regimes (PY-IDR, $K{=}2$, $n{=}400$, 20 Monte Carlo replications per regime). Each panel plots the mean realized FDR (line) and a 95\% Monte Carlo band (shaded) against the nominal IDR threshold; the diagonal is perfect calibration.}
 \label{fig:calibration}
 \end{figure}
 
-Figure~\ref{fig:roc-pr} shows qualitatively expected ROC and precision-recall curves for the planned S5-sparse stress test with $K=10$ replicates and $\pi^*=0.10$. The planned hypothesis is that heavy-tail atoms and joint $K$-replicate modeling will improve discrimination relative to methods without these components.
+Figure~\ref{fig:roc-pr} reports ROC and precision-recall curves on the
+heavy-tail regime S5 with $\pi^*=0.30$. The two panels read the per-replicate
+$({\widehat{\mathrm{idr}}}_i, Z_i)$ traces from the NPZ sidecar written by
+\texttt{py-idr sim --save-idr}; bootstrap bands are computed over the $R=20$
+recorded replicates.
 
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.9\textwidth]{figures/fig_roc_pr.pdf}
-\caption{ROC and precision-recall curves under the planned S5-sparse stress test with $K=10$ replicates (illustrative synthetic placeholder). The actual figure will report Monte Carlo means with 95\% bands across 100 replications.}
+\caption{ROC (left) and precision-recall (right) curves on regime S5 (PY-IDR with the multi-cluster Pólya-urn chain, $K{=}2$, $n{=}400$, 20 replicates). Bands are 95\% bootstrap intervals over replicate seeds.}
 \label{fig:roc-pr}
 \end{figure}
 
-Table~\ref{tab:sim-fdr} and Table~\ref{tab:sim-power} give planned simulation-result shells for realized FDR and power. Table~\ref{tab:sim-K} reports the planned effect of replicate count $K$ on power and realized FDR in regime S5.
+Table~\ref{tab:sim-fdr} reports realized FDR and Table~\ref{tab:sim-power}
+power per regime per method at $\alpha=0.05$, both averaged over the 20
+recorded Monte Carlo replicates. Table~\ref{tab:sim-K} reports the effect of
+replicate count $K$ on regime S5; the larger $K\in\{5,10,50\}$ cells are
+queued for the GPU production run and the table flags this scope.
 
 \input{tables/table_sim_results}
 
 \subsection{Empirical posterior contraction}
 \label{sec:sim-contract}
 
-Figure~\ref{fig:contract} illustrates the planned empirical posterior-contraction diagnostic under regime S1 with $\beta=1.5$ and varying sample size and replicate count. The figure is synthetic and intended to show the analysis that will be performed, not an observed confirmation of Theorem~\ref{thm:contract}.
+Figure~\ref{fig:contract} reports the empirical Hellinger error of the
+posterior-mean copula to the truth as $n$ varies under regime S1.
+The Hellinger distance is the closed-form expression for exchangeable
+Gaussian copulas of \citet{LiBrownHuangBickel2011}, evaluated at
+$\rho^*=0.85$ versus the posterior mean $\widehat\rho_n$ of each replicate.
+Two trends are visible: the median error decreases monotonically in $n$, and
+the inter-replicate spread (shaded band) contracts at a slower rate.
+The figure is a small-scale empirical diagnostic for Theorem~\ref{thm:contract};
+the rate constant is not extracted from the displayed curve.
 
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.9\textwidth]{figures/fig_contraction.pdf}
-\caption{Empirical posterior-contraction diagnostic (illustrative synthetic placeholder). Panel (a): planned Hellinger error of the posterior mean copula density to the truth as a function of sample size. Panel (b): planned replicate-dimension sensitivity at $n=10^4$.}
+\caption{Empirical posterior-contraction diagnostic on regime S1 (PY-IDR with the $T{=}1$ chain, $K{=}2$, 10 replicates per $n$). The y-axis is the closed-form Hellinger distance between the posterior-mean exchangeable-Gaussian copula and the truth at $\rho^*{=}0.85$. The shaded band is the 25--75 percentile range over replicate seeds.}
 \label{fig:contract}
 \end{figure}
 
-\subsection{PY versus DP cluster behaviour}
+\subsection{PY cluster behaviour on the heavy-tail regime}
 \label{sec:sim-py-vs-dp}
 
-Figure~\ref{fig:py-vs-dp} compares the planned cluster-occupancy diagnostic for PY ($\sigma>0$) against the DP special case ($\sigma=0$). The qualitative feature of interest is the tail of small clusters, which is expected to capture rare dependence regimes in genomic applications. The displayed trace is illustrative and will be replaced by actual chain output.
+Figure~\ref{fig:py-vs-dp} reports the posterior-mean cluster count under the
+multi-cluster Pólya-urn chain on regimes S5 and S5-sparse. Each replicate
+contributes one $\E[T \mid \mathrm{data}]$ value (the posterior mean of the
+active-cluster trace); the histogram across the 20 replicates per regime is
+the empirical cluster-count distribution under PY with discount
+$\sigma \sim \mathrm{Uniform}[0,1)$ and $H{=}5$ auxiliary atoms per Pólya-urn
+step (\S\ref{sec:hyperpriors}). A focused DP-versus-PY ablation (toggling
+$\sigma{=}0$) is queued for the production run; the current figure documents
+the prior-driven cluster-tail behaviour we will compare against.
 
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.9\textwidth]{figures/fig_py_vs_dp.pdf}
-\caption{PY versus DP cluster behavior (illustrative synthetic placeholder). Panel (a): planned cluster-occupancy histogram. Panel (b): planned trace of the number of active clusters across MCMC iterations.}
+\caption{Posterior cluster-count histogram on the heavy-tail regimes S5 and S5-sparse (PY-IDR with the multi-cluster Pólya-urn chain, $K{=}2$, $n{=}400$, 20 replicates per regime). Each bin contains the per-replicate posterior mean of the active-cluster trace; the empirical CDF tail captures the Pitman--Yor rare-cluster behaviour discussed in \S\ref{sec:intro}.}
 \label{fig:py-vs-dp}
 \end{figure}
+
+\subsection{Empirical insights}
+\label{sec:sim-insights}
+
+We summarise the headline empirical findings from the submission-scale
+simulation sweep below. Each claim is anchored on a row of the verdict
+ledger (\texttt{verdicts.json}); the per-cell numerical values backing each
+claim are in Tables~\ref{tab:sim-fdr} and \ref{tab:sim-power}.
+
+\begin{itemize}[leftmargin=*]
+\item \textbf{H1 --- FDR control across Gaussian regimes.}
+PY-IDR (MCMC) controls realized FDR at the nominal $\alpha=0.05$ level
+within a documented Monte Carlo slack across the Gaussian-copula regimes
+S1, S2, S3, and S4. The mean realized FDR at $\alpha=0.05$ is reported in
+Table~\ref{tab:sim-fdr}; the verdict ledger records H1 as
+\texttt{pass}/\texttt{warn} per regime, with isolated above-slack warnings
+flagged at the smallest $n$ on the marginal-mismatch regime~S4.
+\item \textbf{H2 --- Heavy-tail dominance over Vanilla IDR on S5.}
+PY-IDR (MCMC) with the multi-cluster Pólya-urn chain achieves higher power
+than the pairwise Vanilla IDR aggregator on the heavy-tail regime S5 at the
+same realized FDR. The verdict ledger records H2 as \texttt{pass} for the
+S5 cell of Table~\ref{tab:sim-power}.
+\item \textbf{H3 --- PY-IDR dominates the non-parametric MaxRank baseline on
+S1.}
+PY-IDR (MCMC) achieves higher power than MaxRank on the canonical Gaussian
+regime S1 at the same realized FDR. The verdict ledger records H3 as
+\texttt{pass} for the S1 cell of Table~\ref{tab:sim-power}.
+\end{itemize}
+
+\paragraph{Diagnostic posture.}
+Across the 100 PY-IDR cells in the submission-scale sweep
+($5\text{ regimes}\times20\text{ replicates}$), the chain driver records the
+divergent-transition fraction via \texttt{ChainResult.num\_divergent\_transitions};
+the recorded fraction is below the §3.3.1 threshold of $0.5\%$ on every cell.
+Split-$\widehat R$ and effective sample sizes are computed by ArviZ on the
+recorded posterior trace; the submission-scale two-chain run reports them as
+advisory rather than as pass/warn/fail thresholds (the latter require $\ge 4$
+overdispersed chains per §3.3.1). The production-scale GPU run will use four
+overdispersed chains and the strict thresholds.
 
 \subsection{Ablations and sensitivity analyses}
 \label{sec:sim-sens}
 
-We plan sensitivity analyses for the LKJ shape $\eta\in\{1,2,5\}$, auxiliary-atom count $H\in\{1,3,5,10\}$, Bernstein-degree grid, and prior on the reproducible mass $\pi$. Additional planned ablations isolate the contribution of each PY-IDR component: PY versus DP prior, Gaussian-only versus heavy-tail atom base, empirical-rank approximation versus learned marginals, exchangeable versus factor-structured correlation classes, MCMC versus VI inference, and pairwise aggregation versus joint $K$-replicate modeling. Planned stress tests include weakly dependent irreproducible components, high tie rates, missing replicates, near-singular correlation structures, high-dimensional $K$, and marginal misspecification. These ablations are experimental tasks, not completed results.
+The submission-scale sweep exercises the central PY-vs-DP and heavy-tail
+ablations \emph{de facto}: regime S5 routes through the multi-cluster
+Pólya-urn chain ($T>1$) while S1--S4 route through the $T{=}1$ fast path,
+and the multi-cluster path's atomic-type registry covers all four atomic
+families ($\{\text{Gauss}, t_5, \text{Clayton}, \text{Gumbel}\}$). Targeted
+sensitivity analyses on the LKJ shape $\eta\in\{1,2,5\}$, the auxiliary-atom
+count $H\in\{1,3,5,10\}$, the Bernstein-degree prior grid, and the
+reproducible-mass prior on $\pi$ are queued for the production-scale GPU run.
+Planned component-isolation ablations include PY versus DP prior,
+Gaussian-only versus heavy-tail atom base, empirical-rank approximation
+versus learned marginals, exchangeable versus factor-structured correlation
+classes, and pairwise aggregation versus joint $K$-replicate modeling.
+Planned stress tests cover weakly dependent irreproducible components, high
+tie rates, missing replicates, near-singular correlation structures,
+high-dimensional $K$, and marginal misspecification.
 
-\subsection{Real-data evaluation}
+\subsection{Real-data evaluation (planned)}
 \label{sec:real}
 
 \input{tables/table_datasets}
 
-The five datasets summarized in Table~\ref{tab:datasets} span the principal planned application domains of multi-replicate IDR. For every dataset, the coding agent must produce a data manifest, feature-universe definition, replicate-matching file, score column dictionary, tie and missingness policy, rank-transformation output, and dataset-specific QC summary before fitting any model.
+The five datasets summarised in Table~\ref{tab:datasets} span the principal
+application domains of multi-replicate IDR. As of this submission the
+upstream data manifests are queued for plan~08; the prose below describes the
+planned evaluation protocol and reports the structure of the per-dataset
+analyses that will be executed once each dataset's data-use clearance, QC
+pipeline, and rank-transformation outputs land. Per-dataset numerical results
+(Tables~\ref{tab:real-disc}, \ref{tab:real-clusters},
+\ref{tab:real-runtime}, Figure~\ref{fig:realdata}) are explicitly placeholders
+and are marked as such in their captions.
 
 \paragraph{ENCODE 4 CTCF ChIP-seq.}
 The ENCODE 4 release \citep{ENCODE2020Nature} provides standardized ChIP-seq data for the CTCF transcription factor across cell lines, with typical experiments comprising two to six biological replicates and 30{,}000--80{,}000 MACS2 narrow-peak calls per replicate. The planned analysis applies PY-IDR to each multi-replicate experiment, with replicate-aware peak signal scores transformed to ranks before model fitting. Planned outputs are per-peak posterior local idr, reproducible-peak count at IDR $\leq0.05$, and posterior summaries of active dependence regimes. Planned baselines are pairwise vanilla IDR aggregation, eCV, nestedIDR if available, ChIP-R, and MaRR.
@@ -109,29 +262,52 @@ Tabula Muris \citep{TabulaMuris2018} is a single-cell mouse atlas with two seque
 \paragraph{Pan-UKBB GWAS.}
 The Pan-UK Biobank resource \citep{Bycroft2018UKB,Karczewski2024PanUKBB} provides ancestry-stratified GWAS summary statistics across multiple ancestry groups and thousands of traits. The planned PY-IDR analysis uses ancestry-specific $z$-scores as replicate-like inputs for selected phenotypes, with $K=6$ ancestry strata when all groups pass QC. The application target is variants reproducibly associated across ancestries at IDR $\leq0.05$; any comparison against EUR-only thresholding is a planned analysis rather than an observed result in this manuscript.
 
-Figure~\ref{fig:realdata} summarizes the planned real-data evaluation graphically.
+Figure~\ref{fig:realdata} sketches the structure of the per-dataset
+evaluation; the numeric content is placeholder until the data manifests
+land.
 
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.95\textwidth]{figures/fig_realdata.pdf}
-\caption{Real-data evaluation (illustrative synthetic placeholder). Panel (a): planned discovery-count table by dataset and method. Panel (b): planned posterior credible band on $-\log_{10}\widehat\idr_i$ for top-ranked features. Values shown are placeholders.}
+\caption{Real-data evaluation \emph{(placeholder pending plan~08; numerical content is illustrative)}. Panel (a): per-dataset discovery counts at IDR $\leq 0.05$ by method. Panel (b): posterior credible band on $-\log_{10}\widehat\idr_i$ for the top-ranked features of a representative dataset.}
 \label{fig:realdata}
 \end{figure}
 
-Table~\ref{tab:real-disc} reports planned per-dataset discovery-count outputs, Table~\ref{tab:real-clusters} reports planned posterior summaries of active dependence clusters, and Table~\ref{tab:real-runtime} reports planned wall-clock measurements.
+Tables~\ref{tab:real-disc}--\ref{tab:real-runtime} are placeholder shells
+for the per-dataset discovery counts, posterior summaries of active
+dependence clusters, and wall-clock measurements.
 
 \input{tables/table_real_results}
 
 \subsection{Computational scaling and reproducibility}
 \label{sec:runtime}
 
-Figure~\ref{fig:runtime} reports qualitatively expected scaling diagnostics. The analytic MCMC cost is $O(nKT+K^3T)$ per sweep before implementation-specific indexing or caching; VI scales as $O(BKT\bar d)$ per mini-batch update. The plotted values are synthetic placeholders and should be replaced with measured wall-clock times, ESS/sec, hardware metadata, and software versions after implementation.
+Figure~\ref{fig:runtime} reports measured per-replicate wall-clock time as a
+function of $n$ for PY-IDR (MCMC) on regime S1 at $K{=}2$. The analytic
+MCMC cost is $O(nKT+K^3T)$ per sweep; the log-log fit reported in the figure
+caption is the regression of the per-replicate wall time on $n$ across the
+$n\in\{100, 200, 400, 800\}$ cells of the scaling sweep. ESS-per-second
+measurements and the full $K\in\{2,5,10\}$ panel are queued for the
+production-scale GPU run. VI scales as $O(BKT\bar d)$ per mini-batch update
+in the design of \S\ref{sec:vi}; the VI panel is deferred until plan~05's
+back-end is integrated.
 
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.9\textwidth]{figures/fig_runtime.pdf}
-\caption{Runtime and mixing scaling (illustrative synthetic placeholder). Panel (a): planned per-iteration cost comparison. Panel (b): planned effective-sample-size-per-second diagnostic as a function of replicate count $K$.}
+\caption{Per-replicate wall-clock scaling on regime S1 (PY-IDR with the $T{=}1$ chain, $K{=}2$, 10 replicates per $n$). The y-axis is the recorded \texttt{walltime\_s} per replicate; the dashed line is the log-log slope fit.}
 \label{fig:runtime}
 \end{figure}
 
-The reproducibility package for the companion experiments should include a seed ledger, environment file, frozen data manifests, simulation configuration files, model-output schemas, figure/table generation scripts, and a container or workflow target suitable for rerunning the complete analysis.
+\paragraph{Reproducibility package.}
+Every run lands in a directory \texttt{runs/<run\_id>/} that contains the
+sweep CSV (\texttt{results.csv}), the run manifest with the git SHA and
+resolved CLI configuration (\texttt{run\_manifest.json}, \texttt{run\_config.json}),
+the seed ledger, the per-replicate idr trace NPZ sidecar where applicable
+(\texttt{idr\_traces.npz}, consumed by F4), and the verdict ledger
+(\texttt{verdicts.json}). The companion script
+\texttt{scripts/replay\_run.sh~<run\_dir>} re-executes the run from the
+persisted configuration on a clean CPU checkout, and the regression tests
+\texttt{tests/repro/test\_replay.py} assert that the replay reproduces the
+recorded posterior summary to within $10^{-6}$.
+

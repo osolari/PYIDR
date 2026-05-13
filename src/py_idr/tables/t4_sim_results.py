@@ -29,16 +29,19 @@ import pandas as pd
 _PY_IDR_MCMC = "PY-IDR (MCMC, T=1)"
 
 # Full ordered method list as it appears in the report's tab:sim-fdr.
-# Anything not present in the sweep DataFrame becomes a placeholder row.
+# Labels match exactly what the sweep CSV's `method` column produces (see
+# `py_idr.simulation.replicates`); methods not yet integrated in the package
+# (and therefore absent from any sweep CSV) become placeholder rows.
 _REPORT_METHODS_ORDER: tuple[str, ...] = (
-    "Vanilla IDR",
+    "Vanilla IDR (pairwise)",
     "eCV",
     "nestedIDR",
-    "MaRR",
+    "MaxRank",
     "ChIP-R",
     "GMCM-AD",
     "BNP-Archimedean",
     "PY-IDR (MCMC, T=1)",
+    "PY-IDR (MCMC, T>1)",
     "PY-IDR (VI)",
 )
 

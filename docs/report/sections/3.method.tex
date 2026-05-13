@@ -115,8 +115,19 @@ where $b_r(t;M)=M\binom{M-1}{r-1}t^{r-1}(1-t)^{M-r}$ is the Bernstein density ba
 \Return{Updated state.}\;
 \end{algorithm}
 
-\paragraph{Initialization and diagnostics.}
-We initialize from EM-IDR estimates on bivariate collapsed pairs, with cluster assignments seeded by $k$-means or hierarchical clustering of rank-transformed data. Planned implementation diagnostics include deterministic seed ledgers, rank-tie summaries, overdispersed chain starts, split-$\widehat R\leq 1.01$, effective sample size at least 400 for reported scalar summaries, cluster-count trace plots, posterior label-invariant summaries, NUTS divergent-transition checks, and sensitivity to the auxiliary-atom count $H$.
+\paragraph{Initialisation and diagnostics.}
+Each chain is initialised from a pairwise Vanilla-IDR EM solution aggregated
+across the $\binom{K}{2}$ replicate pairs: the marginal $\pi$ and $\rho$ are
+recovered as the mean of the per-pair EM estimates, and per-feature class
+indicators $Z$ are recovered by thresholding the aggregated per-pair local
+idr at $1/2$. The implementation diagnostics layer follows §3.3.1 of the
+empirical protocol: a deterministic seed ledger, rank-tie summary,
+overdispersed chain starts, split-$\widehat R\leq 1.01$ thresholding, an
+effective-sample-size threshold of $400$ for reported scalar summaries,
+cluster-count trace plots, posterior label-invariant summaries, and a
+divergent-transition fraction aggregated from the per-sweep NUTS atom and
+$(\alpha,\sigma)$ updates. Sensitivity to the auxiliary-atom count $H$ is a
+planned ablation; the default in the package is $H{=}5$.
 
 \paragraph{Complexity.}
 Each MCMC sweep is $O(nKT+K^3T)$ when all active clusters are evaluated for each feature, where $T$ is the number of active clusters. The first term is dominated by per-cluster copula-density evaluation and the second by correlation-matrix operations. If a balanced tree or cached nearest-cluster screen is used in a future implementation, an additional logarithmic factor may appear; the analytic baseline used here does not require it.

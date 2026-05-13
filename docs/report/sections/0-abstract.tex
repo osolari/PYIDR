@@ -1,3 +1,35 @@
 \abstract{
-We propose PY-IDR, a hierarchical Bayesian nonparametric extension of the Irreproducible Discovery Rate (IDR) framework of \citet{LiBrownHuangBickel2011}. PY-IDR is designed for an arbitrary number of replicates $K \geq 2$, replicate-specific and non-Gaussian marginal score distributions, and an unknown number of reproducible-component dependence regimes. The reproducible copula is modeled as a Pitman--Yor mixture of Gaussian copulas with structured correlation matrices, augmented with $t_5$, Clayton, and Gumbel atoms for planned tail-dependence robustness; replicate marginals are modeled by Bernstein--Dirichlet priors with a hierarchical degree prior. Inference is developed through a Pitman--Yor P\'olya-urn MCMC scheme with auxiliary atoms, NUTS or Metropolis updates on valid correlation parameterizations, and a finite-truncation structured variational alternative for large genomic studies. The theory establishes finite-sieve identifiability under positive lower-orthant dependence and explicit component-separation assumptions, gives a conditional Hellinger contraction statement under stated KL-support and sieve-tail conditions, connects posterior local-idr consistency to Bayes-mFDR control under threshold regularity assumptions, and separates Harris ergodicity from a conjectural geometric-rate strengthening. We also provide an empirical protocol spanning the S1--S4 IDR benchmarks, a heavy-tail scenario S5, and five planned real-data applications: ENCODE 4 CTCF ChIP-seq, ENCODE 4 ATAC-seq, DREAM5, Tabula Muris pseudobulk, and Pan-UK Biobank GWAS. The present manuscript develops the model, inference scheme, theory, implementation roadmap, and evaluation protocol; its figures and result tables are illustrative or placeholder material, and final observed numerical values will be reported only after the companion experimental implementation is run.
+We propose PY-IDR, a hierarchical Bayesian nonparametric extension of the
+Irreproducible Discovery Rate (IDR) framework of
+\citet{LiBrownHuangBickel2011}. PY-IDR is designed for an arbitrary number
+of replicates $K \geq 2$, replicate-specific and non-Gaussian marginal
+score distributions, and an unknown number of reproducible-component
+dependence regimes. The reproducible copula is modelled as a
+Pitman--Yor mixture of Gaussian copulas with structured correlation
+matrices, augmented with $t_5$, Clayton, and Gumbel atoms for
+tail-dependence robustness; replicate marginals are modelled by
+Bernstein--Dirichlet priors with a hierarchical degree prior. Inference
+proceeds through a Pitman--Yor P\'olya-urn MCMC scheme with auxiliary
+atoms, NUTS or Metropolis updates on valid correlation parameterisations,
+and a finite-truncation structured variational alternative for large
+genomic studies. The theory establishes finite-sieve identifiability
+under positive lower-orthant dependence and explicit
+component-separation assumptions, gives a conditional Hellinger
+contraction statement under stated KL-support and sieve-tail
+conditions, connects posterior local-idr consistency to Bayes-mFDR
+control under threshold regularity assumptions, and separates Harris
+ergodicity from a conjectural geometric-rate strengthening. The
+empirical contribution is two-fold. First, a \emph{submission-scale}
+Monte Carlo evaluation covering the S1--S5 simulation regimes plus the
+S5-sparse stress test reports realized FDR, power, and Hellinger
+contraction for PY-IDR (MCMC) against Vanilla IDR \citep{LiBrownHuangBickel2011}
+and a MaxRank baseline; the reproducible pipeline that produces
+every figure and table is shipped with the code release. Second, the
+manuscript specifies the protocol for five real-data applications
+(ENCODE~4 CTCF ChIP-seq, ENCODE~4 ATAC-seq, DREAM5, Tabula~Muris
+pseudobulk, and Pan-UK~Biobank GWAS) and reports them as
+planned-protocol work pending the upstream data manifests in
+plan~08 of the implementation roadmap. The remaining cells in the
+$K\in\{2,5,10,50\}\times n\in\{2{,}000,10{,}000,50{,}000\}$ factorial
+design are queued for the production-scale GPU run.
 }

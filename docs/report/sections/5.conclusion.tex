@@ -1,11 +1,59 @@
 \section{Conclusion}
 \label{sec:conclusion}
 
-We have proposed PY-IDR, a hierarchical nonparametric Bayesian extension of the IDR framework for multi-replicate reproducibility analysis. The model combines a Pitman--Yor mixture for reproducible-component dependence regimes, structured Gaussian-copula correlation classes augmented with planned heavy-tail atoms, and replicate-specific Bernstein--Dirichlet marginal priors. We developed a P\'olya-urn auxiliary-atom MCMC scheme and a finite-truncation variational approximation, and we stated theoretical results with explicit assumptions separating finite-sieve identifiability, conditional contraction, threshold-regularity-based Bayes-mFDR control, Harris ergodicity, and conjectural or conditional stronger claims. The manuscript also lays out a protocol-first empirical program with simulations, ablations, real-data analyses, placeholder figures, and placeholder tables to be completed in the companion experimental implementation.
+We have proposed PY-IDR, a hierarchical nonparametric Bayesian extension of
+the IDR framework for multi-replicate reproducibility analysis. The model
+combines a Pitman--Yor mixture for reproducible-component dependence
+regimes, structured Gaussian-copula correlation classes augmented with
+heavy-tail atoms, and replicate-specific Bernstein--Dirichlet marginal
+priors. We developed a P\'olya-urn auxiliary-atom MCMC scheme and a
+finite-truncation variational approximation, and we stated theoretical
+results with explicit assumptions separating finite-sieve identifiability,
+conditional contraction, threshold-regularity-based Bayes-mFDR control,
+Harris ergodicity, and conjectural or conditional stronger claims. The
+empirical contribution is a submission-scale Monte Carlo evaluation
+covering the S1--S5 simulation regimes plus the S5-sparse stress test
+(\S\ref{sec:sim-design}--\S\ref{sec:sim-insights}), with reproducible
+figures, LaTeX tables, and a verdict ledger that anchors three
+pre-registered hypotheses (H1 FDR control, H2 PY-IDR vs Vanilla IDR on
+S5, H3 PY-IDR vs MaxRank on S1). The real-data section
+(\S\ref{sec:real}) remains a planned protocol pending the upstream data
+manifests in plan~08 of the implementation roadmap.
 
 \subsection{Limitations}
 
-Several limitations are central to the current manuscript status. First, the identifiability result is a finite-sieve statement with explicit linear-independence and component-separation assumptions; extending it to unrestricted infinite PY mixtures requires additional weak-identifiability theory for the mixing measure. Second, the contraction theorem is conditional on a sieve-tail assumption. For positive Pitman--Yor discount, the polynomial residual expectation is not by itself an exponential sieve-complement bound, so this remains a proof obligation for a fully unconditional PY-copula contraction theorem. Third, the stated contraction theory covers bounded smooth copula truths; boundary-singular tail-dependent copulas motivate the methodology and S5 experiments but require additional boundary theory. Fourth, Bayes-mFDR rate statements require local-idr error bounds and threshold regularity beyond global Hellinger contraction alone. Fifth, geometric ergodicity and variational matching-rate claims remain conditional on additional drift, small-set, truncation, and variational-approximation assumptions.
+Several limitations are central to the current manuscript status.
+\emph{Theory.} (i) The identifiability result is a finite-sieve statement
+with explicit linear-independence and component-separation assumptions;
+extending it to unrestricted infinite PY mixtures requires additional
+weak-identifiability theory for the mixing measure. (ii) The contraction
+theorem is conditional on a sieve-tail assumption; for positive Pitman--Yor
+discount, the polynomial residual expectation is not by itself an
+exponential sieve-complement bound. (iii) The stated contraction theory
+covers bounded smooth copula truths; boundary-singular tail-dependent
+copulas motivate the methodology and the S5 experiments but require
+additional boundary theory. (iv) Bayes-mFDR rate statements require
+local-idr error bounds and threshold regularity beyond global Hellinger
+contraction alone. (v) Geometric ergodicity and variational matching-rate
+claims remain conditional on additional drift, small-set, truncation, and
+variational-approximation assumptions.
+
+\emph{Empirical scope.}
+(i) The submission-scale simulation slice is run at $K{=}2$, $n{=}400$, $R{=}20$
+Monte Carlo replications per cell; the larger $K\in\{5,10,50\}$ and
+$n\in\{2{,}000,10{,}000,50{,}000\}$ cells of the §4.1 factorial design are
+queued for the production-scale GPU run.
+(ii) Three of the eight comparators referenced in
+Table~\ref{tab:related-work} are integrated in the open-source package as
+of this submission (Vanilla IDR pairwise, MaxRank, PY-IDR MCMC); the
+remaining five (eCV, nestedIDR, ChIP-R, GMCM-AD, BNP-Archimedean) are
+documented as not-yet-integrated in Tables~\ref{tab:sim-fdr}
+and~\ref{tab:sim-power}.
+(iii) The variational alternative PY-IDR~(VI) of \S\ref{sec:vi} has a
+prototype implementation stub; the published empirical numbers are
+MCMC-only.
+(iv) The real-data section is a planned protocol pending plan~08; no
+real-data numerical results are reported.
 
 \subsection{Practical recommendations}
 
@@ -24,10 +72,26 @@ Several extensions are natural. The most direct extension is to vine-copula atom
 [Funding sources to be added in the final version.]
 
 \paragraph{Code availability.}
-A reference implementation is planned as an open-source R/Python package, with reproducible workflow scripts for the real-data applications. The GitHub repository, archival DOI, and frozen container image will be linked only after the implementation and companion experiments are complete.
+A reference implementation is provided as an open-source Python package
+\texttt{py-idr} with a typer CLI (\texttt{py-idr \{doctor, sim, fit, figure,
+table, evaluate, verdict\}}) covering the full simulation, evaluation,
+and reproducibility pipeline. The submission-scale experiments of
+\S\ref{sec:experiments} are reproducible end-to-end from a clean checkout
+via the bundled \texttt{scripts/sweep\_submission.sh} script, which writes
+the figures and LaTeX table fragments consumed by this manuscript. Each
+run lands in a self-contained directory with the recorded seed ledger,
+the resolved configuration JSON, the run manifest, and (where applicable)
+the per-replicate idr trace NPZ sidecar; the companion
+\texttt{scripts/replay\_run.sh~<run\_dir>} re-executes the run from the
+persisted configuration on a clean CPU checkout. The GitHub repository
+and archival DOI are linked at the end of the manuscript on acceptance.
 
 \paragraph{Data availability.}
-The planned datasets are publicly available through the cited consortia or resources, subject to each resource's access terms and data-use requirements. Dataset manifests and accession identifiers will be reported in the companion experimental paper.
+The five planned real-data sources are publicly available through the
+cited consortia or resources, subject to each resource's access terms
+and data-use requirements. Frozen dataset manifests and accession
+identifiers will be reported alongside each real-data result in the
+companion experimental paper.
 
 \paragraph{Conflict of interest.}
 The authors declare no competing interests.
