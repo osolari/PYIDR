@@ -1,0 +1,57 @@
+{
+  "run_id": "1778782536765-c2aeea29",
+  "sweep_csv": "/tmp/pyidr_submission/combined_main.csv",
+  "git_sha": "dc7a11f7cec14b1c16f544c45cc7a371d16b4812",
+  "built_at": "2026-05-14T18:15:36.801635Z",
+  "records": [
+    {
+      "hypothesis_id": "H1",
+      "statement": "Realised FDR is controlled at every (method, regime, alpha) within fdr_slack = 0.020.",
+      "outcome": "pass",
+      "evidence": {
+        "fdr_slack": 0.02,
+        "max_excess": -0.01,
+        "worst_cell": {
+          "method": "PY-IDR (MCMC, T=1)",
+          "regime": "S1",
+          "alpha": 0.01,
+          "realized_fdr": 0.0
+        },
+        "n_cells": 20
+      },
+      "rationale": "Worst cell: realised_fdr = 0.0000 at alpha = 0.010 (method = PY-IDR (MCMC, T=1), regime = S1); excess = -0.0100."
+    },
+    {
+      "hypothesis_id": "H2",
+      "statement": "On S5, PY-IDR (MCMC, T>1) has higher mean power than Vanilla IDR (pairwise) by more than delta = 0.0.",
+      "outcome": "fail",
+      "evidence": {
+        "regime": "S5",
+        "alpha_filter": 0.05,
+        "method_a": "PY-IDR (MCMC, T>1)",
+        "method_b": "Vanilla IDR (pairwise)",
+        "mean_power_a": 0.0,
+        "mean_power_b": 0.1,
+        "diff": -0.1,
+        "delta": 0.0
+      },
+      "rationale": "Mean power on S5: PY-IDR (MCMC, T>1) = 0.0000, Vanilla IDR (pairwise) = 0.1000; diff = -0.1000 (delta = 0.0)."
+    },
+    {
+      "hypothesis_id": "H3",
+      "statement": "On S1, PY-IDR (MCMC, T=1) has higher mean power than MaxRank by more than delta = 0.0.",
+      "outcome": "fail",
+      "evidence": {
+        "regime": "S1",
+        "alpha_filter": 0.05,
+        "method_a": "PY-IDR (MCMC, T=1)",
+        "method_b": "MaxRank",
+        "mean_power_a": 0.0,
+        "mean_power_b": 0.03999999999999996,
+        "diff": -0.03999999999999996,
+        "delta": 0.0
+      },
+      "rationale": "Mean power on S1: PY-IDR (MCMC, T=1) = 0.0000, MaxRank = 0.0400; diff = -0.0400 (delta = 0.0)."
+    }
+  ]
+}

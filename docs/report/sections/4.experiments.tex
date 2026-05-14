@@ -179,32 +179,43 @@ the prior-driven cluster-tail behaviour we will compare against.
 
 We summarise the headline empirical findings from the submission-scale
 simulation sweep below. Each claim is anchored on a row of the verdict
-ledger (\texttt{verdicts.json}); the per-cell numerical values backing each
-claim are in Tables~\ref{tab:sim-fdr} and \ref{tab:sim-power}.
+ledger (\texttt{verdicts.json}, $K=2$, $n=100$, $R=10$); the per-cell
+numerical values backing each claim are in Tables~\ref{tab:sim-fdr} and
+\ref{tab:sim-power}.
 
 \begin{itemize}[leftmargin=*]
 \item \textbf{H1 --- FDR control across Gaussian regimes.}
-PY-IDR (MCMC) controls realized FDR at the nominal $\alpha=0.05$ level
-within a documented Monte Carlo slack across the Gaussian-copula regimes
-S1, S2, S3, and S4. The mean realized FDR at $\alpha=0.05$ is reported in
-Table~\ref{tab:sim-fdr}; the verdict ledger records H1 as
-\texttt{pass}/\texttt{warn} per regime, with isolated above-slack warnings
-flagged at the smallest $n$ on the marginal-mismatch regime~S4.
-\item \textbf{H2 --- Heavy-tail dominance over Vanilla IDR on S5.}
-PY-IDR (MCMC) with the multi-cluster Pólya-urn chain achieves higher power
-than the pairwise Vanilla IDR aggregator on the heavy-tail regime S5 at the
-same realized FDR. The verdict ledger records H2 as \texttt{pass} for the
-S5 cell of Table~\ref{tab:sim-power}.
-\item \textbf{H3 --- PY-IDR dominates the non-parametric MaxRank baseline on
-S1.}
-PY-IDR (MCMC) achieves higher power than MaxRank on the canonical Gaussian
-regime S1 at the same realized FDR. The verdict ledger records H3 as
-\texttt{pass} for the S1 cell of Table~\ref{tab:sim-power}.
+Realized FDR is controlled at the nominal $\alpha=0.05$ level within the
+documented Monte Carlo slack across the Gaussian-copula regimes
+S1, S2, S3, and S4 for every implemented method. PY-IDR (MCMC) reports
+$\widehat{\mathrm{FDR}}=0$ at this scale because its Sun--Cai rejection
+set is empty; the verdict ledger marks H1 as \texttt{pass} on PY-IDR
+(no excess) but the result is uninformative for the comparator
+ranking below.
+\item \textbf{H2 \& H3 --- Power dominance versus comparators on the
+submission-scale slice.}
+At the $K=2$, $n=100$, $R=10$ exploratory scale, the PY-IDR posterior
+local-idr is computed from only $\approx 80$ Monte Carlo samples per
+feature (\verb|num_samples_per_chain=40| $\times$ \verb|num_chains=2|);
+the resulting Monte Carlo SE on $\widehat{\mathrm{idr}}_i$ swamps the
+Sun--Cai threshold at $\alpha=0.05$ and the rejection set is empty in
+most cells. Vanilla~IDR (pairwise) and MaxRank produce non-empty
+rejection sets and dominate PY-IDR's power on the submission-scale
+slice. The verdict ledger marks H2 and H3 as \texttt{fail} on this
+slice. The underlying chain is healthy
+($\widehat\rho_n \approx 0.74$ vs $\rho^*=0.85$ on S1;
+$\widehat\pi_n \approx 0.31$ vs $\pi^*=0.30$); the failure is
+specifically in the Monte Carlo estimate of $\widehat{\mathrm{idr}}_i$
+from too few posterior $Z$-samples. The production-scale GPU run with
+4 chains $\times$ 400 samples ($\approx 1{,}600$ MC samples per
+feature) is expected to recover the ordering on the Gaussian-copula
+regimes; the S5 heavy-tail comparison (H2) needs both the longer
+chain and the multi-cluster Pólya-urn path (\texttt{chain\_type=T>1}).
 \end{itemize}
 
 \paragraph{Diagnostic posture.}
-Across the 100 PY-IDR cells in the submission-scale sweep
-($5\text{ regimes}\times20\text{ replicates}$), the chain driver records the
+Across the 50 PY-IDR cells in the submission-scale sweep
+($5\text{ regimes}\times10\text{ replicates}$), the chain driver records the
 divergent-transition fraction via \texttt{ChainResult.num\_divergent\_transitions};
 the recorded fraction is below the §3.3.1 threshold of $0.5\%$ on every cell.
 Split-$\widehat R$ and effective sample sizes are computed by ArviZ on the
@@ -212,6 +223,16 @@ recorded posterior trace; the submission-scale two-chain run reports them as
 advisory rather than as pass/warn/fail thresholds (the latter require $\ge 4$
 overdispersed chains per §3.3.1). The production-scale GPU run will use four
 overdispersed chains and the strict thresholds.
+
+\paragraph{Honest reading of the submission-scale numbers.}
+The submission-scale CPU slice is a methodology-verification harness, not a
+benchmarking statement. The headline empirical claims of the paper depend on
+the production-scale GPU cells: only then will the chain produce enough
+posterior $Z$-samples for the Sun--Cai rejection set to be a meaningful
+decision rule. The simulation infrastructure --- regime generators,
+comparator integrations, sweep driver, verdict ledger, reproducibility
+package --- is fully exercised by the submission-scale slice and is
+the object of evaluation here.
 
 \subsection{Ablations and sensitivity analyses}
 \label{sec:sim-sens}

@@ -219,6 +219,7 @@ __marimo__/
 
 # Claude Code per-user settings (skills/ is tracked)
 .claude/settings.local.json
+.claude/*.lock
 
 # PY-IDR runtime outputs
 .venv/

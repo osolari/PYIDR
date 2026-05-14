@@ -48,6 +48,14 @@ NUTS_WARMUP="${NUTS_WARMUP:-10}"
 REGIMES="${REGIMES:-S1 S2 S3 S4 S5}"
 SCALING_N_LIST="${SCALING_N_LIST:-50 100 200}"
 SCALING_REPS="${SCALING_REPS:-5}"
+# EM warm start (W8.5) — recommended for short n_warmup; default on.
+# Set EM_INIT=0 to disable.
+EM_INIT="${EM_INIT:-1}"
+if [ "$EM_INIT" = "1" ]; then
+    EM_INIT_FLAG="--em-init"
+else
+    EM_INIT_FLAG="--no-em-init"
+fi
 
 concat_csvs() {
     local out="$1"
@@ -76,13 +84,13 @@ for REGIME in $REGIMES; do
     else
         SAVE_IDR_FLAG="--no-save-idr"
     fi
-    echo "--- $REGIME / PY-IDR ---"
+    echo "--- $REGIME / PY-IDR (em_init=${EM_INIT}) ---"
     "$PYIDR" sim \
         --regime "$REGIME" --K "$K" --n "$N" --reps "$REPS" \
         --alphas "$ALPHAS" --method py-idr \
         --num-chains "$NUM_CHAINS" --n-warmup "$N_WARMUP" \
         --n-samples "$N_SAMPLES" --nuts-warmup "$NUTS_WARMUP" \
-        --out "$REGIME_OUT" "$SAVE_IDR_FLAG"
+        --out "$REGIME_OUT" "$SAVE_IDR_FLAG" "$EM_INIT_FLAG"
     LATEST="$(find "$REGIME_OUT" -maxdepth 1 -mindepth 1 -type d | sort | tail -n 1)"
     A_CSVS+=("$LATEST/results.csv")
     if [ "$REGIME" = "S5" ]; then
@@ -121,13 +129,13 @@ echo "============================================================"
 B_CSVS=()
 for SCALING_N in $SCALING_N_LIST; do
     SCALING_OUT="$OUT_ROOT/scaling/n${SCALING_N}"
-    echo "--- S1 / n=$SCALING_N ---"
+    echo "--- S1 / n=$SCALING_N (em_init=${EM_INIT}) ---"
     "$PYIDR" sim \
         --regime S1 --K "$K" --n "$SCALING_N" --reps "$SCALING_REPS" \
         --alphas "$ALPHAS" --method py-idr \
         --num-chains "$NUM_CHAINS" --n-warmup "$N_WARMUP" \
         --n-samples "$N_SAMPLES" --nuts-warmup "$NUTS_WARMUP" \
-        --out "$SCALING_OUT" --no-save-idr
+        --out "$SCALING_OUT" --no-save-idr "$EM_INIT_FLAG"
     LATEST="$(find "$SCALING_OUT" -maxdepth 1 -mindepth 1 -type d | sort | tail -n 1)"
     B_CSVS+=("$LATEST/results.csv")
 done
