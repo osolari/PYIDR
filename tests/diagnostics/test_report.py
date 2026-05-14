@@ -15,6 +15,7 @@ from py_idr.eval.diagnostics_report import (
     DiagnosticsReport,
     build_diagnostics_report,
 )
+from py_idr.utils.arviz_compat import idata_from_posterior as _idata_from_posterior
 
 
 def _well_mixed_idata(
@@ -22,12 +23,10 @@ def _well_mixed_idata(
 ) -> az.InferenceData:
     """Synthesise a well-mixed multi-chain trace (each chain ~N(0.6, 0.05²))."""
     rng = np.random.default_rng(seed)
-    return az.from_dict(
+    return _idata_from_posterior(
         {
-            "posterior": {
-                "pi": rng.normal(0.6, 0.05, size=(num_chains, num_draws)),
-                "rho": rng.normal(0.7, 0.05, size=(num_chains, num_draws)),
-            }
+            "pi": rng.normal(0.6, 0.05, size=(num_chains, num_draws)),
+            "rho": rng.normal(0.7, 0.05, size=(num_chains, num_draws)),
         }
     )
 
@@ -45,7 +44,7 @@ def _broken_idata(seed: int = 0) -> az.InferenceData:
             ]
         )
     }
-    return az.from_dict({"posterior": posterior})
+    return _idata_from_posterior(posterior)
 
 
 # ---- verdict logic -----------------------------------------------------------------
@@ -75,7 +74,7 @@ def test_broken_chain_fails() -> None:
 @pytest.mark.unit
 def test_single_chain_fails() -> None:
     """A single chain can't produce split-R̂ — verdict=fail by §3.3.1."""
-    idata = az.from_dict({"posterior": {"pi": np.random.uniform(0.5, 0.6, size=(1, 500))}})
+    idata = _idata_from_posterior({"pi": np.random.uniform(0.5, 0.6, size=(1, 500))})
     report = build_diagnostics_report(idata)
     assert report.verdict == "fail"
     assert any("1 chain" in w or "chain(s)" in w for w in report.warnings)

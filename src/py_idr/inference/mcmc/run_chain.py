@@ -36,6 +36,7 @@ from py_idr.model.multi_state import (
     cluster_sizes,
     initial_multi_cluster_state,
 )
+from py_idr.utils.arviz_compat import idata_from_posterior as _idata_from_posterior
 
 
 @dataclass(frozen=True)
@@ -200,7 +201,7 @@ def run_chain_simple(
         "rho": np.asarray(rho_trace, dtype=np.float64)[None, :],
         "n_reproducible": np.asarray(n_reproducible_trace, dtype=np.int32)[None, :],
     }
-    idata = az.from_dict({"posterior": posterior_group})
+    idata = _idata_from_posterior(posterior_group)
     z_arr = np.stack(z_trace, axis=0)  # (n_samples, n)
     return ChainResult(
         idata=idata,
@@ -331,7 +332,7 @@ def run_multi_chain_simple(
         "rho": np.stack(rho_chains, axis=0),
         "n_reproducible": np.stack(n_rep_chains, axis=0),
     }
-    idata = az.from_dict({"posterior": posterior_group})
+    idata = _idata_from_posterior(posterior_group)
     z_arr = np.stack(z_chains, axis=0)  # (num_chains, n_samples, n)
     return MultiChainResult(
         idata=idata,
@@ -607,7 +608,7 @@ def run_chain_multi(
         "T": np.asarray(T_trace, dtype=np.int32)[None, :],
         "n_reproducible": np.asarray(n_reproducible_trace, dtype=np.int32)[None, :],
     }
-    idata = az.from_dict({"posterior": posterior_group})
+    idata = _idata_from_posterior(posterior_group)
     Z_arr = np.stack(Z_trace, axis=0)  # (n_samples, n)
     z_arr = np.stack(z_trace, axis=0)  # (n_samples, n)
     T_arr = np.asarray(T_trace, dtype=np.int32)
@@ -722,7 +723,7 @@ def run_multi_chain_multi(
         "T": np.stack(T_chains, axis=0),
         "n_reproducible": np.stack(n_rep_chains, axis=0),
     }
-    idata = az.from_dict({"posterior": posterior_group})
+    idata = _idata_from_posterior(posterior_group)
 
     return MultiChainResultMulti(
         idata=idata,
