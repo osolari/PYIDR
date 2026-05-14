@@ -100,7 +100,7 @@ ax = axes[0]
 ax.plot([0, 1], [0, 1], color="black", lw=0.6, alpha=0.5)
 for m, st in methods.items():
     ax.plot(fpr, roc(m, fpr), label=m, **st)
-ax.set_xlim(0, 0.40); ax.set_ylim(0.4, 1.01)
+ax.set_xlim(0, 1.0); ax.set_ylim(0, 1.0)
 ax.set_xlabel("false positive rate"); ax.set_ylabel("true positive rate")
 ax.set_title("(a) ROC, regime S5 (K=10)")
 ax.grid(True, alpha=0.25, lw=0.4)
