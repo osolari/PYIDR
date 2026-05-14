@@ -89,6 +89,8 @@ for k, v in flags:
     print(v)
 if cfg.get("save_idr"):
     print("--save-idr")
+if cfg.get("em_init"):
+    print("--em-init")
 PY
 )
 

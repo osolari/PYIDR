@@ -171,6 +171,7 @@ def _fit_to_idr(
     T_max: int = 10,
     H: int = 5,
     py_hyperparam_warmup: int = 50,
+    em_init: bool = False,
 ) -> FitResult:
     """Rank → chain → posterior local idr; no decision step yet.
 
@@ -215,6 +216,7 @@ def _fit_to_idr(
             n_warmup=n_warmup,
             n_samples=n_samples,
             nuts_warmup=nuts_warmup,
+            em_init=em_init,
         )
         # Block until JAX traces have materialised so the timing reflects
         # the full chain cost rather than just dispatch.
@@ -238,6 +240,7 @@ def _fit_to_idr(
             H=H,
             nuts_warmup=nuts_warmup,
             py_hyperparam_warmup=py_hyperparam_warmup,
+            em_init=em_init,
         )
         jax.block_until_ready(result_multi.idata.posterior["pi"].values)
         pi_samples = np.asarray(result_multi.idata.posterior["pi"]).reshape(-1)
@@ -312,6 +315,7 @@ def _fit_and_evaluate(
     T_max: int = 10,
     H: int = 5,
     py_hyperparam_warmup: int = 50,
+    em_init: bool = False,
 ) -> ReplicateRow:
     """Single-alpha convenience wrapper around :func:`_fit_to_idr` + :func:`_make_row`."""
     fit = _fit_to_idr(
@@ -325,6 +329,7 @@ def _fit_and_evaluate(
         T_max=T_max,
         H=H,
         py_hyperparam_warmup=py_hyperparam_warmup,
+        em_init=em_init,
     )
     return _make_row(sim, fit, alpha)
 

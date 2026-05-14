@@ -101,6 +101,16 @@ def sim(
             "alongside results.csv. Required input for F4 (ROC/PR)."
         ),
     ),
+    em_init: bool = typer.Option(
+        False,
+        "--em-init/--no-em-init",
+        help=(
+            "Seed each PY-IDR chain via the pairwise Vanilla-IDR EM "
+            "warm start (W8.5). Recommended for sweeps with short "
+            "warmup budgets — gives the chain an informed (pi, rho, Z) "
+            "start so a low n_warmup is no longer disastrous."
+        ),
+    ),
     method: str = typer.Option(
         "py-idr",
         "--method",
@@ -231,6 +241,7 @@ def sim(
             T_max=T_max,
             H=H,
             py_hyperparam_warmup=py_hyperparam_warmup,
+            em_init=em_init,
         )
         rows = sweep_result.rows
         npz = write_idr_sidecar(sweep_result.idr_traces, out_dir / "idr_traces.npz")
@@ -252,6 +263,7 @@ def sim(
             T_max=T_max,
             H=H,
             py_hyperparam_warmup=py_hyperparam_warmup,
+            em_init=em_init,
         )
     csv = write_sweep_csv(rows, out_dir / "results.csv")
 
@@ -276,6 +288,7 @@ def sim(
         "H": H,
         "py_hyperparam_warmup": py_hyperparam_warmup,
         "save_idr": save_idr,
+        "em_init": em_init,
         "method": method_key,
     }
     config_blob = json.dumps(config_dict, sort_keys=True)

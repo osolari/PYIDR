@@ -108,6 +108,7 @@ def run_sweep(
     T_max: int = 10,
     H: int = 5,
     py_hyperparam_warmup: int = 50,
+    em_init: bool = False,
     scenario_kwargs: dict[str, Any] | None = None,
 ) -> list[ReplicateRow]:
     """Run ``num_replicates`` independent replicates of one regime.
@@ -181,6 +182,7 @@ def run_sweep(
             T_max=T_max,
             H=H,
             py_hyperparam_warmup=py_hyperparam_warmup,
+            em_init=em_init,
         )
         for alpha in alphas:
             rows.append(_make_row(sim, fit, float(alpha)))
@@ -234,6 +236,7 @@ def run_sweep_with_traces(
     T_max: int = 10,
     H: int = 5,
     py_hyperparam_warmup: int = 50,
+    em_init: bool = False,
     scenario_kwargs: dict[str, Any] | None = None,
 ) -> SweepResult:
     """Like :func:`run_sweep`, but also returns per-replicate ``(idr, Z)`` arrays.
@@ -279,6 +282,7 @@ def run_sweep_with_traces(
             T_max=T_max,
             H=H,
             py_hyperparam_warmup=py_hyperparam_warmup,
+            em_init=em_init,
         )
         for alpha in alphas:
             rows.append(_make_row(sim, fit, float(alpha)))
