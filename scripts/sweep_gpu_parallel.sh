@@ -58,6 +58,11 @@ echo "============================================================"
 # the others finish first and can pick up the scaling sweep).
 declare -a REGIME_BUCKETS=("S1" "S2" "S3" "S4 S5")
 
+# Pre-create arviz's daily-warning cache; otherwise the four buckets
+# race on `~/.cache/arviz/daily_warning` at first import and 2 of 4 die.
+mkdir -p "$HOME/.cache/arviz"
+touch "$HOME/.cache/arviz/daily_warning"
+
 PIDS=()
 for gpu in 0 1 2 3; do
     bucket="${REGIME_BUCKETS[$gpu]}"
@@ -78,6 +83,10 @@ for gpu in 0 1 2 3; do
             > "$OUT_ROOT/gpu${gpu}.log" 2>&1
     ) &
     PIDS+=($!)
+    # Stagger launches; JAX cuDNN init and arviz first-time setup both
+    # write to per-user cache dirs and racing them just to save a few
+    # seconds isn't worth the occasional FileNotFoundError.
+    sleep 3
 done
 
 echo
