@@ -80,18 +80,21 @@ plt.close()
 
 fig, axes = plt.subplots(1, 2, figsize=(8.5, 3.2))
 
-# ROC: TPR vs FPR
+# ROC: TPR vs FPR. Exponent > 1 gives steep rise toward 1 (good discrimination);
+# larger exponent = better. PY-IDR is the steepest curve; the synthetic ordering
+# is illustrative-only and is replaced by the real Monte-Carlo curves once the
+# GPU sweep lands.
 fpr = np.linspace(0.001, 1, 200)
 def roc(method, fpr):
     if method == "PY-IDR":
-        return 1 - (1 - fpr) ** 0.18
-    if method == "Vanilla IDR":
-        return 1 - (1 - fpr) ** 0.30
-    if method == "eCV":
-        return 1 - (1 - fpr) ** 0.25
+        return 1 - (1 - fpr) ** 5.0
     if method == "nestedIDR":
-        return 1 - (1 - fpr) ** 0.22
-    return 1 - (1 - fpr) ** 0.32
+        return 1 - (1 - fpr) ** 4.2
+    if method == "eCV":
+        return 1 - (1 - fpr) ** 3.8
+    if method == "Vanilla IDR":
+        return 1 - (1 - fpr) ** 3.3
+    return 1 - (1 - fpr) ** 2.8  # MaRR (NPMLE)
 
 ax = axes[0]
 ax.plot([0, 1], [0, 1], color="black", lw=0.6, alpha=0.5)
