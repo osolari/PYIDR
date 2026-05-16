@@ -114,6 +114,16 @@ for REGIME in $REGIMES; do
         --out "$OUT_ROOT/main/$REGIME/maxrank" --no-save-idr
     LATEST="$(find "$OUT_ROOT/main/$REGIME/maxrank" -maxdepth 1 -mindepth 1 -type d | sort | tail -n 1)"
     A_CSVS+=("$LATEST/results.csv")
+
+    # eCV — enhanced coefficient of variation (Gonzalez-Reymundez 2024-style).
+    # Deterministic given the data; near-instant.
+    echo "--- $REGIME / eCV ---"
+    "$PYIDR" sim \
+        --regime "$REGIME" --K "$K" --n "$N" --reps "$REPS" \
+        --alphas "$ALPHAS" --method ecv \
+        --out "$OUT_ROOT/main/$REGIME/ecv" --no-save-idr
+    LATEST="$(find "$OUT_ROOT/main/$REGIME/ecv" -maxdepth 1 -mindepth 1 -type d | sort | tail -n 1)"
+    A_CSVS+=("$LATEST/results.csv")
 done
 
 COMBINED_MAIN="$OUT_ROOT/combined_main.csv"

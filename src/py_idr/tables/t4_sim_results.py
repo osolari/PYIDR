@@ -34,7 +34,7 @@ _PY_IDR_MCMC = "PY-IDR (MCMC, T=1)"
 # (and therefore absent from any sweep CSV) become placeholder rows.
 _REPORT_METHODS_ORDER: tuple[str, ...] = (
     "Vanilla IDR (pairwise)",
-    "eCV",
+    "eCV",  # integrated in W10.5; spirit-of-Iakovidis2024
     "nestedIDR",
     "MaxRank",
     "ChIP-R",
