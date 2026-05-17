@@ -221,10 +221,11 @@ __marimo__/
 .claude/settings.local.json
 .claude/*.lock
 
-# PY-IDR runtime outputs
+# PY-IDR runtime outputs (anchored to repo root so they don't match
+# src/py_idr/data/, etc.)
 .venv/
-runs/
-artifacts/
-data/
-logs/
-checkpoints/
+/runs/
+/artifacts/
+/data/
+/logs/
+/checkpoints/
