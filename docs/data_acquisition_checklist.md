@@ -14,11 +14,11 @@ fits are tractable).
 
 | Item | Action |
 |---|---|
-| **Source** | https://www.encodeproject.org/ — search for `Assay = ChIP-seq` + `Target = CTCF` + `Assembly = GRCh38` |
-| **Picking experiments** | Filter to experiments with ≥ 2 biological replicates (we plan $K \in \{2, 6\}$). Record the experiment accession (e.g. `ENCSR000DZX`). |
-| **Download** | `xargs -L1 curl -O` on the per-replicate BED narrowPeak files |
-| **Hash** | `sha256sum *.bed` → record in the `DatasetManifest.sha256` field |
-| **Replicate matching** | One BED file = one replicate column; record file → column mapping in the manifest's `replicate_matching_path` |
+| **Search URL** (corrected) | https://www.encodeproject.org/search/?type=Experiment&assay_title=TF+ChIP-seq&target.label=CTCF&assembly=GRCh38&status=released&files.output_type=peaks&files.file_type=bed+narrowPeak |
+| ⚠ **Common pitfall** | Do **not** include `files.preferred_default=true` — that returns only the IDR-thresholded consensus call per experiment (1 BED per experiment), not the per-replicate raw calls PY-IDR needs. |
+| **Download** | Click "Download" on the search-result page → get a `files.txt`. Drop into `.data/encode_ctcf_raw.txt`. |
+| **Fetch + organise** | `bash scripts/fetch_encode.sh --files-txt .data/encode_ctcf_raw.txt --out data/encode_ctcf --min-reps 2` — fetches `metadata.tsv`, filters to raw per-replicate `bed narrowPeak`, groups by experiment, drops singletons, downloads in parallel. |
+| **Hash** | `sha256sum *.bed.gz` → record in `DatasetManifest.sha256` field |
 | **Score column** | `signalValue` (column 7) by default; `pValue` (column 8) flag-selectable |
 | **Tie policy** | `mid_rank` (matches the empirical-rank transform's mid-rank ties) |
 | **Missingness** | Peak unions per experiment; absent = drop |
@@ -29,9 +29,13 @@ Loader: `py_idr.data.loaders.load_encode_ctcf`
 
 ## REAL-02: ENCODE 4 ATAC-seq
 
-Same workflow as REAL-01 but with `Assay = ATAC-seq` and the broadPeak
-file. Score is `signalValue` from MACS2 broad-peak calls. $K \in \{2, 4\}$,
-$n \in [70k, 200k]$.
+Same workflow as REAL-01 but for ATAC-seq. Corrected search URL:
+
+`https://www.encodeproject.org/search/?type=Experiment&assay_title=ATAC-seq&assembly=GRCh38&status=released&files.output_type=peaks&files.file_type=bed+narrowPeak`
+
+Same `bash scripts/fetch_encode.sh ...` workflow as REAL-01. Score
+column is `signalValue` (column 7) from MACS2 broad-peak calls.
+$K \in \{2, 4\}$, $n \in [70k, 200k]$ peaks per replicate.
 
 Loader: `py_idr.data.loaders.load_encode_atac`
 
