@@ -124,6 +124,15 @@ for REGIME in $REGIMES; do
         --out "$OUT_ROOT/main/$REGIME/ecv" --no-save-idr
     LATEST="$(find "$OUT_ROOT/main/$REGIME/ecv" -maxdepth 1 -mindepth 1 -type d | sort | tail -n 1)"
     A_CSVS+=("$LATEST/results.csv")
+
+    # ChIP-R — rank-product aggregation (Newell 2021-style). Deterministic.
+    echo "--- $REGIME / ChIP-R ---"
+    "$PYIDR" sim \
+        --regime "$REGIME" --K "$K" --n "$N" --reps "$REPS" \
+        --alphas "$ALPHAS" --method chipr \
+        --out "$OUT_ROOT/main/$REGIME/chipr" --no-save-idr
+    LATEST="$(find "$OUT_ROOT/main/$REGIME/chipr" -maxdepth 1 -mindepth 1 -type d | sort | tail -n 1)"
+    A_CSVS+=("$LATEST/results.csv")
 done
 
 COMBINED_MAIN="$OUT_ROOT/combined_main.csv"

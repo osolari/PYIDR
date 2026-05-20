@@ -117,9 +117,10 @@ def sim(
         help=(
             "Fit method: 'py-idr' (default, PY-IDR MCMC), 'vanilla-idr' "
             "(Li-Brown-Huang-Bickel 2011 pairwise EM), 'maxrank' "
-            "(rank-based baseline, Philtron et al. 2018 style), or "
+            "(rank-based baseline, Philtron et al. 2018 style), "
             "'ecv' (enhanced coefficient of variation; Gonzalez-Reymundez "
-            "et al. 2024)."
+            "et al. 2024), or 'chipr' (rank-product aggregation; "
+            "Newell et al. 2021)."
         ),
     ),
     out: str = typer.Option(
@@ -180,9 +181,10 @@ def sim(
     out_dir.mkdir(parents=True, exist_ok=True)
 
     method_key = method.lower()
-    if method_key not in ("py-idr", "vanilla-idr", "maxrank", "ecv"):
+    if method_key not in ("py-idr", "vanilla-idr", "maxrank", "ecv", "chipr"):
         raise typer.BadParameter(
-            f"--method must be 'py-idr', 'vanilla-idr', 'maxrank', or 'ecv'; " f"got {method!r}"
+            f"--method must be 'py-idr', 'vanilla-idr', 'maxrank', 'ecv', or 'chipr'; "
+            f"got {method!r}"
         )
 
     typer.echo(
@@ -217,6 +219,23 @@ def sim(
         if save_idr:
             typer.echo("WARNING: --save-idr is a no-op for --method ecv (no NPZ sidecar produced).")
         rows = run_sweep_ecv(
+            regime,
+            K=K,
+            n=n,
+            num_replicates=reps,
+            base_seed=base_seed,
+            alphas=alphas_tuple,
+        )
+    elif method_key == "chipr":
+        from py_idr.simulation.sweep import (  # type: ignore[attr-defined]
+            run_sweep_chipr,
+        )
+
+        if save_idr:
+            typer.echo(
+                "WARNING: --save-idr is a no-op for --method chipr (no NPZ sidecar produced)."
+            )
+        rows = run_sweep_chipr(
             regime,
             K=K,
             n=n,

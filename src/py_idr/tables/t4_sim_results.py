@@ -37,7 +37,7 @@ _REPORT_METHODS_ORDER: tuple[str, ...] = (
     "eCV",  # integrated in W10.5; spirit-of-Iakovidis2024
     "nestedIDR",
     "MaxRank",
-    "ChIP-R",
+    "ChIP-R",  # integrated in W10.11; rank-product spirit-of-Newell2021
     "GMCM-AD",
     "BNP-Archimedean",
     "PY-IDR (MCMC, T=1)",

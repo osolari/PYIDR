@@ -843,6 +843,60 @@ def run_replicate_ecv(
     )
 
 
+_CHIPR_METHOD_LABEL = "ChIP-R"
+
+
+def run_replicate_chipr(
+    *,
+    regime: str,
+    K: int,
+    n: int,
+    seed: int = 0,
+    alpha: float = 0.05,
+    tie_method: str = "average",
+    scenario_kwargs: dict[str, Any] | None = None,
+) -> ReplicateRow:
+    """End-to-end ChIP-R replicate for any of the S1-S5 regimes.
+
+    Same long-format ``ReplicateRow`` shape as the other comparators
+    (Vanilla IDR / MaxRank / eCV) with ``method = "ChIP-R"`` and the
+    parametric posterior summaries populated as NaN.
+    """
+    from py_idr.comparators.chipr import fit_chipr
+
+    if regime not in _SIMULATORS:
+        raise ValueError(f"unknown regime {regime!r}; expected one of {sorted(_SIMULATORS)}")
+    simulator = _SIMULATORS[regime]
+    extra = dict(scenario_kwargs or {})
+    sim = simulator(K=K, n=n, seed=seed, **extra)
+
+    t0 = time.perf_counter()
+    idr = fit_chipr(np.asarray(sim.X), tie_method=tie_method)
+    walltime = float(time.perf_counter() - t0)
+
+    recovery = evaluate_recovery(jnp.asarray(idr), sim.true_Z, alpha=alpha)
+
+    return ReplicateRow(
+        regime=sim.regime,
+        K=K,
+        n=n,
+        replicate_seed=sim.seed,
+        method=_CHIPR_METHOD_LABEL,
+        alpha=alpha,
+        pi_true=sim.true_pi,
+        pi_posterior_mean=float("nan"),
+        rho_true=sim.true_rho,
+        rho_posterior_mean=float("nan"),
+        T_posterior_mean=float("nan"),
+        k_alpha=recovery.k_alpha,
+        realized_fdr=recovery.realized_fdr,
+        power=recovery.power,
+        num_chains=1,
+        num_samples_per_chain=1,
+        walltime_s=walltime,
+    )
+
+
 _MAXRANK_METHOD_LABEL = "MaxRank"
 
 
