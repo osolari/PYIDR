@@ -86,6 +86,15 @@ class DiagnosticsReport(BaseModel):
     num_draws_per_chain: int = Field(..., ge=1)
     num_divergent_transitions: int = Field(default=0, ge=0)
     divergence_fraction: float = Field(default=0.0, ge=0.0, le=1.0)
+    label_invariant_summary: dict[str, float] = Field(
+        default_factory=dict,
+        description=(
+            "Label-switching-invariant per-cluster summaries (W10.12). Populated "
+            "by py_idr.eval.label_switching.build_label_invariant_summary when "
+            "the build_diagnostics_report caller supplies a cluster_assignments "
+            "array. Empty dict on chains that have no multi-cluster trace."
+        ),
+    )
     verdict: Literal["pass", "warn", "fail"] = Field(...)
     warnings: list[str] = Field(default_factory=list)
 
@@ -118,6 +127,8 @@ def build_diagnostics_report(
     *,
     scalar_vars: list[str] | None = None,
     num_divergent_transitions: int = 0,
+    cluster_assignments: np.ndarray | None = None,
+    T_max: int | None = None,
 ) -> DiagnosticsReport:
     """Build a :class:`DiagnosticsReport` from an arviz InferenceData.
 
@@ -130,10 +141,20 @@ def build_diagnostics_report(
         Names of the scalar variables to summarise. Defaults to the keys of
         ``idata.posterior``.
     num_divergent_transitions
-        Total NUTS divergent transitions across all chains. Our chain driver
-        does not yet propagate per-sweep NUTS divergences out of the atom
-        update; this argument lets the caller supply the count from
-        ``ChainResult`` / orchestrator.
+        Total NUTS divergent transitions across all chains, from
+        :attr:`py_idr.inference.mcmc.run_chain.ChainResult.num_divergent_transitions`
+        and its multi-cluster / multi-chain variants (W8.11 plumbing).
+    cluster_assignments
+        Optional per-iteration cluster-label trace, shape ``(num_draws, n)``,
+        from the multi-cluster chain
+        (:attr:`ChainResultMulti.cluster_assignments`). When supplied (along
+        with ``T_max``), the report's ``label_invariant_summary`` field is
+        populated via :func:`py_idr.eval.label_switching.build_label_invariant_summary`.
+        Pass ``None`` (the default) on the $T=1$ path or when label-invariant
+        diagnostics are not needed.
+    T_max
+        Cluster truncation passed to the chain driver. Required iff
+        ``cluster_assignments`` is supplied.
 
     Returns
     -------
@@ -204,6 +225,22 @@ def build_diagnostics_report(
             verdict = "warn"
         warnings.append(f"{num_divergent_transitions} divergent transitions in post-warmup (warn).")
 
+    label_invariant_summary: dict[str, float] = {}
+    if cluster_assignments is not None:
+        if T_max is None:
+            raise ValueError(
+                "cluster_assignments was supplied; T_max is required to size "
+                "the sorted-cluster-size buffer."
+            )
+        # Local import to keep eval.diagnostics_report independent of
+        # scipy at the top level (scipy is already a transitive runtime
+        # dep but importing eagerly slows the module's first load).
+        from py_idr.eval.label_switching import build_label_invariant_summary
+
+        label_invariant_summary = build_label_invariant_summary(
+            cluster_assignments, T_max=int(T_max)
+        )
+
     return DiagnosticsReport(
         rhat=rhat,
         ess_bulk=ess_bulk,
@@ -212,6 +249,7 @@ def build_diagnostics_report(
         num_draws_per_chain=num_draws,
         num_divergent_transitions=num_divergent_transitions,
         divergence_fraction=divergence_fraction,
+        label_invariant_summary=label_invariant_summary,
         verdict=verdict,
         warnings=warnings,
     )

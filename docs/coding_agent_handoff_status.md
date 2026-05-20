@@ -118,7 +118,9 @@ PRNG-key reuse bugs and several cross-checks. Findings:
 | W10.6 | MCMC chain-loop scan refactor design | three-commit `lax.scan` plan; unblocks the production-scale GPU sweep | `5025cff`: `plans/04b_inference_mcmc_scan_refactor.md` _(design only; implementation is W11)_ |
 | W10.8 | VI back-end design | three-commit build plan with variational family, ELBO, acceptance criteria | `c4a6e5a`: `plans/05b_inference_vi_design.md` _(design only; implementation is W12)_ |
 | W10.9 | Real-data loader stubs + critical `.gitignore` fix | five `NotImplementedError` loader stubs + per-dataset acquisition checklist; the gitignore bug had silently excluded `src/py_idr/data/{__init__,schema}.py` from git for the whole project history | `0ee450a`: `src/py_idr/data/loaders/__init__.py`, `docs/data_acquisition_checklist.md`, `.gitignore`, **first commit of `src/py_idr/data/__init__.py` and `src/py_idr/data/schema.py`** |
-| W10.10 | Plans + handoff doc refresh | the present commit | _(this commit)_ |
+| W10.10 | Plans + handoff doc refresh | sweep update; status snapshots in plans/04/05/07/08/09/12/13 bumped from W8.1 → W10.10 | `aa55c74` (local; pending GitHub access fix) |
+| W10.11 | ChIP-R comparator | rank-product aggregation (Newell 2021-style); fifth method in T4 | `comparators/chipr.py`, `run_replicate_chipr`, `run_sweep_chipr`, `tests/unit/test_comparator_chipr.py` (7 new tests) |
+| W10.12 | Stephens (2000) label-switching diagnostic | plan 12's `Label-switching postprocessor` row moves TODO → DONE; `DiagnosticsReport.label_invariant_summary` populated with sorted-cluster-size + Wasserstein-1 summary when `build_diagnostics_report` receives `cluster_assignments` | `eval/label_switching.py`, `eval/diagnostics_report.py`, `tests/diagnostics/test_label_switching.py` (14 new tests) |
 
 ## Report figures & tables
 

@@ -230,3 +230,4 @@ __marimo__/
 /logs/
 /checkpoints/
 .data
+.DS_Store

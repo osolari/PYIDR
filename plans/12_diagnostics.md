@@ -14,7 +14,7 @@ of the revised report.
 | Divergent-transition fraction | `sweep_simple` / `multi_cluster_sweep` return `(state, {"num_divergences": int})`; `run_chain_*` aggregate the count across post-warmup sweeps and surface it on `ChainResult*.num_divergent_transitions`. | DONE (W8.11) |
 | Cluster-count trace | `ChainResultMulti.T_trace` (multi-cluster path) | DONE |
 | Pass/warn/fail verdict + thresholds | constants `RHAT_PASS_THRESHOLD=1.01`, `ESS_PASS_THRESHOLD=400`, `DIVERGENCE_FRACTION_THRESHOLD=0.005`, `MIN_CHAINS_PASS=4` | DONE |
-| Label-switching postprocessor | Stephens (2000) relabeller | TODO |
+| Label-switching postprocessor | `py_idr.eval.label_switching` — Stephens (2000) iterative relabeller via `scipy.optimize.linear_sum_assignment` + `sorted_cluster_sizes` (fast permutation-invariant summary) + Wasserstein-1 cluster-size summary. `DiagnosticsReport.label_invariant_summary` plumbed when `build_diagnostics_report` receives `cluster_assignments` + `T_max`. | DONE (W10.12) |
 | Hellinger to truth (theoretical contraction probe) | `eval/hellinger.{hellinger_gaussian_copula, hellinger_gaussian_copula_mc}` | DONE (closed form for exchangeable Gaussian copulas; F5 figure consumes it) |
 
 ## Goal
