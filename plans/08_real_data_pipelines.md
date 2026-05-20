@@ -4,19 +4,21 @@
 **Depends on:** 04_inference_mcmc, 05_inference_vi, 06_decision_theory
 **Implements:** §4.7–§4.9 of the revised report; Table 7 (datasets); Figure F5 (real-data summaries); Tables T7 (real-disc, real-clusters, real-runtime).
 
-## Status snapshot (W8.1)
+## Status snapshot (W10.10)
 
-**TODO across the board.** The dataset-manifest schema is wired (`py_idr.data.schema.DatasetManifest` is pydantic-validated and round-trips through YAML), but no actual dataset loaders have landed yet. Specifically:
+**Loaders stubbed in W10.9; data acquisition still blocks.** The dataset-manifest schema is wired (`py_idr.data.schema.DatasetManifest`, finally tracked in git after the W10.9 `.gitignore` fix), the five loaders have signature-shaped stubs that raise `NotImplementedError`, and the per-dataset access workflow is documented in [`docs/data_acquisition_checklist.md`](../docs/data_acquisition_checklist.md):
 
-| Dataset | Loader | Manifest example | Status |
-|---------|--------|------------------|--------|
-| REAL-01: ENCODE 4 CTCF ChIP-seq | — | — | TODO |
-| REAL-02: ENCODE 4 ATAC-seq | — | — | TODO |
-| REAL-03: DREAM5 (K = 35) | — | — | TODO |
-| REAL-04: Tabula Muris pseudobulk | — | — | TODO |
-| REAL-05: Pan-UKBB GWAS | — | — | TODO |
+| Dataset | Loader (stub) | DAC required? | Status |
+|---------|---------------|---------------|--------|
+| REAL-01: ENCODE 4 CTCF ChIP-seq | `py_idr.data.loaders.load_encode_ctcf` | no (CC-BY 4.0) | blocked on data |
+| REAL-02: ENCODE 4 ATAC-seq | `py_idr.data.loaders.load_encode_atac` | no (CC-BY 4.0) | blocked on data |
+| REAL-03: DREAM5 (K = 35) | `py_idr.data.loaders.load_dream5` | Synapse account only | blocked on data |
+| REAL-04: Tabula Muris pseudobulk | `py_idr.data.loaders.load_tabula_muris` | no (CC-BY 4.0) | blocked on data |
+| REAL-05: Pan-UKBB GWAS | `py_idr.data.loaders.load_pan_ukbb` | **yes** (multi-week lead) | blocked on data + DAC |
 
-This plan unblocks Figure F6 (`fig:realdata`) and Tables T5–T7. It is the single largest remaining body of work and naturally splits across multiple PRs (one per dataset, plus the shared BED universe + replicate-matching plumbing).
+The downstream `py_idr.tables.t7_real_results` (T_real-*) and `py_idr.figures.f6_realdata` (F6) reproducers are not yet implemented; they need at least one real-data CSV first.
+
+The W9.3 submission ships with `tables/table_real_results.tex` as explicit XX,XXX placeholders and §4.5 explicitly framed as "planned protocol pending plan~08". That framing remains correct until at least one loader produces a real result.
 
 ## Goal
 

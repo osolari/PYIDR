@@ -4,21 +4,25 @@
 **Depends on:** all implementation workstreams (W1–W5).
 **Implements:** §4.9 of the revised report; handoff IMPL-10.
 
-## Status snapshot (W8.9)
+## Status snapshot (W10.10)
 
 | Deliverable | Module | Status |
 |-------------|--------|--------|
-| `DatasetManifest` pydantic schema | `data/schema.DatasetManifest` (extra="forbid", round-trips JSON+YAML) | DONE |
+| `DatasetManifest` pydantic schema | `data/schema.DatasetManifest` (extra="forbid", round-trips JSON+YAML) | DONE — finally tracked in git after W10.9 `.gitignore` fix |
 | `RunManifest` pydantic schema | `data/schema.RunManifest` (run_id, git_sha, config_hash, seed, started_at, inference_method) | DONE |
 | `SeedLedger` schema | `data/schema.SeedLedger` | DONE |
 | run_id constructor | `utils/run.new_run_id` (`<unix_ms>-<8hex>`; 32-bit suffix to avoid birthday-paradox at sweep scale) | DONE |
 | git SHA detection | `utils/run.detect_git_sha` | DONE |
 | Per-run manifest writer | `py-idr sim` writes `<run_id>/run_manifest.json` with `config_hash = SHA-256(canonical_config_json)` | DONE |
-| Per-run config persistence | `py-idr sim` writes `<run_id>/run_config.json` (full resolved CLI config) | DONE (W8.9) |
+| Per-run config persistence | `py-idr sim` writes `<run_id>/run_config.json` (full resolved CLI config — now includes `em_init`, W9.0) | DONE |
 | NPZ idr-trace sidecar | `simulation/sweep.{write,load}_idr_sidecar` | DONE (W7.3) |
 | Verdict ledger | `repro/verdict.{VerdictRecord,VerdictLedger,build_verdict_ledger}` + `py-idr verdict` CLI | DONE (W8.8) |
 | Replay script | `scripts/replay_run.sh <run_dir>` — reads `run_config.json`, re-execs `py-idr sim`, posterior summary matches to <1e-6 | DONE (W8.9) |
-| Dockerfile | — | TODO (plan 14) |
+| arViz cross-version helper | `utils/arviz_compat.idata_from_posterior` — bridges arviz 0.x / 1.x `from_dict` API split | DONE (W9.2) |
+| Submission-scale verdict bake | `docs/report/assets/verdicts_submission.json` (H1 pass / H2 fail / H3 fail at the exploratory CPU-sweep scale) | DONE (W9.3) |
+| arXiv tarball script | `scripts/build_arxiv_tarball.sh` | DONE (W10.4) |
+| Dockerfile | `Dockerfile` + `.dockerignore` (plan 14, scaffolded) | DONE |
+| GHCR image build / GPU CI workflows | `.github/workflows/*.yml` | TODO (plan 14) |
 | Snakemake workflow target | — | TODO |
 
 ## Goal

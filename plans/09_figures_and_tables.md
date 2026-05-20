@@ -4,24 +4,26 @@
 **Depends on:** 07_simulation_studies, 08_real_data_pipelines
 **Implements:** Figures fig:calibration, fig:roc-pr, fig:contract, fig:py-vs-dp, fig:realdata, fig:runtime; Tables tab:notation, tab:related-work, tab:sim-design, tab:sim-fdr, tab:sim-power, tab:sim-K, tab:datasets, tab:real-disc, tab:real-clusters, tab:real-runtime
 
-## Status snapshot (W8.1)
+## Status snapshot (W10.10)
 
 Internal numbering changed from the original plan: F1–F6 in the code now map to the report's `fig:*` labels as below. The original spec used a different ordering that is no longer in force.
 
 | Code label | LaTeX label | Module | CLI | Status |
 |-----------|-------------|--------|-----|--------|
-| F1 | `fig:calibration` | `figures/f1_calibration.py` | `py-idr figure --fig f1` | DONE |
-| F2 | `fig:py-vs-dp` | `figures/f2_cluster_count.py` | `py-idr figure --fig f2` | DONE |
-| F3 | `fig:runtime` | `figures/f3_runtime.py` | `py-idr figure --fig f3` | DONE |
-| F4 | `fig:roc-pr` | `figures/f4_roc_pr.py` + NPZ sidecar | `py-idr figure --fig f4 --idr-npz <path>` | DONE |
-| F5 | `fig:contract` | `figures/f5_contraction.py` + `eval/hellinger.py` | `py-idr figure --fig f5` | DONE |
-| F6 | `fig:realdata` | not implemented; blocked on plan 08 | — | TODO |
+| F1 | `fig:calibration` | `figures/f1_calibration.py` | `py-idr figure --fig f1` | DONE — real PDF in W9.3 (`b320f12`) |
+| F2 | `fig:py-vs-dp` | `figures/f2_cluster_count.py` | `py-idr figure --fig f2` | DONE — real PDF in W9.3 |
+| F3 | `fig:runtime` | `figures/f3_runtime.py` | `py-idr figure --fig f3` | DONE — real PDF in W9.3 |
+| F4 | `fig:roc-pr` | `figures/f4_roc_pr.py` + NPZ sidecar | `py-idr figure --fig f4 --idr-npz <path>` | DONE — real PDF in W9.3 |
+| F5 | `fig:contract` | `figures/f5_contraction.py` + `eval/hellinger.py` | `py-idr figure --fig f5` | DONE — real PDF in W9.3 |
+| F6 | `fig:realdata` | not implemented; blocked on plan 08 | — | TODO (placeholder PDF in report) |
 
 | Table | LaTeX label | Module | CLI | Status |
 |-------|------------|--------|-----|--------|
-| T4 | `tab:sim-fdr` / `tab:sim-power` | `tables/t4_sim_results.py` | `py-idr table --table {t4-fdr,t4-power}` | DONE |
+| T4 | `tab:sim-fdr` / `tab:sim-power` | `tables/t4_sim_results.py` | `py-idr table --table {t4-fdr,t4-power}` | DONE — real LaTeX in W9.3 (Vanilla IDR + MaxRank + PY-IDR rows real; eCV row will fill after the next sweep; nestedIDR / ChIP-R / GMCM-AD / BNP-Archimedean / PY-IDR (VI) rows marked ``---``) |
 | T1, T2, T3 | static reference tables | already in `docs/report/tables/*.tex` | — | DONE (manuscript-managed) |
 | T5 / T6 / T7 | datasets / real-data / K-effect | not implemented; T5 + T6 blocked on plan 08; T7 (K-effect on S5) is wired-up-ready but no reproducer yet | — | TODO |
+
+**Submission-scale renders (W9.3):** F1–F5 PDFs and T4 LaTeX in `docs/report/figures/` and `docs/report/tables/table_sim_results.tex` were generated from `/tmp/pyidr_submission` ($K=2$, $n=100$, $R=10$). The captions and §4 narrative are honest about this exploratory scale (PY-IDR's power column is zero at this MC budget; see §4.7 "Empirical insights" + the verdict ledger at `docs/report/assets/verdicts_submission.json`). The production-scale GPU sweep that would refresh these numbers is blocked on plan 04b.
 
 Each implemented module follows the same two-tier shape: `compute_*` for pure-data summaries (testable without matplotlib) and `make_*` for the PDF / .tex emit. The sweep CSV produced by `py-idr sim` is the single contract every figure consumes (plus the NPZ sidecar for F4).
 

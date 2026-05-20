@@ -4,7 +4,7 @@
 **Depends on:** 02_algebra_and_copulas, 03_marginals, 06_decision_theory (and 04_inference_mcmc for fitting)
 **Implements:** §4.1–§4.6 of the revised report; Table 3 (sim design); Figures F1, F2, F3, F4; Tables T4 (sim FDR), T5 (sim power), T6 (sim K-effect).
 
-## Status snapshot (W8.1)
+## Status snapshot (W10.10)
 
 | Deliverable | Where | Status |
 |-------------|-------|--------|
@@ -15,8 +15,15 @@
 | CSV writer | `simulation/sweep.write_sweep_csv` | DONE |
 | NPZ idr-trace sidecar | `simulation/sweep.write_idr_sidecar` / `load_idr_sidecar` | DONE |
 | Chain-type ablation knob | `--chain-type {auto, T=1, T>1}` on the CLI; routes S5 / S5-sparse through `run_multi_chain_multi` by default | DONE |
-| `py-idr sim` CLI | `cli.sim` | DONE (`--save-idr` flag opt-in for the NPZ sidecar) |
+| `py-idr sim` CLI | `cli.sim` | DONE (`--save-idr`, `--em-init`, `--method {py-idr,vanilla-idr,maxrank,ecv}` flags) |
+| Vanilla IDR comparator | `comparators/vanilla_idr.py` + `run_replicate_vanilla_idr` + `run_sweep_vanilla_idr` (W8.4) | DONE |
+| MaxRank comparator | `comparators/maxrank.py` + `run_replicate_maxrank` + `run_sweep_maxrank` (W8.6) | DONE |
+| eCV comparator | `comparators/ecv.py` + `run_replicate_ecv` + `run_sweep_ecv` (W10.5, spirit-of-Iakovidis2024) | DONE |
 | Per-replication Zarr bundle | The Zarr-bundle scheme below is **not** implemented today; the row-and-NPZ format above replaced it for the v0 path. Zarr remains the plan for big runs. | TODO |
+
+**Submission-scale slice run (W9.3):** `/tmp/pyidr_submission` — $K=2$, $n=100$, $R=10$ across S1–S5, three methods (PY-IDR, Vanilla IDR, MaxRank). Used for the F1–F5 PDFs and T4 LaTeX currently in the report. eCV (W10.5) ships in the package but is not yet in the figures because the submission-scale CPU run pre-dated it; the next sweep (post W11) will include it.
+
+**Production-scale sweep (queued):** the full $K\in\{2,5,10,50\}$, $n\in\{2k,10k,50k\}$, $R=100$ design needs the `lax.scan` refactor (plan 04b / W11) to land first — the current chain driver is GPU-bound on per-iter dispatch overhead, not compute. Three GPU attempts on `omids@a10-dev` (logged in `docs/report_submission_readiness.md`) all aborted before producing a `results.csv`. Plan 04b is the unblock.
 
 The `simulation.replicates.ReplicateRow` columns (CSV layout): `regime`, `K`, `n`, `replicate_seed`, `method`, `alpha`, `pi_true`, `pi_posterior_mean`, `rho_true`, `rho_posterior_mean`, `T_posterior_mean`, `k_alpha`, `realized_fdr`, `power`, `num_chains`, `num_samples_per_chain`, `walltime_s`.
 

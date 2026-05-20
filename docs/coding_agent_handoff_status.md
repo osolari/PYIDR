@@ -7,8 +7,9 @@ This page mirrors the IMPL / SIM / REAL task list from the handoff and tracks st
 in this repo. Update on every PR that closes a task. The `Plan` column points at the
 sub-plan that owns the task; the `Status` column uses `TODO / PARTIAL / DONE`.
 
-> Last refreshed: W8.9 (replay script + run_config persistence). The `git log` is
-> authoritative for the latest state — this page is a courtesy index.
+> Last refreshed: W10.10 (W9 submission push + W10 polish/scaffolding shipped;
+> plans/04b and plans/05b laid out for W11/W12). The `git log` is authoritative
+> for the latest state — this page is a courtesy index.
 
 ## Implementation tasks
 
@@ -21,9 +22,9 @@ sub-plan that owns the task; the `Status` column uses `TODO / PARTIAL / DONE`.
 | IMPL-05 | PY Pólya-urn auxiliary-atom MCMC | [04](../plans/04_inference_mcmc.md) | DONE | `py_idr.pym.polya_urn` predictive + `inference.mcmc.sweep_multi._polya_urn_reassign_all` implements step 2 of Algorithm 1 with $H$ auxiliary atoms and the $n_{m,-i}$ / $T_{-i}$ predictives. `py_idr.pym.eppf.log_eppf` + `py_hyperparam_update` close step 7. |
 | IMPL-06 | NUTS / Metropolis atom updates | [04](../plans/04_inference_mcmc.md) | DONE | `py_idr.inference.mcmc.nuts_atoms` uses NumPyro NUTS on the Cholesky parameterisation for Gaussian / $t_5$ / Clayton / Gumbel-K2 atoms; `type_update.py` is the atomic-type IM step. `run_chain_simple` + `run_chain_multi` (plus their `run_multi_chain_*` siblings) are the top-level drivers. |
 | IMPL-07 | Local idr + Bayes-mFDR + Sun–Cai | [06](../plans/06_decision_theory.md) | DONE | `decision.local_idr.from_mcmc`, `decision.sun_cai.step_up_threshold` (with `max(1, E[R])` denominator), and `decision.bayes_mfdr.bayes_mfdr_curve` are implemented and tested. ROC/PR helpers added in W7.2 (`decision.roc_pr`). |
-| IMPL-08 | Structured finite-truncation VI | [05](../plans/05_inference_vi.md) | TODO | `py_idr.inference.vi` is the only inference back-end still on stubs. Plan 09 covers the design (mean-field normalising flow over the partition + atoms). |
+| IMPL-08 | Structured finite-truncation VI | [05](../plans/05_inference_vi.md), [05b](../plans/05b_inference_vi_design.md) | TODO | `py_idr.inference.vi` is still a stub package. Concrete three-commit build plan (W12.1/2/3) landed in W10.8 — `plans/05b_inference_vi_design.md` pins the variational family, ELBO estimator, module layout, and acceptance criteria. Implementation deferred to W12, post the MCMC `lax.scan` refactor (W11) so both share the same `optax + lax.scan + state pytree` infrastructure. |
 | IMPL-09 | Diagnostics + logging | [12](../plans/12_diagnostics.md) | DONE | `py_idr.eval.diagnostics_report` packages arviz split-$\hat R$, ESS, divergence-fraction into a pass/warn/fail verdict with documented thresholds. Divergent-transition plumbing landed in W8.11: `sweep_simple` / `multi_cluster_sweep` now return a per-sweep `num_divergences` count, `run_chain_*` aggregate across post-warmup sweeps, and the count rides on `ChainResult*.num_divergent_transitions`. |
-| IMPL-10 | Reproducibility infrastructure | [13](../plans/13_reproducibility.md), [14](../plans/14_docker_a10dev.md) | PARTIAL | Pydantic manifests + per-run `run_manifest.json`, NPZ idr sidecar, verdict ledger (`py-idr verdict`, W8.8), `run_config.json` + `scripts/replay_run.sh` (W8.9) all landed. Dockerfile + `.dockerignore` checked in for plan 14; Snakemake workflow target + GHCR-image GitHub Actions are still TODO. |
+| IMPL-10 | Reproducibility infrastructure | [13](../plans/13_reproducibility.md), [14](../plans/14_docker_a10dev.md) | PARTIAL | Pydantic manifests + per-run `run_manifest.json`, NPZ idr sidecar, verdict ledger (`py-idr verdict`, W8.8), `run_config.json` + `scripts/replay_run.sh` (W8.9), arviz cross-version compat helper (W9.2, `0958375`), arXiv-tarball builder `scripts/build_arxiv_tarball.sh` (W10.4), and the **W10.9 `.gitignore` fix** that finally tracked `src/py_idr/data/{__init__,schema}.py` in git all landed. Dockerfile + `.dockerignore` already checked in for plan 14; Snakemake workflow target + GHCR-image GitHub Actions are still TODO. |
 
 ## Simulation tasks
 
@@ -91,7 +92,7 @@ PRNG-key reuse bugs and several cross-checks. Findings:
   from the Gaussian-only initial atom and run with tiny warmup.
   The fix is the same: longer warmup, or wire up the EM init.
 
-## Follow-on workstreams (W8.2 – W8.9)
+## Follow-on workstreams (W8.2 – W10.10)
 
 | Tag | Workstream | Closes | Commit / file |
 |-----|------------|--------|---------------|
@@ -104,6 +105,20 @@ PRNG-key reuse bugs and several cross-checks. Findings:
 | W8.8 | Verdict ledger | plan 13 acceptance-criteria machinery (H1 FDR control, H2/H3 power dominance) | `repro/verdict.py`, `py-idr verdict`, `tests/repro/test_verdict.py` |
 | W8.9 | Replay script + `run_config.json` | plan 13 replayability — `<run_dir>` is self-contained for replay on CPU | `scripts/replay_run.sh`, `run_config.json`, `tests/repro/test_replay.py` |
 | W8.11 | NUTS divergence plumbing | plan 12's divergence-fraction status moves from PARTIAL → DONE; the diagnostics report now sees a real signal instead of `0` | `sweep_simple`, `multi_cluster_sweep`, `run_chain.py`, `tests/inference/test_run_chain_multi.py::test_run_chain_multi_aggregates_divergences_from_sweep_diag` |
+| W9.0 | `em_init` plumbed through sim CLI | sweep CLI now honours `--em-init` and records it in `run_config.json` | `dc7a11f`: `cli.py`, `simulation/sweep.py`, `simulation/replicates.py`, `scripts/replay_run.sh` |
+| W9.1 | Submission-readiness audit + prose rewrite | drops "illustrative synthetic placeholder" framing across §4 captions, adds §4.7 "Empirical insights", rewrites abstract / §5 to reflect submission-scale slice | `2051959`: `docs/report_submission_readiness.md`, `scripts/sweep_submission.sh`, `docs/report/sections/{0-abstract,3.method,4.experiments,5.conclusion}.tex` |
+| W9.2 | arviz cross-version compat | `KeyError 'pi'` on a10-dev with arviz 0.23 vs working on local arviz 1.1 | `0958375`: `utils/arviz_compat.idata_from_posterior`, four call sites in `run_chain.py`, three in `tests/diagnostics/test_report.py` |
+| W9.3 | Real F1-F5 PDFs + T4 LaTeX | placeholder figures + tables replaced with real reproducer output from the CPU sweep; verdict ledger baked into `docs/report/assets/` | `b320f12`: `docs/report/figures/*.pdf`, `docs/report/tables/table_sim_results.tex`, `docs/report/assets/verdicts_submission.json` |
+| W9.4 | Final submission checklist | bibliography (64 cites all resolve), cross-refs (every `\ref` has a `\label`), placeholder inventory all intentional | `0c97fd9`: `docs/report_submission_readiness.md` rewritten end-to-end |
+| W10.1 | Bibliography polish | audit pass over `refs.bib` (no fix needed; 72 entries clean) | _(no commit; in audit doc)_ |
+| W10.2 | Acknowledgments / funding stubs | sentence-form stubs in §5 with `TODO(submission)` markers | `0d7dd9f`: `docs/report/sections/5.conclusion.tex` |
+| W10.3 | LaTeX compile on remote | a10-dev has TeXLive 2020; `saim.cls` needs TeXLive 2025 (no sudo, no CTAN reach). Deferred to submission machine. | _(no commit; documented in audit doc)_ |
+| W10.4 | arXiv `.tar.gz` bundle | one-shot script to package the self-contained LaTeX project | `0d7dd9f`: `scripts/build_arxiv_tarball.sh` |
+| W10.5 | eCV comparator integrated | fourth method in the CSV; `--method ecv`; 6 unit tests | `e9e50ad`: `comparators/ecv.py`, `run_replicate_ecv`, `run_sweep_ecv`, `tests/unit/test_comparator_ecv.py` |
+| W10.6 | MCMC chain-loop scan refactor design | three-commit `lax.scan` plan; unblocks the production-scale GPU sweep | `5025cff`: `plans/04b_inference_mcmc_scan_refactor.md` _(design only; implementation is W11)_ |
+| W10.8 | VI back-end design | three-commit build plan with variational family, ELBO, acceptance criteria | `c4a6e5a`: `plans/05b_inference_vi_design.md` _(design only; implementation is W12)_ |
+| W10.9 | Real-data loader stubs + critical `.gitignore` fix | five `NotImplementedError` loader stubs + per-dataset acquisition checklist; the gitignore bug had silently excluded `src/py_idr/data/{__init__,schema}.py` from git for the whole project history | `0ee450a`: `src/py_idr/data/loaders/__init__.py`, `docs/data_acquisition_checklist.md`, `.gitignore`, **first commit of `src/py_idr/data/__init__.py` and `src/py_idr/data/schema.py`** |
+| W10.10 | Plans + handoff doc refresh | the present commit | _(this commit)_ |
 
 ## Report figures & tables
 

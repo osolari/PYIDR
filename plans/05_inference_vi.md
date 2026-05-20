@@ -4,9 +4,13 @@
 **Depends on:** 04_inference_mcmc (uses the same `SamplerState` shape)
 **Implements:** §3.3.2 of the revised report; Theorem 3.5 (**finite-truncation** variational consistency).
 
-## Status snapshot (W8.1)
+## Status snapshot (W10.10)
 
-**TODO.** `py_idr.inference.vi` is still a stub package. The MCMC back-end is the only working inference path. This is the largest remaining piece of methodology work; everything else in the §3–§4 stack is operational.
+**TODO.** `py_idr.inference.vi` is still a stub package. The MCMC back-end is the only working inference path. The W9.3 submission ships with the `PY-IDR (VI)` row of `tab:sim-fdr` / `tab:sim-power` marked `---` (not yet integrated); §4.2 calls this out explicitly.
+
+A concrete design + three-commit build plan was added in W10.8 — see [plans/05b](05b_inference_vi_design.md). It pins the variational family (categorical / Gaussian / Beta / Dirichlet / log-normal / logit-normal blocks), the ELBO estimator (reparameterised + Concrete relaxation for discrete $(Z_i, z_i, t_m)$), the module layout (`family.py` / `elbo.py` / `runner.py` / `cli_hook.py`), and the acceptance criteria ($\widehat\pi$ and $\widehat\rho$ within 0.05 of truth on S1; calibration within 0.01 of MCMC at $\alpha = 0.05$).
+
+Implementation order assumes plan 04b (MCMC `lax.scan` refactor, W11) lands first, since both share the same `optax + lax.scan + state pytree` infrastructure.
 
 ## Goal
 

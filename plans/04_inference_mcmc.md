@@ -4,7 +4,7 @@
 **Depends on:** 02_algebra_and_copulas, 03_marginals
 **Implements:** Algorithm 1 of the revised report; Eqs. (3.5)–(3.6); §3.3.1 ("Pólya-urn auxiliary-atom MCMC")
 
-## Status snapshot (W8.1)
+## Status snapshot (W10.10)
 
 | Step | Module | Status |
 |------|--------|--------|
@@ -20,6 +20,13 @@
 **Sweep entry points:** `inference/mcmc/sweep_simple.py` ($T = 1$ fast path) and `inference/mcmc/sweep_multi.py` (full Algorithm 1). Top-level drivers `run_chain_simple`, `run_multi_chain_simple`, `run_chain_multi`, `run_multi_chain_multi` in `inference/mcmc/run_chain.py`. Output is an `arviz.InferenceData` plus a Z-trace (and a cluster-label trace for the multi-cluster path).
 
 **Correctness audit findings (W8.1):** two PRNG-key reuse bugs fixed in commit `4e98a63`. (1) Step-8 $\pi$ update was reusing the step-1 class-assignment key. (2) Polya-urn aux loop reused subkeys between adjacent iterations. Regression test in `tests/inference/test_run_chain_multi.py` guards both.
+
+**Plumbing updates (W8.5 / W8.11 / W9.0):**
+- W8.5: EM warm start (`inference/mcmc/em_init.compute_em_init`) wired through `run_chain_simple` / `run_chain_multi` and their multi-chain variants via the `em_init=True` knob.
+- W8.11: per-sweep NUTS divergence count plumbed; `ChainResult*.num_divergent_transitions` exposes the aggregate count for `eval/diagnostics_report.build_diagnostics_report`.
+- W9.0 (`dc7a11f`): `em_init` reached the sweep CLI via `--em-init / --no-em-init`; sweeps now record the flag in `run_config.json` so `scripts/replay_run.sh` reconstructs the warm start correctly.
+
+**Inner-loop perf refactor (queued):** [plans/04b](04b_inference_mcmc_scan_refactor.md) — the current chain driver is a Python for-loop calling NumPyro `MCMC.run()` per sweep. Empirically that's the bottleneck on GPU (cudaLaunchKernel overhead dominates per-iter; observed GPU utilisation 0–2% with 99% CPU futex waits). Plan 04b lays out the three-commit `jax.lax.scan` refactor (W11.1/2/3) needed to unblock the production-scale GPU sweep.
 
 > **Naming.** The revised manuscript names this scheme **Pólya-urn auxiliary-atom MCMC**.
 > Earlier drafts called it "slice-sampled Pólya-urn (Algorithm 8)"; that label has been

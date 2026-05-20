@@ -5,7 +5,7 @@
 **Implements:** §3.3.1 (sampler diagnostics list), Remark A.6 (theory-to-code diagnostics)
 of the revised report.
 
-## Status snapshot (W8.1)
+## Status snapshot (W10.10)
 
 | Deliverable | Module | Status |
 |-------------|--------|--------|
