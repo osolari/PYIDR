@@ -124,9 +124,12 @@ idr at $1/2$. The implementation diagnostics layer follows §3.3.1 of the
 empirical protocol: a deterministic seed ledger, rank-tie summary,
 overdispersed chain starts, split-$\widehat R\leq 1.01$ thresholding, an
 effective-sample-size threshold of $400$ for reported scalar summaries,
-cluster-count trace plots, posterior label-invariant summaries, and a
-divergent-transition fraction aggregated from the per-sweep NUTS atom and
-$(\alpha,\sigma)$ updates. Sensitivity to the auxiliary-atom count $H$ is a
+cluster-count trace plots, posterior label-invariant summaries
+(descending-sorted cluster-size vector with the Wasserstein-1 distance
+to a user-supplied reference; an iterative relabelling step in the
+spirit of \citet{Stephens2000Relabel} is available for per-cluster scalar
+summaries), and a divergent-transition fraction aggregated from the
+per-sweep NUTS atom and $(\alpha,\sigma)$ updates. Sensitivity to the auxiliary-atom count $H$ is a
 planned ablation; the default in the package is $H{=}5$.
 
 \paragraph{Complexity.}

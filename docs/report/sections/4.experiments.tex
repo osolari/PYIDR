@@ -37,33 +37,42 @@ The full protocol evaluates each regime at $K \in \{2,5,10,50\}$ and $n \in \{2{
 \subsection{Comparators}
 \label{sec:sim-comparators}
 
-The submission-scale sweep evaluates the three comparators currently integrated
-in the open-source package; the remaining comparators are flagged as future
-work in Tables~\ref{tab:sim-fdr}--\ref{tab:sim-power} and in
-\S\ref{sec:sim-sens}.
+The submission-scale sweep evaluates the four comparators currently integrated
+in the open-source package together with the PY-IDR (MCMC) fit. The remaining
+three comparators referenced in Table~\ref{tab:related-work} (nestedIDR,
+GMCM-AD, BNP-Archimedean) are flagged as future work in
+Tables~\ref{tab:sim-fdr}--\ref{tab:sim-power}.
 \begin{itemize}[leftmargin=*]
 \item \textbf{Vanilla IDR} \citep{LiBrownHuangBickel2011}, applied pairwise
 across all $\binom{K}{2}$ replicate pairs of each replicate and aggregated by
 averaging the per-pair local idr; the package wires this through the same
 \texttt{run\_replicate} dispatcher as PY-IDR so the long-format result CSV is
 directly compatible.
-\item \textbf{MaxRank} in the spirit of \citet{Philtron2018MaRR}, computing the
-worst per-replicate rank of each feature scaled to $[1/n, 1]$ as a
+\item \textbf{MaxRank} in the spirit of \citet{Philtron2018MaRR}, computing
+the worst per-replicate rank of each feature scaled to $[1/n, 1]$ as a
 local-idr-like score. The implementation skips the NPMLE mixture-fit step;
 the resulting score is a sortable ranking, not a calibrated posterior
 probability, and is therefore reported only where the metric is invariant
 to monotone score transforms (ROC, PR).
+\item \textbf{ChIP-R} in the spirit of \citet{Newell2021ChIPR}, computing the
+geometric mean of per-replicate descending ranks scaled to $[1/n, 1]$. The
+implementation skips the upstream rank-product null-fit + BH FDR control;
+the score is monotone-invariant for ROC / PR / power.
+\item \textbf{eCV} in the spirit of \citet{Iakovidis2024eCV}, computing the
+per-feature coefficient of variation of the scaled ranks across replicates
+and normalising to $[0, 1]$. The upstream package's IDR-style EM is
+intentionally not reproduced; the score is a sortable ranking rather than
+a calibrated posterior probability.
 \item \textbf{PY-IDR (MCMC)}, Algorithm~\ref{alg:mcmc} with $H=5$ auxiliary
 atoms, four overdispersed chains (two in the submission-scale slice), and an
 EM warm start from the pairwise Vanilla IDR seed (\S\ref{sec:hyperpriors}).
 \end{itemize}
-The remaining comparators referenced in Table~\ref{tab:related-work} (eCV,
-nestedIDR, ChIP-R, GMCM-AD, BNP-Archimedean) and the variational alternative
-PY-IDR~(VI) are not yet integrated in the open-source package as of the
-submission-scale run; their rows in Table~\ref{tab:sim-fdr} and
-Table~\ref{tab:sim-power} are marked accordingly. Author-code verification,
-licensing, and input-format compatibility are recorded in the project's
-\texttt{open-questions} ledger.
+The remaining comparators (nestedIDR, GMCM-AD, BNP-Archimedean) and the
+variational alternative PY-IDR~(VI) are not yet integrated in the open-source
+package as of the submission-scale run; their rows in Table~\ref{tab:sim-fdr}
+and Table~\ref{tab:sim-power} are marked accordingly. Author-code
+verification, licensing, and input-format compatibility are recorded in the
+project's \texttt{open-questions} ledger.
 
 \subsection{Metrics}
 \label{sec:sim-metrics}
