@@ -1,6 +1,6 @@
 site_name: PY-IDR
 site_description: Hierarchical nonparametric Bayesian IDR via Pitman-Yor copula mixtures.
-site_url: https://example.com/PY-IDR
+site_url: https://osolari.github.io/PYIDR/
 repo_url: https://github.com/osolari/PYIDR
 repo_name: osolari/PYIDR
 
@@ -113,4 +113,7 @@ nav:
       - Architecture: developer/architecture.md
       - Contributing: developer/contributing.md
       - Testing: developer/testing.md
+  - Project:
+      - Submission readiness: report_submission_readiness.md
+      - Data acquisition checklist: data_acquisition_checklist.md
   - API reference: api/index.md
