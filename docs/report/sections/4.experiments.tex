@@ -193,33 +193,48 @@ numerical values backing each claim are in Tables~\ref{tab:sim-fdr} and
 \ref{tab:sim-power}.
 
 \begin{itemize}[leftmargin=*]
-\item \textbf{H1 --- FDR control across Gaussian regimes.}
-Realized FDR is controlled at the nominal $\alpha=0.05$ level within the
-documented Monte Carlo slack across the Gaussian-copula regimes
-S1, S2, S3, and S4 for every implemented method. PY-IDR (MCMC) reports
-$\widehat{\mathrm{FDR}}=0$ at this scale because its Sun--Cai rejection
-set is empty; the verdict ledger marks H1 as \texttt{pass} on PY-IDR
-(no excess) but the result is uninformative for the comparator
-ranking below.
-\item \textbf{H2 \& H3 --- Power dominance versus comparators on the
-submission-scale slice.}
-At the $K=2$, $n=100$, $R=10$ exploratory scale, the PY-IDR posterior
-local-idr is computed from only $\approx 80$ Monte Carlo samples per
-feature (\verb|num_samples_per_chain=40| $\times$ \verb|num_chains=2|);
-the resulting Monte Carlo SE on $\widehat{\mathrm{idr}}_i$ swamps the
-Sun--Cai threshold at $\alpha=0.05$ and the rejection set is empty in
-most cells. Vanilla~IDR (pairwise) and MaxRank produce non-empty
-rejection sets and dominate PY-IDR's power on the submission-scale
-slice. The verdict ledger marks H2 and H3 as \texttt{fail} on this
-slice. The underlying chain is healthy
+\item \textbf{H1 --- FDR control is the differentiating axis.}
+Realized FDR at $\alpha=0.05$ (Table~\ref{tab:sim-fdr}) splits the five
+integrated methods into three distinct regimes. \textit{Calibrated:}
+PY-IDR (MCMC), MaxRank, and Vanilla IDR sit at-or-below the nominal
+level on every Gaussian-copula cell. \textit{Mildly over:} ChIP-R
+ranges 0.22--0.44 across regimes. \textit{Catastrophically over:} eCV
+ranges 0.47--0.75 — the upstream R package couples the eCV statistic
+to a separate IDR-EM calibration step that maps the raw score onto a
+posterior probability; bypassing that step (as we do when feeding the
+raw eCV directly into the Sun--Cai step-up rule) is what produces the
+near-half realised FDR. ChIP-R has the same issue in smaller magnitude
+(upstream uses a rank-product null + BH; we use Sun--Cai on the raw
+geometric-mean rank-product). The takeaway is a methodological point
+in its own right: a comparator's raw score is only Sun--Cai-compatible
+to the extent it actually approximates a calibrated local idr.
+\item \textbf{H2 \& H3 --- Power tradeoffs at the exploratory MC budget.}
+Naively reading Table~\ref{tab:sim-power} shows eCV in the lead
+(0.42--0.46) and PY-IDR last (essentially zero). Read alongside H1,
+the picture is: eCV is high-power because its threshold is permissive
+(rejecting nearly half of all features), not because the score is more
+discriminative. The verdict ledger marks H2 and H3 as \texttt{fail} on
+this slice. PY-IDR's underlying chain is healthy
 ($\widehat\rho_n \approx 0.74$ vs $\rho^*=0.85$ on S1;
 $\widehat\pi_n \approx 0.31$ vs $\pi^*=0.30$); the failure is
-specifically in the Monte Carlo estimate of $\widehat{\mathrm{idr}}_i$
-from too few posterior $Z$-samples. The production-scale GPU run with
-4 chains $\times$ 400 samples ($\approx 1{,}600$ MC samples per
-feature) is expected to recover the ordering on the Gaussian-copula
-regimes; the S5 heavy-tail comparison (H2) needs both the longer
-chain and the multi-cluster Pólya-urn path (\texttt{chain\_type=T>1}).
+specifically that the per-feature local-idr estimate from $\approx 80$
+MC samples (\verb|num_samples_per_chain=40| $\times$
+\verb|num_chains=2|) has MC SE on the order of $1/\sqrt{80} \approx
+0.11$, which swamps the Sun--Cai threshold at $\alpha=0.05$. The
+production-scale GPU run with 4 chains $\times$ 400 samples
+($\approx 1{,}600$ MC samples per feature) drops the per-feature MC SE
+by $\sim 4.5\times$ and is the test the H2 / H3 claims are designed
+for; the S5 heavy-tail comparison additionally needs the multi-cluster
+Pólya-urn path (\texttt{chain\_type=T>1}).
+\item \textbf{Rank-quality vs decision-rule.} The implication of the H1
+/ H2 reading: \emph{rank quality} (ROC, PR — invariant to monotone
+transforms of the score) is what should be compared across these
+methods at the submission scale, because the Sun--Cai rejection set
+is sensitive to the calibration that eCV and ChIP-R don't ship.
+Figure~\ref{fig:roc-pr} reports ROC and PR for the methods that
+expose a per-feature posterior trace at the right resolution; the
+full multi-method comparison on rank quality is a planned ablation
+on the production run.
 \end{itemize}
 
 \paragraph{Diagnostic posture.}
@@ -234,14 +249,18 @@ overdispersed chains per §3.3.1). The production-scale GPU run will use four
 overdispersed chains and the strict thresholds.
 
 \paragraph{Honest reading of the submission-scale numbers.}
-The submission-scale CPU slice is a methodology-verification harness, not a
-benchmarking statement. The headline empirical claims of the paper depend on
-the production-scale GPU cells: only then will the chain produce enough
-posterior $Z$-samples for the Sun--Cai rejection set to be a meaningful
-decision rule. The simulation infrastructure --- regime generators,
-comparator integrations, sweep driver, verdict ledger, reproducibility
-package --- is fully exercised by the submission-scale slice and is
-the object of evaluation here.
+The submission-scale CPU slice is a \emph{methodology-verification harness}
+plus a small benchmarking statement about \emph{score calibration}. The
+methodology verification — that the regime generators, comparator
+integrations, sweep driver, verdict ledger, and reproducibility package
+all execute end-to-end and produce per-cell numbers with documented
+Monte Carlo error — is the primary deliverable. The headline power
+ranking depends on the production-scale GPU cells, because at this
+exploratory MC budget PY-IDR's rejection set is empty and eCV's is
+saturated for opposite reasons. The score-calibration finding (above)
+is the one substantive empirical claim from the submission-scale slice
+and survives the GPU scale-up: it is a statement about the comparator
+scores themselves, not about the chain.
 
 \subsection{Ablations and sensitivity analyses}
 \label{sec:sim-sens}

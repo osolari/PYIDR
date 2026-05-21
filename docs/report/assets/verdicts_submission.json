@@ -1,8 +1,8 @@
 {
-  "run_id": "1778782536765-c2aeea29",
+  "run_id": "1779407058640-aaeb294a",
   "sweep_csv": "/tmp/pyidr_submission/combined_main.csv",
-  "git_sha": "dc7a11f7cec14b1c16f544c45cc7a371d16b4812",
-  "built_at": "2026-05-14T18:15:36.801635Z",
+  "git_sha": "ccddb225b3b748c2d8d9ee5b49d320fcd0661f3c",
+  "built_at": "2026-05-21T23:44:18.659880Z",
   "records": [
     {
       "hypothesis_id": "H1",
@@ -46,12 +46,12 @@
         "alpha_filter": 0.05,
         "method_a": "PY-IDR (MCMC, T=1)",
         "method_b": "MaxRank",
-        "mean_power_a": 0.0,
+        "mean_power_a": 0.0033333333333333296,
         "mean_power_b": 0.03999999999999996,
-        "diff": -0.03999999999999996,
+        "diff": -0.03666666666666663,
         "delta": 0.0
       },
-      "rationale": "Mean power on S1: PY-IDR (MCMC, T=1) = 0.0000, MaxRank = 0.0400; diff = -0.0400 (delta = 0.0)."
+      "rationale": "Mean power on S1: PY-IDR (MCMC, T=1) = 0.0033, MaxRank = 0.0400; diff = -0.0367 (delta = 0.0)."
     }
   ]
 }

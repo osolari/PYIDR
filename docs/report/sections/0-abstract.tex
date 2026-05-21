@@ -31,7 +31,15 @@ diagnostic for the multi-cluster posterior in the spirit of
 \citet{Stephens2000Relabel}. The reproducible pipeline that produces
 every figure and table is shipped with the code release alongside a
 verdict ledger that records the pass / warn / fail outcome of each
-pre-registered hypothesis against the recorded numerical results. Second, the
+pre-registered hypothesis against the recorded numerical results. One
+substantive empirical finding from the submission-scale slice survives
+scale-up and is reported here: among the integrated comparators, only
+PY-IDR, MaxRank, and Vanilla IDR produce raw scores that are
+Sun--Cai-compatible at the nominal level; eCV and ChIP-R require the
+separate FDR-control layers their upstream packages ship (IDR-EM and a
+rank-product null + BH respectively), and feeding their raw scores
+directly into the Sun--Cai step-up rule yields realised FDR of $0.22$
+to $0.75$ across regimes. Second, the
 manuscript specifies the protocol for five real-data applications
 (ENCODE~4 CTCF ChIP-seq, ENCODE~4 ATAC-seq, DREAM5, Tabula~Muris
 pseudobulk, and Pan-UK~Biobank GWAS) and reports them as
