@@ -59,11 +59,10 @@ from __future__ import annotations
 
 import numpy as np
 import scipy.stats as sps
-from jaxtyping import Array, Float
 
 
 def fit_chipr(
-    X: Float[Array, "n K"],
+    X: np.ndarray,
     *,
     tie_method: str = "average",
 ) -> np.ndarray:

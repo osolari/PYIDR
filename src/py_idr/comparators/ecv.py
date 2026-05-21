@@ -63,13 +63,12 @@ from __future__ import annotations
 
 import numpy as np
 import scipy.stats as sps
-from jaxtyping import Array, Float
 
 _EPS = 1.0e-6
 
 
 def fit_ecv(
-    X: Float[Array, "n K"],
+    X: np.ndarray,
     *,
     tie_method: str = "average",
 ) -> np.ndarray:

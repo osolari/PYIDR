@@ -198,7 +198,7 @@ def fit_vanilla_idr(
 
 
 def fit_vanilla_idr_pairwise(
-    X: Float[Array, "n K"],
+    X: np.ndarray,
     *,
     aggregation: Literal["mean", "max"] = "mean",
     pi_init: float = 0.5,
