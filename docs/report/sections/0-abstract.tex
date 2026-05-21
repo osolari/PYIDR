@@ -22,9 +22,16 @@ ergodicity from a conjectural geometric-rate strengthening. The
 empirical contribution is two-fold. First, a \emph{submission-scale}
 Monte Carlo evaluation covering the S1--S5 simulation regimes plus the
 S5-sparse stress test reports realized FDR, power, and Hellinger
-contraction for PY-IDR (MCMC) against Vanilla IDR \citep{LiBrownHuangBickel2011}
-and a MaxRank baseline; the reproducible pipeline that produces
-every figure and table is shipped with the code release. Second, the
+contraction for PY-IDR (MCMC) against four directly-integrated
+comparators --- Vanilla IDR \citep{LiBrownHuangBickel2011}, MaxRank in
+the spirit of \citet{Philtron2018MaRR}, ChIP-R in the spirit of
+\citet{Newell2021ChIPR}, and the enhanced coefficient of variation
+(eCV) of \citet{Iakovidis2024eCV} --- together with a label-switching
+diagnostic for the multi-cluster posterior in the spirit of
+\citet{Stephens2000Relabel}. The reproducible pipeline that produces
+every figure and table is shipped with the code release alongside a
+verdict ledger that records the pass / warn / fail outcome of each
+pre-registered hypothesis against the recorded numerical results. Second, the
 manuscript specifies the protocol for five real-data applications
 (ENCODE~4 CTCF ChIP-seq, ENCODE~4 ATAC-seq, DREAM5, Tabula~Muris
 pseudobulk, and Pan-UK~Biobank GWAS) and reports them as

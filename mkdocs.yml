@@ -1,8 +1,10 @@
 site_name: PY-IDR
 site_description: Hierarchical nonparametric Bayesian IDR via Pitman-Yor copula mixtures.
 site_url: https://osolari.github.io/PYIDR/
+site_author: Omid Shams Solari
 repo_url: https://github.com/osolari/PYIDR
 repo_name: osolari/PYIDR
+edit_uri: edit/main/docs/
 
 docs_dir: docs
 site_dir: site
@@ -19,33 +21,64 @@ exclude_docs: |
 theme:
   name: material
   language: en
+  # Shared saim theme — matches docs/report/saim.cls + the bayesbreak site at
+  # ../bayesbreak. Custom palette in docs/assets/css/saim.css; logo + favicon
+  # in docs/assets/.
+  logo: assets/saim_logo.png
+  favicon: assets/favicon.ico
+  font:
+    text: Inter
+    code: JetBrains Mono
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-night
+        name: Switch to light mode
   features:
+    - navigation.instant
+    - navigation.tracking
     - navigation.tabs
     - navigation.tabs.sticky
     - navigation.sections
     - navigation.expand
     - navigation.top
     - navigation.indexes
-    - toc.follow
     - content.code.copy
     - content.code.annotate
+    - content.tabs.link
+    - content.tooltips
     - search.suggest
     - search.highlight
-  palette:
-    - media: "(prefers-color-scheme: light)"
-      scheme: default
-      primary: indigo
-      accent: deep purple
-      toggle:
-        icon: material/weather-night
-        name: Switch to dark mode
-    - media: "(prefers-color-scheme: dark)"
-      scheme: slate
-      primary: indigo
-      accent: deep purple
-      toggle:
-        icon: material/weather-sunny
-        name: Switch to light mode
+    - search.share
+    - toc.follow
+    - announce.dismiss
+  icon:
+    repo: fontawesome/brands/github
+    edit: material/file-edit-outline
+
+extra_css:
+  - assets/css/saim.css
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/osolari/PYIDR
+      name: PY-IDR on GitHub
+  generator: false
+  saim:
+    primary: "#32127A"
+    accent:  "#5B36B7"
+    bg_soft: "#D6CFE4"
 
 plugins:
   - search

@@ -1,0 +1,101 @@
+/* saim indigo theming — overrides Material's custom palette slots so the
+   site picks up the same colour the manuscript uses in docs/report/saim.cls.
+   #32127A: saim indigo (primary).
+   #5B36B7: a lighter accent for hover/active states.
+   #D6CFE4: soft background tint used in callouts.
+*/
+
+:root {
+  --saim-indigo:  #32127A;
+  --saim-accent:  #5B36B7;
+  --saim-soft:    #D6CFE4;
+
+  /* Material's "custom" palette hooks. */
+  --md-primary-fg-color:           var(--saim-indigo);
+  --md-primary-fg-color--light:    var(--saim-accent);
+  --md-primary-fg-color--dark:     #1F0B53;
+  --md-primary-bg-color:           #ffffff;
+  --md-primary-bg-color--light:    rgba(255, 255, 255, 0.7);
+
+  --md-accent-fg-color:            var(--saim-accent);
+  --md-accent-fg-color--transparent: rgba(91, 54, 183, 0.10);
+  --md-accent-bg-color:            #ffffff;
+  --md-accent-bg-color--light:     rgba(255, 255, 255, 0.7);
+
+  --md-typeset-a-color:            var(--saim-indigo);
+}
+
+[data-md-color-scheme="slate"] {
+  --md-primary-fg-color:           #6747C1;
+  --md-primary-fg-color--light:    #9079D2;
+  --md-primary-fg-color--dark:     #44329A;
+  --md-accent-fg-color:            #B9A4F0;
+  --md-accent-fg-color--transparent: rgba(185, 164, 240, 0.15);
+  --md-typeset-a-color:            #B9A4F0;
+}
+
+/* Hero block used on the landing page. */
+.saim-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.4rem;
+  padding: 1.4rem 1.2rem;
+  margin: 0.5rem 0 1.5rem 0;
+  background: linear-gradient(90deg, var(--saim-indigo) 0%, var(--saim-accent) 100%);
+  color: #ffffff;
+  border-radius: 6px;
+  box-shadow: 0 6px 24px rgba(50, 18, 122, 0.15);
+}
+.saim-hero img.saim-hero-logo {
+  height: 42px;
+  margin-bottom: 0.5rem;
+  filter: brightness(0) invert(1); /* white silhouette of the logo */
+}
+.saim-hero h1, .saim-hero p {
+  color: #ffffff !important;
+  margin: 0;
+}
+.saim-hero h1 {
+  font-size: 1.7rem;
+  line-height: 1.15;
+}
+.saim-hero p { opacity: 0.92; }
+.saim-hero .saim-hero-badges a {
+  color: #ffffff;
+  border: 1px solid rgba(255,255,255,0.5);
+  border-radius: 4px;
+  padding: 2px 8px;
+  margin-right: 6px;
+  font-size: 0.78rem;
+  text-decoration: none;
+}
+.saim-hero .saim-hero-badges a:hover {
+  background: rgba(255,255,255,0.18);
+}
+
+/* Soft callout used for the citation block. */
+.saim-cite {
+  background: var(--saim-soft);
+  border-left: 4px solid var(--saim-indigo);
+  border-radius: 0 4px 4px 0;
+  padding: 0.8rem 1rem;
+  margin: 1.2rem 0;
+}
+[data-md-color-scheme="slate"] .saim-cite {
+  background: rgba(91, 54, 183, 0.15);
+  border-left-color: #B9A4F0;
+}
+.saim-cite p { margin: 0.25rem 0; }
+.saim-cite code { background: rgba(0, 0, 0, 0.05); }
+
+/* Tighter headings in landing tables. */
+.md-typeset table:not([class]) th { background: var(--saim-soft); }
+[data-md-color-scheme="slate"] .md-typeset table:not([class]) th {
+  background: rgba(91, 54, 183, 0.18);
+}
+
+/* Brand the inline code colour. */
+.md-typeset code {
+  border-radius: 3px;
+}
