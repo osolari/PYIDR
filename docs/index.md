@@ -1,3 +1,19 @@
+<div class="saim-hero" markdown>
+  <img src="assets/saim_logo.png" alt="sAIm Labs" class="saim-hero-logo">
+  <h1>PY-IDR</h1>
+  <p><strong>Hierarchical nonparametric Bayesian IDR via Pitman--Yor copula
+  mixtures</strong> — arbitrary replicate count, heterogeneous non-Gaussian
+  marginals, and an unknown number of reproducible-component dependence
+  regimes, all in one model.</p>
+  <p class="saim-hero-badges">
+    <a href="https://github.com/osolari/PYIDR">GitHub</a>
+    <a href="getting_started/quickstart/">Quickstart</a>
+    <a href="getting_started/installation/">Install</a>
+    <a href="api/">API</a>
+    <a href="report_submission_readiness/">Submission readiness</a>
+  </p>
+</div>
+
 # PY-IDR
 
 **PY-IDR** is a hierarchical nonparametric Bayesian extension of the
